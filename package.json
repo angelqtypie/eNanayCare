@@ -5,7 +5,7 @@
   "type": "module",
   "homepage": "https://angelqtypie.github.io/Capstone/",
   "scripts": {
-       "predeploy": "npm run build",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "dev": "vite",
     "build": "tsc && vite build",
