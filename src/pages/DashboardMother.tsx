@@ -54,7 +54,7 @@ const DashboardMother = () => {
           <p>No events today.</p>
         )}
 
-        <IonButton routerLink="/plottedcalendar" expand="block">
+        <IonButton routerLink="/Capstone/plottedcalendar" expand="block">
           🔍 View Full Calendar
         </IonButton>
       </IonContent>
