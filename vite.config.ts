@@ -10,6 +10,7 @@ export default defineConfig({
     react(),
     legacy()
   ],
+  base:"Capstone",
   test: {
     globals: true,
     environment: 'jsdom',
