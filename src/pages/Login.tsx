@@ -17,7 +17,6 @@ import { supabase } from "../utils/supabaseClient";
 
 const Login = () => {
   const history = useHistory();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -25,38 +24,44 @@ const Login = () => {
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
 
-const handleSubmit = async () => {
-  setError("");
+  const handleSubmit = async () => {
+    setError("");
 
-  if (isSignUp) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return setError(error.message);
+    if (isSignUp) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) return setError(error.message);
 
-    const userId = data?.user?.id;
-    if (userId) {
-      await supabase.from("profiles").upsert({
-        id: userId,
-        full_name: fullName,
-        role,
-      });
+      const userId = data?.user?.id;
+      if (userId) {
+        await supabase.from("profiles").upsert({
+          id: userId,
+          full_name: fullName,
+          role,
+        });
+        localStorage.setItem("role", role);
+        history.push(`/Capstone/dashboard${role.toLowerCase()}`);
+      }
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return setError(error.message);
+
+      const userId = data?.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
+
+        if (profile?.role) {
+          localStorage.setItem("role", profile.role);
+          history.push(`/Capstone/dashboard${profile.role.toLowerCase()}`);
+        } else {
+          setError("No role found for this user.");
+        }
+      }
     }
-  } else {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return setError(error.message);
-
-    const userId = data?.user?.id;
-    if (userId) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-
-      if (profile?.role === "mother") window.location.href = "/Capstone/dashboardmother";
-      else if (profile?.role === "bhw") window.location.href = "/Capstone/dashboardbhw";
-    }
-  }
-};
+  };
 
   return (
     <IonPage>
