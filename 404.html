@@ -1,8 +1,11 @@
-<!-- public/404.html -->
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="refresh" content="0; url=/" />
+    <meta charset="utf-8" />
+    <script>
+      sessionStorage.redirect = location.pathname + location.search;
+      window.location.replace("/Capstone/");
+    </script>
   </head>
   <body>
     <p>Redirecting...</p>
