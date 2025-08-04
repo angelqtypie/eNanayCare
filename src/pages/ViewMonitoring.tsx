@@ -13,21 +13,25 @@ interface Monitoring {
   created_at: string;
 }
 
-const ViewMonitoring = ({ userId }: { userId: string }) => {
+const ViewMonitoring = () => {
   const [entries, setEntries] = useState<Monitoring[]>([]);
 
   useEffect(() => {
+    const fetchLogs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('health_monitoring')
+        .select('*')
+        .eq('mother_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (data) setEntries(data);
+    };
+
     fetchLogs();
   }, []);
-
-  const fetchLogs = async () => {
-    const { data } = await supabase
-      .from('health_monitoring')
-      .select('*')
-      .eq('mother_id', userId)
-      .order('created_at', { ascending: false });
-    if (data) setEntries(data);
-  };
 
   return (
     <IonPage>

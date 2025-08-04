@@ -1,31 +1,34 @@
-
 import {
   IonPage, IonHeader, IonToolbar, IonTitle,
   IonContent, IonInput, IonButton, IonItem, IonLabel,
-  IonSelect, IonSelectOption, IonTextarea, IonList
+  IonSelect, IonSelectOption, IonTextarea
 } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 
-const AddMonitoring = ({ userId }: { userId: string }) => {
+const AddMonitoring = () => {
   const [mothers, setMothers] = useState<any[]>([]);
   const [motherId, setMotherId] = useState('');
   const [temperature, setTemperature] = useState('');
   const [bloodPressure, setBloodPressure] = useState('');
   const [notes, setNotes] = useState('');
   const [success, setSuccess] = useState('');
+  const [userId, setUserId] = useState('');
 
   useEffect(() => {
-    fetchMothers();
-  }, []);
+    const fetchUserAndMothers = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
 
-  const fetchMothers = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('role', 'mother');
-    if (!error && data) setMothers(data);
-  };
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'mother');
+      if (!error && data) setMothers(data);
+    };
+
+    fetchUserAndMothers();
+  }, []);
 
   const handleSubmit = async () => {
     const { error } = await supabase.from('health_monitoring').insert({
