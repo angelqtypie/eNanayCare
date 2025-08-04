@@ -19,9 +19,9 @@ import {
   IonInput,
   IonTextarea
 } from "@ionic/react";
-import { logOut } from 'ionicons/icons';
+
 import { menu } from "ionicons/icons";
-import { supabase } from '../utils/supabaseClient';
+
 import "./LandingPage.css";
 
 const LandingPage: React.FC = () => {
@@ -30,10 +30,6 @@ const LandingPage: React.FC = () => {
     mobileMenu?.classList.toggle("hidden");
   };
 
-    const handleLogout = async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/Capstone/login';
-    };
   
   const sections = ["About", "Services", "Resources", "News", "Contact"];
 
@@ -72,9 +68,7 @@ const LandingPage: React.FC = () => {
               <div className="hero-text">
                 <h1>Better Health for Women and Children</h1>
                 <p>BHWS is dedicated to improving maternal health through education, support, and quality care.</p>
-                <IonButton onClick={handleLogout}
-                                 color="light" >Click Here to Login & Register
-                                </IonButton>
+            <IonButton color="light" routerLink="/Capstone/addmonitoring">Add Monitoring</IonButton>
               </div>
               <div className="hero-img">
                 <img src="https://storage.googleapis.com/a1aa/image/d0b6f8ba-8258-426c-760c-75fb8988deab.jpg" alt="Mother and child" />
