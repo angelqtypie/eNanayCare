@@ -68,7 +68,7 @@ const LandingPage: React.FC = () => {
               <div className="hero-text">
                 <h1>Better Health for Women and Children</h1>
                 <p>BHWS is dedicated to improving maternal health through education, support, and quality care.</p>
-            <IonButton color="light" routerLink="/Capstone/addmonitoring">Add Monitoring</IonButton>
+            <IonButton color="light" routerLink="/Capstone/login">Click here to Login & Register</IonButton>
               </div>
               <div className="hero-img">
                 <img src="https://storage.googleapis.com/a1aa/image/d0b6f8ba-8258-426c-760c-75fb8988deab.jpg" alt="Mother and child" />
