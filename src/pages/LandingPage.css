@@ -1,0 +1,113 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Navigation */
+.landing-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+.desktop-menu a {
+  margin: 0 12px;
+  color: #374151;
+  font-weight: 600;
+}
+.mobile-menu a {
+  display: block;
+  margin: 8px 0;
+}
+
+/* Hero */
+.hero-section {
+  background: linear-gradient(to right, #2563eb, #14b8a6);
+  color: white;
+  padding: 80px 16px;
+}
+.hero-grid {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 24px;
+}
+@media(min-width: 768px) {
+  .hero-grid {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+.hero-text {
+  max-width: 600px;
+}
+.hero-text h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.hero-text p {
+  font-size: 1.125rem;
+  margin-bottom: 16px;
+}
+.hero-img img {
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+/* Sections */
+section {
+  padding: 48px 16px;
+}
+section h2 {
+  font-size: 2rem;
+  color: #1d4ed8;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Contact */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.contact-info {
+  text-align: center;
+  margin-top: 24px;
+}
+.contact-info p {
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+/* Footer */
+.footer {
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  padding: 24px;
+}
+.footer .social-links {
+  margin-top: 12px;
+}
+.footer .social-links a {
+  margin: 0 8px;
+  color: #6b7280;
+  font-size: 1.25rem;
+}

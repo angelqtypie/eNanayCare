@@ -6,6 +6,10 @@ import DashboardBHW from './pages/DashboardBHW';
 import DashboardMother from './pages/DashboardMother';
 import PlottedCalendar from './pages/PlottedCalendar';
 import ManageCalendar from './pages/ManageCalendar';
+import AddMonitoring from './pages/AddMonitoring';
+import ViewMonitoring from './pages/ViewMonitoring';
+
+import LandingPage from './pages/LandingPage';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -39,6 +43,8 @@ import './theme/variables.css';
 
 
 
+
+
 setupIonicReact();
 
 const App: React.FC = () => (
@@ -59,9 +65,18 @@ const App: React.FC = () => (
         </Route>
         <Route exact path="/Capstone/managecalendar">
           <ManageCalendar />
-        </Route>                                        
+        </Route>
+        <Route exact path="/Capstone/addmonitoring">
+          <AddMonitoring />
+        </Route>  
+        <Route exact path="/Capstone/viewmonitoring">
+          <ViewMonitoring />
+        </Route>      
+  <Route exact path="/Capstone/landingpage">
+          <LandingPage />
+        </Route>                                            
         <Route exact path="/Capstone/">
-          <Redirect to="/Capstone/login" />
+          <Redirect to="/Capstone/landingpage" />
         </Route>
       </IonRouterOutlet>
     </IonReactRouter>

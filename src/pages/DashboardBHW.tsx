@@ -1,15 +1,19 @@
-
 import { useEffect, useState } from 'react';
 import {
+  IonApp,
   IonPage,
   IonContent,
   IonHeader,
-  IonTitle,
   IonToolbar,
+  IonTitle,
   IonButton,
   IonList,
   IonItem,
   IonLabel,
+  IonMenu,
+  IonMenuToggle,
+  IonRouterOutlet,
+  IonSplitPane
 } from '@ionic/react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -35,31 +39,66 @@ const DashboardBHW = () => {
     fetchMothers();
   }, []);
 
+  const sidebarItems = [
+    'Dashboard',
+    'Pregnant Women',
+    'Schedule',
+    "Do's & Don'ts",
+    'Health Records',
+    'Announcement',
+    'Statistics'
+  ];
+
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>BHW Dashboard</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        <p>Welcome, Barangay Health Worker!</p>
-        <IonButton onClick={handleLogout}>Logout</IonButton>
+    <IonApp>
+      <IonSplitPane contentId="main-content">
+        <IonMenu contentId="main-content">
+          <IonHeader>
+            <IonToolbar color="primary">
+              <IonTitle>BHW Panel</IonTitle>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent>
+            <IonList>
+              {sidebarItems.map((item, index) => (
+                <IonMenuToggle key={index} autoHide={false}>
+                  <IonItem button routerLink={`/${item.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <IonLabel>{item}</IonLabel>
+                  </IonItem>
+                </IonMenuToggle>
+              ))}
+            </IonList>
+          </IonContent>
+        </IonMenu>
 
-        <h2 style={{ marginTop: '1rem' }}>Registered Mothers</h2>
-        <IonList>
-          {mothers.map((mother) => (
-            <IonItem key={mother.id}>
-              <IonLabel>{mother.full_name}</IonLabel>
-            </IonItem>
-          ))}
-          <IonButton routerLink="/Capstone/managecalendar" expand="block">
-  🛠 Manage Calendar
-</IonButton>
+        <IonPage id="main-content">
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>BHW Dashboard</IonTitle>
+            </IonToolbar>
+          </IonHeader>
 
-        </IonList>
-      </IonContent>
-    </IonPage>
+          <IonContent className="ion-padding">
+            <p>Welcome, Barangay Health Worker!</p>
+            <IonButton onClick={handleLogout}>Logout</IonButton>
+
+            <h2 style={{ marginTop: '1rem' }}>Registered Mothers</h2>
+            <IonList>
+              {mothers.map((mother) => (
+                <IonItem key={mother.id}>
+                  <IonLabel>{mother.full_name}</IonLabel>
+                </IonItem>
+              ))}
+            </IonList>
+
+            <IonButton routerLink="/Capstone/managecalendar" expand="block">
+              🛠 Manage Calendar
+            </IonButton>
+            <IonButton routerLink="/Capstone/addmonitoring">Add Monitoring</IonButton>
+          </IonContent>
+        </IonPage>
+      </IonSplitPane>
+    </IonApp>
   );
 };
 
