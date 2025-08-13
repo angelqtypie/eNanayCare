@@ -5,8 +5,6 @@ import {
   IonContent,
   IonInput,
   IonPage,
-  IonSelect,
-  IonSelectOption,
   IonText,
   IonHeader,
   IonTitle,
@@ -15,51 +13,44 @@ import {
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 
-const Login = () => {
+const Login: React.FC = () => {
   const history = useHistory();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [role, setRole] = useState("mother");
   const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = async () => {
+  const handleLogin = async () => {
     setError("");
 
-    if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return setError(error.message);
+    try {
+      // Check the profiles table directly
+      const { data: profile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("full_name", fullName)
+        .eq("password", password)
+        .single();
 
-      const userId = data?.user?.id;
-      if (userId) {
-        await supabase.from("profiles").upsert({
-          id: userId,
-          full_name: fullName,
-          role,
-        });
-        localStorage.setItem("role", role);
-        history.push(`/Capstone/dashboard${role.toLowerCase()}`);
+      if (fetchError || !profile) {
+        setError("Invalid credentials");
+        return;
       }
-    } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return setError(error.message);
 
-      const userId = data?.user?.id;
-      if (userId) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", userId)
-          .single();
+      // Save role and full name in localStorage
+      localStorage.setItem("role", profile.role);
+      localStorage.setItem("full_name", profile.full_name);
 
-        if (profile?.role) {
-          localStorage.setItem("role", profile.role);
-          history.push(`/Capstone/dashboard${profile.role.toLowerCase()}`);
-        } else {
-          setError("No role found for this user.");
-        }
+      // Navigate based on role
+      if (profile.role === "bhw") {
+        history.push("/Capstone/dashboardbhw");
+      } else if (profile.role === "mother") {
+        history.push("/Capstone/dashboardmother");
+      } else {
+        setError("Unknown role");
       }
+    } catch (err) {
+      console.error(err);
+      setError("Login failed. Try again.");
     }
   };
 
@@ -67,48 +58,28 @@ const Login = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>{isSignUp ? "Sign Up" : "Login"}</IonTitle>
+          <IonTitle>Login</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {isSignUp && (
-          <IonInput
-            label="Full Name"
-            type="text"
-            value={fullName}
-            onIonChange={(e) => setFullName(e.detail.value!)}
-          />
-        )}
-
         <IonInput
-          label="Email"
-          type="email"
-          value={email}
-          onIonChange={(e) => setEmail(e.detail.value!)}
+          label="Full Name"
+          placeholder="Enter your full name"
+          value={fullName}
+          onIonChange={(e) => setFullName(e.detail.value!)}
         />
-
         <IonInput
           label="Password"
+          placeholder="Enter your password"
           type="password"
           value={password}
           onIonChange={(e) => setPassword(e.detail.value!)}
         />
 
-        {isSignUp && (
-          <IonSelect value={role} onIonChange={(e) => setRole(e.detail.value)}>
-            <IonSelectOption value="mother">Mother</IonSelectOption>
-            <IonSelectOption value="bhw">BHW</IonSelectOption>
-          </IonSelect>
-        )}
-
         {error && <IonText color="danger">{error}</IonText>}
 
-        <IonButton expand="block" onClick={handleSubmit}>
-          {isSignUp ? "Create Account" : "Login"}
-        </IonButton>
-
-        <IonButton fill="clear" onClick={() => setIsSignUp(!isSignUp)}>
-          {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+        <IonButton expand="block" onClick={handleLogin}>
+          Login
         </IonButton>
       </IonContent>
     </IonPage>
