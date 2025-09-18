@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main  # change to "master" if that's your branch
+      
+permissions:
+  contents: write
 
 jobs:
   build-deploy:
