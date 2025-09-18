@@ -3,6 +3,8 @@ import {
   IonContent, IonItem, IonLabel, IonList
 } from '@ionic/react';
 import { useEffect, useState } from 'react';
+import React from "react";
+
 import { supabase } from '../utils/supabaseClient';
 
 interface Monitoring {

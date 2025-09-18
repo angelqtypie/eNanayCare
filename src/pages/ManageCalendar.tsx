@@ -12,6 +12,8 @@ import {
   IonList,
   IonItem
 } from '@ionic/react';
+import React from "react";
+
 import { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 

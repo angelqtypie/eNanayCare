@@ -3,6 +3,8 @@ import {
   IonContent, IonInput, IonButton, IonItem, IonLabel,
   IonSelect, IonSelectOption, IonTextarea
 } from '@ionic/react';
+import React from "react";
+
 import { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 
