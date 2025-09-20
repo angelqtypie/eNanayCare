@@ -9,3 +9,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+
+
+
+
+export async function fetchMothers(): Promise<any[]> {
+  if (!supabase) throw new Error("Supabase client not configured.");
+  const { data, error } = await supabase.from("mothers").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchAppointments(): Promise<any[]> {
+  if (!supabase) throw new Error("Supabase client not configured.");
+  const { data, error } = await supabase.from("appointments").select("*").order("start_time", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
