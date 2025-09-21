@@ -11,7 +11,7 @@ import PlottedCalendar from './pages/PlottedCalendar';
 import ManageCalendar from './pages/ManageCalendar';
 import AddMonitoring from './pages/AddMonitoring';
 import ViewMonitoring from './pages/ViewMonitoring';
-import AdminAppointments from './pages/AdminAppointments';
+import Appointments from './pages/Appointments';
 import MotherFAQ from './pages/MotherFAQ';
 import MotherDOH from './pages/MotherDOH';
 import MotherBooklet from './pages/MotherBooklet';
@@ -32,7 +32,9 @@ import '@ionic/react/css/display.css';
 /* Theme */
 import '@ionic/react/css/palettes/dark.system.css';
 import './theme/variables.css';
-import RegisterMother from './pages/RegisterMother';
+import Mothers from './pages/Mothers';
+import Reminders from './pages/Reminders';
+import AdminFAQ from './pages/AdminFAQ';
 
 setupIonicReact();
 
@@ -46,12 +48,14 @@ const App: React.FC = () => (
         <Route exact path="/Capstone/plottedcalendar" component={PlottedCalendar} />
         <Route exact path="/Capstone/managecalendar" component={ManageCalendar} />
         <Route exact path="/Capstone/addmonitoring" component={AddMonitoring} />
-        <Route exact path="/Capstone/adminappointments" component={AdminAppointments} />
+        <Route exact path="/Capstone/appointments" component={Appointments} />
         <Route exact path="/Capstone/motherappointments" component={ViewMonitoring} />
         <Route exact path="/Capstone/motherbooklet" component={MotherBooklet} />
         <Route exact path="/Capstone/motherdoh" component={MotherDOH} />
         <Route exact path="/Capstone/motherfaq" component={MotherFAQ} />
-        <Route exact path="/Capstone/registermother" component={RegisterMother} />
+        <Route exact path="/Capstone/adminfaq" component={AdminFAQ} />
+        <Route exact path="/Capstone/mothers" component={Mothers} />
+        <Route exact path="/Capstone/reminders" component={Reminders} />
         <Route exact path="/Capstone/viewmonitoring" component={ViewMonitoring} />
         <Route exact path="/Capstone/landingpage" component={LandingPage} />
         <Route exact path="/Capstone/">

@@ -1,0 +1,113 @@
+/* src/pages/FAQ.css */
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  ion-segment {
+    background: #f1f1f1;
+    border-radius: 12px;
+    padding: 2px;
+  }
+  
+  ion-segment-button {
+    --indicator-color: #3880ff;
+    --color-checked: #fff;
+    --background-checked: #3880ff;
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  
+  /* keep previous table, card, modal styles same as before */
+  
+  
+  /* Table */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .faq-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  
+  .faq-table th,
+  .faq-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  
+  .faq-table th {
+    background: #f1f1f1;
+    font-weight: 600;
+  }
+  
+  /* Mobile Cards */
+  .mobile-only {
+    display: none;
+  }
+  
+  .faq-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .faq-card p {
+    margin: 6px 0;
+    font-size: 0.95rem;
+  }
+  
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  
+  /* Modal */
+  .faq-modal .modal-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+  
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    margin-top: 12px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .desktop-only {
+      display: none;
+    }
+    .mobile-only {
+      display: block;
+    }
+  }
+  
