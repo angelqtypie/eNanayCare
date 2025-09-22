@@ -1,278 +1,213 @@
-/* MamaDashboard.css */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
 
 body {
   font-family: 'Nunito', sans-serif;
 }
 
-.custom-header {
-  background-color: #fbcfe8;
+.content-health-ui {
+  background: #fff;
+  min-height: 100vh;
 }
 
-.toolbar-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 1rem;
-  flex-wrap: wrap;
+.toolbar-health-ui {
+  --background: #ffffff;
+  --color: #333333;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.brand-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.dashboard-wrapper {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 24px 16px;
 }
 
-.site-title {
-  color: #9d174d;
-  font-weight: bold;
-  font-size: 1.1rem;
+/* --------------------
+   BANNER
+-------------------- */
+.welcome-banner {
+  background: linear-gradient(135deg, #6dd5ed, #2193b0);
+  border-radius: 0 0 24px 24px;
+  padding: 24px;
+  color: #fff;
+  position: relative;
+  margin-bottom: 32px;
+  overflow: hidden;
 }
 
-.main-nav {
-  display: flex;
-  gap: 1rem;
-  font-weight: 600;
-  color: #9d174d;
-}
-
-.main-nav a:hover {
-  color: #831843;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #9d174d;
-}
-
-.logout-icon {
-  color: #9d174d;
-}
-
-.mobile-toggle {
-  display: none;
-}
-
-.mobile-menu {
-  display: none;
-  flex-direction: column;
-  padding: 1rem;
-  background-color: #fce7f3;
-}
-
-.mobile-menu.visible {
-  display: flex;
-}
-
-.mobile-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 1rem;
-}
-
-.page-content {
-  padding: 1rem;
-  background-color: #fff0f5;
-}
-
-.page-heading {
-  font-size: 1.75rem;
-  color: #9d174d;
-  margin-bottom: 1.5rem;
+.welcome-banner h2 {
+  font-size: 1.6rem;
   font-weight: 700;
-  text-align: center;
+  margin: 0 0 8px;
 }
 
-/* Today’s Schedule */
-.schedule-section {
-  margin-bottom: 2rem;
+.welcome-banner p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
 }
 
-.section-title {
-  font-size: 1.25rem;
-  color: #9d174d;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.event-list {
-  margin-bottom: 1rem;
-}
-
-.event-item {
-  background-color: #fce7f3;
-  border-radius: 8px;
-  margin-bottom: 8px;
-}
-
-.no-events {
-  color: #6b7280;
-  font-style: italic;
-  text-align: center;
-}
-
-.button-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.schedule-btn {
-  --background: #9d174d;
-  --color: #fff;
-  font-weight: bold;
-}
-
-/* Stats */
-.quick-stats {
-  margin-bottom: 2rem;
-}
-
-.stat-box {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  gap: 1rem;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  background-color: #fbcfe8;
-  color: #9d174d;
-  padding: 0.5rem;
+.welcome-banner .avatar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-}
-
-.stat-label {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  color: #9d174d;
-  font-weight: bold;
-}
-
-/* Guidance Cards */
-.guidance-section h3,
-.appointments-section h3,
-.messages-section h3 {
-  font-size: 1.25rem;
-  color: #9d174d;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.guidance-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.guidance-card img {
-  width: 100%;
-  height: 160px;
+  border: 3px solid #fff;
+  background: #fff;
   object-fit: cover;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-.read-more {
-  color: #9d174d;
-  font-weight: 600;
-  display: inline-block;
-  margin-top: 0.5rem;
-}
-
-/* Appointments Table */
-.appointments-table {
-  overflow-x: auto;
-  background-color: white;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.appointments-table table {
+/* Add a subtle wave */
+.welcome-banner::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
   width: 100%;
-  border-collapse: collapse;
+  height: 40px;
+  background: url("/assets/wave.svg") repeat-x;
+  background-size: cover;
 }
 
-.appointments-table th,
-.appointments-table td {
-  text-align: left;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
+/* --------------------
+   PROGRESS SECTION
+-------------------- */
+.progress-section {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px;
+  margin: 0 auto 24px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  max-width: 90%;
 }
 
-.appointments-table th {
-  color: #9d174d;
-  font-size: 0.75rem;
-  text-transform: uppercase;
+.progress-section h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #c2185b;
+  margin-bottom: 16px;
 }
 
-/* Messages */
-.message-list {
+.progress-circle {
+  width: 140px;
+  margin: 0 auto 16px;
+  padding: 12px;
+  border-radius: 50%;
+  background: #fce4ec;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.05);
+}
+
+.progress-text {
+  font-size: 1rem;
+  color: #666;
+}
+
+/* --------------------
+   CARDS
+-------------------- */
+.pastel-card {
+  border-radius: 20px;
+  padding: 16px;
+  text-align: center;
+  color: #333;
+  height: 180px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.message-item {
+.pastel-card ion-card-header {
   display: flex;
-  background-color: white;
-  border-radius: 8px;
-  padding: 1rem;
-  gap: 1rem;
-  align-items: flex-start;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  flex-direction: column;
+  align-items: center;
 }
 
-.message-item img {
-  width: 48px;
-  height: 48px;
+.pastel-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+}
+
+.circle-icon {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  object-fit: cover;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
 
-.sender-name {
-  color: #9d174d;
-  font-weight: bold;
+.circle-icon ion-icon {
+  font-size: 26px;
+  color: #e91e63;
 }
 
-.message-time {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
+.pink-card {
+  background: #ffe4ec;
+}
+.purple-card {
+  background: #f3e5f5;
+}
+.teal-card {
+  background: #e0f7f7;
+}
+.danger-card {
+  background: #ffebee;
+}
+.danger-icon {
+  color: #c62828 !important;
 }
 
-/* Footer */
-.footer {
-  background-color: #fbcfe8;
-  text-align: center;
-  padding: 1rem;
-}
-
-.footer-content {
-  font-size: 0.875rem;
-  color: #9d174d;
-}
-
-/* Responsive Nav */
+/* --------------------
+   RESPONSIVE
+-------------------- */
 @media (max-width: 768px) {
-  .main-nav {
-    display: none;
+  .dashboard-wrapper {
+    padding: 16px 12px;
   }
-  .mobile-toggle {
+  .pastel-card {
+    min-height: 150px;
+    padding: 16px;
+  }
+  .welcome-banner {
+    text-align: center;
+  }
+  .welcome-banner .avatar {
+    position: static;
+    margin: 16px auto 0;
     display: block;
   }
+}
+
+/* --------------------
+   LAYOUT NAV
+-------------------- */
+.desktop-nav {
+  display: none;
+}
+
+.mobile-nav {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: flex;
+    gap: 10px;
+  }
+  .mobile-nav {
+    display: none;
+  }
+}
+
+/* Emergency in menu */
+.emergency-link {
+  color: #d32f2f !important;
+  font-weight: bold;
 }

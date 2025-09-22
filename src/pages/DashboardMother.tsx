@@ -1,77 +1,161 @@
-// File: src/pages/MotherDashboard.tsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonButton, IonGrid, IonRow, IonCol, IonIcon
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonIcon,
+  IonToast,
 } from "@ionic/react";
-import { calendarOutline, bookOutline, chatbubbleEllipsesOutline, medkitOutline } from "ionicons/icons";
 
+import {
+  calendarOutline,
+  bookOutline,
+  heartOutline,
+  notificationsOutline,
+} from "ionicons/icons";
 
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
 
-export default function MotherDashboard() {
+import MotherMainLayout from "../layouts/MotherMainLayout";
+import "./MamaDashboard.css";
+
+const MotherHomeDashboard: React.FC = () => {
+  const [showToast, setShowToast] = useState(false);
+  const [pregnancyMonth, setPregnancyMonth] = useState<number>(1);
+
+  useEffect(() => {
+    setPregnancyMonth(4);
+  }, []);
+
+  const handleReminderClick = () => {
+    setShowToast(true);
+  };
+
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Mother Dashboard</IonTitle>
-        </IonToolbar>
-      </IonHeader>
+    <MotherMainLayout title="eNanayCare">
+      <div className="dashboard-wrapper">
+        {/* Banner */}
+        <section className="welcome-banner gradient-banner">
+          <div className="banner-text">
+            <h2>Hi, Mama! 👋</h2>
+            <p>
+              You’re doing amazing. Month {pregnancyMonth} already—keep going! ❤️
+            </p>
+          </div>
+          <img
+            src="/assets/mama-avatar.svg"
+            alt="Mama Avatar"
+            className="avatar"
+          />
+          <div className="banner-wave"></div>
+        </section>
 
-      <IonContent className="ion-padding">
-        {/* Welcome Section */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>Welcome, Mother!</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <p>Track your health, appointments, and access maternal care resources.</p>
-          </IonCardContent>
-        </IonCard>
+        {/* Progress Section */}
+        <section className="progress-section">
+          <h1 className="section-title">Pregnancy Progress</h1>
+          <div className="progress-circle-wrapper">
+            <div className="progress-circle">
+              <CircularProgressbar
+                value={(pregnancyMonth / 9) * 100}
+                text={`${pregnancyMonth}/9`}
+                styles={buildStyles({
+                  textColor: "#c2185b",
+                  pathColor: "#e91e63",
+                  trailColor: "#f8bbd0",
+                  textSize: "16px",
+                })}
+              />
+            </div>
+          </div>
+          <p className="progress-text">
+            Every checkup and log brings you closer to your little one 💕
+          </p>
+        </section>
 
-        {/* Main Features */}
+        {/* Core Feature Cards */}
         <IonGrid>
           <IonRow>
-            <IonCol size="6">
-              <IonCard button routerLink="/Capstone/motherappointments">
-                <IonCardContent className="ion-text-center">
-                  <IonIcon icon={calendarOutline} style={{ fontSize: "2rem", color: "#3880ff" }} />
-                  <h3>Appointments</h3>
-                </IonCardContent>
+            <IonCol size="6" sizeMd="3">
+              <IonCard
+                button
+                routerLink="/appointments"
+                className="pastel-card pink-card hover-card"
+              >
+                <IonCardHeader>
+                  <div className="circle-icon">
+                    <IonIcon icon={calendarOutline} />
+                  </div>
+                  <IonCardTitle>Appointments</IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>Upcoming checkups & reminders</IonCardContent>
               </IonCard>
             </IonCol>
 
-            <IonCol size="6">
-              <IonCard button routerLink="/Capstone/motherbooklet">
-                <IonCardContent className="ion-text-center">
-                  <IonIcon icon={bookOutline} style={{ fontSize: "2rem", color: "#10dc60" }} />
-                  <h3>Pregnancy Booklet</h3>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
-          <IonRow>
-            <IonCol size="6">
-              <IonCard button routerLink="/Capstone/motherfaq">
-                <IonCardContent className="ion-text-center">
-                  <IonIcon icon={chatbubbleEllipsesOutline} style={{ fontSize: "2rem", color: "#ffce00" }} />
-                  <h3>FAQs Chatbot</h3>
-                </IonCardContent>
+            <IonCol size="6" sizeMd="3">
+              <IonCard
+                button
+                onClick={handleReminderClick}
+                className="pastel-card purple-card hover-card"
+              >
+                <IonCardHeader>
+                  <div className="circle-icon">
+                    <IonIcon icon={notificationsOutline} />
+                  </div>
+                  <IonCardTitle>Reminders</IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>We’ll ping you for important events</IonCardContent>
               </IonCard>
             </IonCol>
 
-            <IonCol size="6">
-              <IonCard button routerLink="/Capstone/motherdoh">
-                <IonCardContent className="ion-text-center">
-                  <IonIcon icon={medkitOutline} style={{ fontSize: "2rem", color: "#eb445a" }} />
-                  <h3>DOH Guidelines</h3>
-                </IonCardContent>
+            <IonCol size="6" sizeMd="3">
+              <IonCard
+                button
+                routerLink="/pregnancy-booklet"
+                className="pastel-card teal-card hover-card"
+              >
+                <IonCardHeader>
+                  <div className="circle-icon">
+                    <IonIcon icon={bookOutline} />
+                  </div>
+                  <IonCardTitle>Pregnancy Guide</IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>Monthly tips & DOH-approved info</IonCardContent>
+              </IonCard>
+            </IonCol>
+
+            <IonCol size="6" sizeMd="3">
+              <IonCard
+                button
+                routerLink="/wellness-log"
+                className="pastel-card pink-card hover-card"
+              >
+                <IonCardHeader>
+                  <div className="circle-icon">
+                    <IonIcon icon={heartOutline} />
+                  </div>
+                  <IonCardTitle>Wellness Log</IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>Track weight, symptoms, baby kicks</IonCardContent>
               </IonCard>
             </IonCol>
           </IonRow>
         </IonGrid>
-      </IonContent>
-    </IonPage>
+      </div>
+
+      <IonToast
+        isOpen={showToast}
+        onDidDismiss={() => setShowToast(false)}
+        message="Reminder set! We'll notify you ❤️"
+        duration={2000}
+        color="success"
+      />
+    </MotherMainLayout>
   );
-}
+};
+
+export default MotherHomeDashboard;

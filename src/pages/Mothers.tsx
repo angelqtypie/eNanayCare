@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   IonButton,
   IonIcon,
@@ -11,11 +11,11 @@ import {
 import { addOutline, closeOutline } from "ionicons/icons";
 import MainLayout from "../layouts/MainLayouts";
 import "./Mother.css";
+import { supabase } from "../utils/supabaseClient";
 
 const Mothers: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [mothers, setMothers] = useState<any[]>([]);
-
   const [form, setForm] = useState({
     name: "",
     birthday: "",
@@ -27,14 +27,81 @@ const Mothers: React.FC = () => {
     dueDate: "",
   });
 
-  const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // ✅ Check login using localStorage (since we're not using supabase.auth)
+  const checkLoginStatus = () => {
+    const role = localStorage.getItem("role");
+    const fullName = localStorage.getItem("full_name");
+
+    if (role === "bhw" && fullName) {
+      setIsLoggedIn(true);
+    } else {
+      alert("You must be logged in as BHW to access this page.");
+    }
+  };
+
+  // ✅ Fetch existing mothers
+  const fetchMothers = async () => {
+    const { data, error } = await supabase.from("mothers").select("*");
+    if (error) {
+      console.error("Error fetching mothers:", error.message);
+    } else {
+      setMothers(data || []);
+    }
+  };
+
+  useEffect(() => {
+    checkLoginStatus();
+    fetchMothers();
+  }, []);
+
+  // Handle input change
+  const handleInputChange = (e: CustomEvent) => {
+    const target = e.target as HTMLInputElement;
+    const name = target.name;
+    const value = (e as any).detail.value;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const registerMother = () => {
-    if (!form.name || !form.email) return;
-    setMothers((prev) => [...prev, form]);
+  // ✅ Register new mother
+  const registerMother = async () => {
+    if (!form.name || !form.email || !form.password) {
+      alert("Please fill out all required fields");
+      return;
+    }
+
+    if (!isLoggedIn) {
+      alert("You must be logged in to perform this action.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("mothers")
+      .insert([
+        {
+          name: form.name,
+          birthday: form.birthday,
+          address: form.address,
+          contact: form.contact,
+          email: form.email,
+          password: form.password,
+          status: form.status,
+          due_date: form.dueDate,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("Error registering mother:", error.message);
+      alert("Insert failed: " + error.message);
+      return;
+    }
+
+    // refresh UI
+    setMothers((prev) => [...prev, ...(data || [])]);
+
+    // reset form
     setForm({
       name: "",
       birthday: "",
@@ -45,6 +112,7 @@ const Mothers: React.FC = () => {
       status: "Pregnant",
       dueDate: "",
     });
+
     setShowModal(false);
   };
 
@@ -59,7 +127,7 @@ const Mothers: React.FC = () => {
           </IonButton>
         </div>
 
-        {/* CONTENT */}
+        {/* Mothers List */}
         <div className="mothers-layout">
           {mothers.length === 0 ? (
             <p className="empty-text">No mothers registered yet.</p>
@@ -86,11 +154,12 @@ const Mothers: React.FC = () => {
                 </tbody>
               </table>
 
-              {/* Mobile Cards */}
               <div className="mobile-only mothers-cards">
                 {mothers.map((m, i) => (
                   <div key={i} className="mother-card">
-                    <p><strong>{m.name}</strong></p>
+                    <p>
+                      <strong>{m.name}</strong>
+                    </p>
                     <p>{m.email}</p>
                     <p>{m.contact}</p>
                     <span className="status">{m.status}</span>
@@ -101,7 +170,7 @@ const Mothers: React.FC = () => {
           )}
         </div>
 
-        {/* MODAL */}
+        {/* Modal */}
         <IonModal
           isOpen={showModal}
           onDidDismiss={() => setShowModal(false)}

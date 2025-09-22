@@ -13,49 +13,53 @@ import React from "react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 
-const MotherLogin: React.FC = () => {
+const AdminLogin: React.FC = () => {
   const history = useHistory();
-  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
     setError("");
 
-    const { data: mother, error: loginError } = await supabase
-      .from("mothers")
-      .select("*")
-      .eq("email", email)
-      .eq("password", password)
-      .single();
+    try {
+      const { data: profile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("full_name", fullName)
+        .eq("password", password)
+        .eq("role", "bhw") // 🔒 only BHW accounts
+        .single();
 
-    if (loginError || !mother) {
-      setError("Invalid email or password");
-      return;
+      if (fetchError || !profile) {
+        setError("Invalid BHW credentials");
+        return;
+      }
+
+      localStorage.setItem("role", profile.role);
+      localStorage.setItem("full_name", profile.full_name);
+
+      // Route to BHW dashboard
+      history.push("/Capstone/dashboardbhw");
+    } catch (err) {
+      console.error(err);
+      setError("Login failed. Try again.");
     }
-
-    // Store in local storage
-    localStorage.setItem("mother_email", mother.email);
-    localStorage.setItem("mother_name", mother.name);
-
-    // Navigate to mother's dashboard
-    history.push("/Capstone/dashboardmother");
   };
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Mother Login</IonTitle>
+          <IonTitle>BHW Admin Login</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
         <IonInput
-          label="Email"
-          placeholder="Enter your email"
-          type="email"
-          value={email}
-          onIonChange={(e) => setEmail(e.detail.value!)}
+          label="Full Name"
+          placeholder="Enter your full name"
+          value={fullName}
+          onIonChange={(e) => setFullName(e.detail.value!)}
         />
         <IonInput
           label="Password"
@@ -75,4 +79,4 @@ const MotherLogin: React.FC = () => {
   );
 };
 
-export default MotherLogin;
+export default AdminLogin;
