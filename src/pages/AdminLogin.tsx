@@ -1,4 +1,5 @@
-import { useState } from "react";
+// FILE: src/pages/AdminLogin.tsx
+import React, { useState } from "react";
 import {
   IonButton,
   IonContent,
@@ -9,9 +10,8 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import React from "react";
 import { useHistory } from "react-router-dom";
-import { supabase } from "../utils/supabaseClient";
+import { getSupabase, initSupabase } from "../utils/supabaseClient";
 
 const AdminLogin: React.FC = () => {
   const history = useHistory();
@@ -23,12 +23,13 @@ const AdminLogin: React.FC = () => {
     setError("");
 
     try {
+      const supabase = getSupabase();
       const { data: profile, error: fetchError } = await supabase
         .from("profiles")
         .select("*")
         .eq("full_name", fullName)
         .eq("password", password)
-        .eq("role", "bhw") // 🔒 only BHW accounts
+        .eq("role", "bhw")
         .single();
 
       if (fetchError || !profile) {
@@ -39,7 +40,9 @@ const AdminLogin: React.FC = () => {
       localStorage.setItem("role", profile.role);
       localStorage.setItem("full_name", profile.full_name);
 
-      // Route to BHW dashboard
+      // update client header after login
+      initSupabase(profile.full_name);
+
       history.push("/Capstone/dashboardbhw");
     } catch (err) {
       console.error(err);

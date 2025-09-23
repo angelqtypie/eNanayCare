@@ -1,4 +1,5 @@
-import { useState } from "react";
+// FILE: src/pages/MotherLogin.tsx
+import React, { useState } from "react";
 import {
   IonButton,
   IonContent,
@@ -9,9 +10,8 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import React from "react";
 import { useHistory } from "react-router-dom";
-import { supabase } from "../utils/supabaseClient";
+import { getSupabase, initSupabase } from "../utils/supabaseClient";
 
 const MotherLogin: React.FC = () => {
   const history = useHistory();
@@ -22,6 +22,7 @@ const MotherLogin: React.FC = () => {
   const handleLogin = async () => {
     setError("");
 
+    const supabase = getSupabase();
     const { data: mother, error: loginError } = await supabase
       .from("mothers")
       .select("*")
@@ -34,11 +35,12 @@ const MotherLogin: React.FC = () => {
       return;
     }
 
-    // Store in local storage
     localStorage.setItem("mother_email", mother.email);
     localStorage.setItem("mother_name", mother.name);
 
-    // Navigate to mother's dashboard
+    // IMPORTANT: update supabase client so future requests include x-full-name
+    initSupabase(mother.name);
+
     history.push("/Capstone/dashboardmother");
   };
 
