@@ -1,4 +1,3 @@
-// FILE: src/pages/Mothers.tsx
 import React, { useState, useEffect } from "react";
 import {
   IonButton,
@@ -41,7 +40,21 @@ const Mothers: React.FC = () => {
   };
 
   const fetchMothers = async () => {
-    const { data, error } = await supabase.from("mothers").select("*");
+    const { data, error } = await supabase
+      .from("mothers")
+      .select(
+        `
+        id,
+        name,
+        email,
+        contact,
+        status,
+        registered_by (
+          full_name
+        )
+      `
+      );
+
     if (error) {
       console.error("Error fetching mothers:", error.message);
     } else {
@@ -74,23 +87,26 @@ const Mothers: React.FC = () => {
     }
 
     try {
-      // 1. Create Auth user (requires service role key!)
-      const { data: authData, error: authError } =
-        await supabase.auth.admin.createUser({
-          email: form.email,
-          password: form.password,
-          email_confirm: true,
-          user_metadata: {
+      // 1. Create Auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
             role: "mother",
             name: form.name,
           },
-        });
+        },
+      });
 
       if (authError) {
         console.error("Error creating auth user:", authError.message);
         alert("Signup failed: " + authError.message);
         return;
       }
+
+      // Get BHW id from localStorage
+      const bhwId = localStorage.getItem("bhw_id");
 
       // 2. Insert into mothers table
       const { data, error } = await supabase
@@ -104,16 +120,31 @@ const Mothers: React.FC = () => {
             email: form.email,
             status: form.status,
             due_date: form.dueDate,
-            auth_user_id: authData.user?.id, // link to auth user
+            auth_user_id: authData.user?.id,
+            registered_by: bhwId,
           },
         ])
-        .select();
+        .select(
+          `
+          id,
+          name,
+          email,
+          contact,
+          status,
+          registered_by (
+            full_name
+          )
+        `
+        );
 
       if (error) {
         console.error("Error registering mother:", error.message);
         alert("Insert failed: " + error.message);
         return;
       }
+
+      // Keep BHW session intact (sign out the new mother session)
+      await supabase.auth.signOut();
 
       // refresh UI
       setMothers((prev) => [...prev, ...(data || [])]);
@@ -161,6 +192,7 @@ const Mothers: React.FC = () => {
                     <th>Email</th>
                     <th>Contact</th>
                     <th>Status</th>
+                    <th>Registered By</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,6 +202,7 @@ const Mothers: React.FC = () => {
                       <td>{m.email}</td>
                       <td>{m.contact}</td>
                       <td>{m.status}</td>
+                      <td>{m.registered_by?.full_name || "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -184,6 +217,9 @@ const Mothers: React.FC = () => {
                     <p>{m.email}</p>
                     <p>{m.contact}</p>
                     <span className="status">{m.status}</span>
+                    <p className="registered-by">
+                      Registered by: {m.registered_by?.full_name || "N/A"}
+                    </p>
                   </div>
                 ))}
               </div>

@@ -1,4 +1,3 @@
-// FILE: src/pages/MotherLogin.tsx
 import React, { useState } from "react";
 import {
   IonButton,
@@ -9,35 +8,58 @@ import {
   IonHeader,
   IonTitle,
   IonToolbar,
+  IonLoading,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 
-const Login: React.FC = () => {
+const MotherLogin: React.FC = () => {
   const history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    setError("");
+    try {
+      setError("");
+      setLoading(true);
 
-    const { data: mother, error: loginError } = await supabase
-      .from("mothers")
-      .select("*")
-      .eq("email", email)
-      .eq("password", password)
-      .single();
+      // ✅ Use Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (loginError || !mother) {
-      setError("Invalid email or password");
-      return;
+      if (error || !data?.user) {
+        setError("Invalid email or password");
+        return;
+      }
+
+      // ✅ Fetch mother record linked to this user
+      const { data: mother, error: motherError } = await supabase
+        .from("mothers")
+        .select("id, name, email")
+        .eq("email", email)
+        .single();
+
+      if (motherError || !mother) {
+        setError("Mother account not found");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // ✅ Store info in localStorage
+      localStorage.setItem("mother_email", mother.email);
+      localStorage.setItem("mother_name", mother.name);
+
+      history.push("/Capstone/dashboardmother");
+    } catch (err) {
+      setError("Something went wrong. Try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("mother_email", mother.email);
-    localStorage.setItem("mother_name", mother.name);
-
-    history.push("/Capstone/dashboardmother");
   };
 
   return (
@@ -53,24 +75,26 @@ const Login: React.FC = () => {
           placeholder="Enter your email"
           type="email"
           value={email}
-          onIonChange={(e) => setEmail(e.detail.value!)}
+          onIonChange={(e) => setEmail(e.detail.value || "")}
         />
         <IonInput
           label="Password"
           placeholder="Enter your password"
           type="password"
           value={password}
-          onIonChange={(e) => setPassword(e.detail.value!)}
+          onIonChange={(e) => setPassword(e.detail.value || "")}
         />
 
         {error && <IonText color="danger">{error}</IonText>}
 
-        <IonButton expand="block" onClick={handleLogin}>
-          Login
+        <IonButton expand="block" onClick={handleLogin} disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
         </IonButton>
+
+        <IonLoading isOpen={loading} message="Please wait..." />
       </IonContent>
     </IonPage>
   );
 };
 
-export default Login;
+export default MotherLogin;
