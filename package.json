@@ -25,6 +25,7 @@
     "@supabase/supabase-js": "^2.53.0",
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
+    "bcryptjs": "^3.0.2",
     "date-fns": "^4.1.0",
     "ionicons": "^7.4.0",
     "react": "^19.1.1",

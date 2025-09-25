@@ -1,3 +1,4 @@
+// FILE: src/pages/Mothers.tsx
 import React, { useState, useEffect } from "react";
 import {
   IonButton,
@@ -29,11 +30,9 @@ const Mothers: React.FC = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // ✅ Check login using localStorage (since we're not using supabase.auth)
   const checkLoginStatus = () => {
     const role = localStorage.getItem("role");
     const fullName = localStorage.getItem("full_name");
-
     if (role === "bhw" && fullName) {
       setIsLoggedIn(true);
     } else {
@@ -41,7 +40,6 @@ const Mothers: React.FC = () => {
     }
   };
 
-  // ✅ Fetch existing mothers
   const fetchMothers = async () => {
     const { data, error } = await supabase.from("mothers").select("*");
     if (error) {
@@ -56,7 +54,6 @@ const Mothers: React.FC = () => {
     fetchMothers();
   }, []);
 
-  // Handle input change
   const handleInputChange = (e: CustomEvent) => {
     const target = e.target as HTMLInputElement;
     const name = target.name;
@@ -76,44 +73,68 @@ const Mothers: React.FC = () => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("mothers")
-      .insert([
-        {
-          name: form.name,
-          birthday: form.birthday,
-          address: form.address,
-          contact: form.contact,
+    try {
+      // 1. Create Auth user (requires service role key!)
+      const { data: authData, error: authError } =
+        await supabase.auth.admin.createUser({
           email: form.email,
           password: form.password,
-          status: form.status,
-          due_date: form.dueDate,
-        },
-      ])
-      .select();
+          email_confirm: true,
+          user_metadata: {
+            role: "mother",
+            name: form.name,
+          },
+        });
 
-    if (error) {
-      console.error("Error registering mother:", error.message);
-      alert("Insert failed: " + error.message);
-      return;
+      if (authError) {
+        console.error("Error creating auth user:", authError.message);
+        alert("Signup failed: " + authError.message);
+        return;
+      }
+
+      // 2. Insert into mothers table
+      const { data, error } = await supabase
+        .from("mothers")
+        .insert([
+          {
+            name: form.name,
+            birthday: form.birthday,
+            address: form.address,
+            contact: form.contact,
+            email: form.email,
+            status: form.status,
+            due_date: form.dueDate,
+            auth_user_id: authData.user?.id, // link to auth user
+          },
+        ])
+        .select();
+
+      if (error) {
+        console.error("Error registering mother:", error.message);
+        alert("Insert failed: " + error.message);
+        return;
+      }
+
+      // refresh UI
+      setMothers((prev) => [...prev, ...(data || [])]);
+
+      // reset form
+      setForm({
+        name: "",
+        birthday: "",
+        address: "",
+        contact: "",
+        email: "",
+        password: "",
+        status: "Pregnant",
+        dueDate: "",
+      });
+
+      setShowModal(false);
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      alert("Something went wrong.");
     }
-
-    // refresh UI
-    setMothers((prev) => [...prev, ...(data || [])]);
-
-    // reset form
-    setForm({
-      name: "",
-      birthday: "",
-      address: "",
-      contact: "",
-      email: "",
-      password: "",
-      status: "Pregnant",
-      dueDate: "",
-    });
-
-    setShowModal(false);
   };
 
   return (

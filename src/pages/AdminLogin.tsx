@@ -11,7 +11,7 @@ import {
   IonToolbar,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
-import { getSupabase, initSupabase } from "../utils/supabaseClient";
+import { supabase } from "../utils/supabaseClient";
 
 const AdminLogin: React.FC = () => {
   const history = useHistory();
@@ -22,32 +22,23 @@ const AdminLogin: React.FC = () => {
   const handleLogin = async () => {
     setError("");
 
-    try {
-      const supabase = getSupabase();
-      const { data: profile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("full_name", fullName)
-        .eq("password", password)
-        .eq("role", "bhw")
-        .single();
+    const { data: profile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("full_name", fullName)
+      .eq("password", password)
+      .eq("role", "bhw")
+      .single();
 
-      if (fetchError || !profile) {
-        setError("Invalid BHW credentials");
-        return;
-      }
-
-      localStorage.setItem("role", profile.role);
-      localStorage.setItem("full_name", profile.full_name);
-
-      // update client header after login
-      initSupabase(profile.full_name);
-
-      history.push("/Capstone/dashboardbhw");
-    } catch (err) {
-      console.error(err);
-      setError("Login failed. Try again.");
+    if (fetchError || !profile) {
+      setError("Invalid admin credentials");
+      return;
     }
+
+    localStorage.setItem("role", profile.role);
+    localStorage.setItem("full_name", profile.full_name);
+
+    history.push("/Capstone/dashboardbhw");
   };
 
   return (
