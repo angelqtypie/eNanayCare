@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonCard,
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
   IonIcon,
+  IonSpinner,
 } from "@ionic/react";
 import {
   peopleOutline,
@@ -13,10 +14,34 @@ import {
   documentTextOutline,
 } from "ionicons/icons";
 
-import MainLayout from "../layouts/MainLayouts"
+import MainLayout from "../layouts/MainLayouts";
+import { supabase } from "../utils/supabaseClient";
 import "./DashboardBHW.css";
 
 const DashboardBHW: React.FC = () => {
+  const [motherCount, setMotherCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMotherCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("mothers")
+          .select("*", { count: "exact", head: true });
+
+        if (error) throw error;
+        setMotherCount(count ?? 0);
+      } catch (err) {
+        console.error("Error fetching mother count:", err);
+        setMotherCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMotherCount();
+  }, []);
+
   return (
     <MainLayout>
       <h1 className="dashboard-title">Welcome, BHW Admin</h1>
@@ -25,6 +50,7 @@ const DashboardBHW: React.FC = () => {
       </p>
 
       <div className="card-grid">
+        {/* Mothers */}
         <IonCard className="dash-card">
           <IonCardHeader>
             <IonCardTitle>
@@ -32,10 +58,17 @@ const DashboardBHW: React.FC = () => {
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p><strong>52</strong> mothers registered</p>
+            {loading ? (
+              <IonSpinner name="dots" />
+            ) : (
+              <p>
+                <strong>{motherCount}</strong> mothers registered
+              </p>
+            )}
           </IonCardContent>
         </IonCard>
 
+        {/* Appointments */}
         <IonCard className="dash-card">
           <IonCardHeader>
             <IonCardTitle>
@@ -47,6 +80,7 @@ const DashboardBHW: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
+        {/* Reminders */}
         <IonCard className="dash-card">
           <IonCardHeader>
             <IonCardTitle>
@@ -58,6 +92,7 @@ const DashboardBHW: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
+        {/* DOH Guidelines */}
         <IonCard className="dash-card">
           <IonCardHeader>
             <IonCardTitle>

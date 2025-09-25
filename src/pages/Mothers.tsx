@@ -22,7 +22,6 @@ const Mothers: React.FC = () => {
     address: "",
     contact: "",
     email: "",
-    password: "",
     status: "Pregnant",
     dueDate: "",
   });
@@ -49,7 +48,7 @@ const Mothers: React.FC = () => {
         email,
         contact,
         status,
-        registered_by (
+        bhw:registered_by (
           full_name
         )
       `
@@ -74,9 +73,9 @@ const Mothers: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Register new mother
+  // ✅ Register new mother (NO supabase.auth, direct insert to table)
   const registerMother = async () => {
-    if (!form.name || !form.email || !form.password) {
+    if (!form.name || !form.email) {
       alert("Please fill out all required fields");
       return;
     }
@@ -87,28 +86,10 @@ const Mothers: React.FC = () => {
     }
 
     try {
-      // 1. Create Auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            role: "mother",
-            name: form.name,
-          },
-        },
-      });
-
-      if (authError) {
-        console.error("Error creating auth user:", authError.message);
-        alert("Signup failed: " + authError.message);
-        return;
-      }
-
       // Get BHW id from localStorage
       const bhwId = localStorage.getItem("bhw_id");
 
-      // 2. Insert into mothers table
+      // Insert into mothers table
       const { data, error } = await supabase
         .from("mothers")
         .insert([
@@ -120,7 +101,6 @@ const Mothers: React.FC = () => {
             email: form.email,
             status: form.status,
             due_date: form.dueDate,
-            auth_user_id: authData.user?.id,
             registered_by: bhwId,
           },
         ])
@@ -131,7 +111,7 @@ const Mothers: React.FC = () => {
           email,
           contact,
           status,
-          registered_by (
+          bhw:registered_by (
             full_name
           )
         `
@@ -143,9 +123,6 @@ const Mothers: React.FC = () => {
         return;
       }
 
-      // Keep BHW session intact (sign out the new mother session)
-      await supabase.auth.signOut();
-
       // refresh UI
       setMothers((prev) => [...prev, ...(data || [])]);
 
@@ -156,7 +133,6 @@ const Mothers: React.FC = () => {
         address: "",
         contact: "",
         email: "",
-        password: "",
         status: "Pregnant",
         dueDate: "",
       });
@@ -202,7 +178,7 @@ const Mothers: React.FC = () => {
                       <td>{m.email}</td>
                       <td>{m.contact}</td>
                       <td>{m.status}</td>
-                      <td>{m.registered_by?.full_name || "N/A"}</td>
+                      <td>{m.bhw?.full_name || "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -218,7 +194,7 @@ const Mothers: React.FC = () => {
                     <p>{m.contact}</p>
                     <span className="status">{m.status}</span>
                     <p className="registered-by">
-                      Registered by: {m.registered_by?.full_name || "N/A"}
+                      Registered by: {m.bhw?.full_name || "N/A"}
                     </p>
                   </div>
                 ))}
@@ -283,15 +259,6 @@ const Mothers: React.FC = () => {
                     type="email"
                     name="email"
                     value={form.email}
-                    onIonChange={handleInputChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="stacked">Password</IonLabel>
-                  <IonInput
-                    type="password"
-                    name="password"
-                    value={form.password}
                     onIonChange={handleInputChange}
                   />
                 </IonItem>
