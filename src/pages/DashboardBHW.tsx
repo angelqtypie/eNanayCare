@@ -11,7 +11,10 @@ import {
   peopleOutline,
   calendarOutline,
   notificationsOutline,
-  documentTextOutline,
+  alertCircleOutline,
+  clipboardOutline,
+  eyeOutline,
+  trashOutline,
 } from "ionicons/icons";
 
 import MainLayout from "../layouts/MainLayouts";
@@ -21,6 +24,7 @@ import "./DashboardBHW.css";
 const DashboardBHW: React.FC = () => {
   const [motherCount, setMotherCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const fullName = localStorage.getItem("full_name") || "BHW";
 
   useEffect(() => {
     const fetchMotherCount = async () => {
@@ -44,65 +48,121 @@ const DashboardBHW: React.FC = () => {
 
   return (
     <MainLayout>
-      <h1 className="dashboard-title">Welcome, BHW Admin</h1>
-      <p className="dashboard-sub">
-        Manage and monitor maternal health with ease.
-      </p>
+      {/* HEADER */}
+      <div className="dashboard-header">
+        <h1>Good morning, {fullName}! 👋</h1>
+        <p>
+          Here’s an overview of maternal health activities in your barangay
+          today.
+        </p>
+      </div>
 
-      <div className="card-grid">
-        {/* Mothers */}
-        <IonCard className="dash-card">
+      {/* GRID CARDS */}
+      <div className="dashboard-grid">
+        {/* Registered Mothers */}
+        <IonCard className="stat-card success">
           <IonCardHeader>
             <IonCardTitle>
-              <IonIcon icon={peopleOutline} /> Mothers
+              <IonIcon icon={peopleOutline} />
+              Registered Mothers
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
             {loading ? (
               <IonSpinner name="dots" />
             ) : (
-              <p>
-                <strong>{motherCount}</strong> mothers registered
-              </p>
+              <div className="stat-value">
+                <strong>{motherCount}</strong>
+                <span className="stat-change">↑ 8% from last month</span>
+              </div>
             )}
           </IonCardContent>
         </IonCard>
 
-        {/* Appointments */}
-        <IonCard className="dash-card">
+        {/* Upcoming Appointments */}
+        <IonCard className="stat-card info">
           <IonCardHeader>
             <IonCardTitle>
-              <IonIcon icon={calendarOutline} /> Appointments
+              <IonIcon icon={calendarOutline} />
+              Upcoming Appointments
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>No appointments scheduled yet.</p>
+            <div className="stat-value">
+              <strong>12</strong>
+              <span className="stat-change">↑ 3% from last month</span>
+            </div>
           </IonCardContent>
         </IonCard>
 
-        {/* Reminders */}
-        <IonCard className="dash-card">
+        {/* Pending Reminders */}
+        <IonCard className="stat-card warning">
           <IonCardHeader>
             <IonCardTitle>
-              <IonIcon icon={notificationsOutline} /> Reminders
+              <IonIcon icon={notificationsOutline} />
+              Pending Reminders
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>No reminders set yet.</p>
+            <div className="stat-value">
+              <strong>8</strong>
+              <span className="stat-change">Needs attention</span>
+            </div>
           </IonCardContent>
         </IonCard>
 
-        {/* DOH Guidelines */}
-        <IonCard className="dash-card">
+        {/* High-Risk Cases */}
+        <IonCard className="stat-card danger">
           <IonCardHeader>
             <IonCardTitle>
-              <IonIcon icon={documentTextOutline} /> DOH Guidelines
+              <IonIcon icon={alertCircleOutline} />
+              High-Risk Cases
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>Access DOH reference for maternal care.</p>
+            <div className="stat-value">
+              <strong>3</strong>
+              <span className="stat-change">Critical</span>
+            </div>
           </IonCardContent>
         </IonCard>
+      </div>
+
+      {/* CONTENT SPLIT */}
+      <div className="dashboard-content-split">
+        {/* LEFT TABLE */}
+        <div className="dashboard-left">
+          <h2>Recent Mothers Registry</h2>
+          <table className="dashboard-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Age / Pregnancy</th>
+                <th>Next Appointment</th>
+                <th>Risk Level</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Empty state */}
+              <tr>
+                <td colSpan={6} className="empty-data">
+                  No mothers registered yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* RIGHT LIST */}
+        <div className="dashboard-right">
+          <h2>Upcoming Appointments</h2>
+          <ul className="appointments-list">
+            {/* Empty */}
+            <li className="empty-data">No upcoming appointments.</li>
+          </ul>
+        </div>
       </div>
     </MainLayout>
   );
