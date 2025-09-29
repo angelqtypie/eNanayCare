@@ -22,47 +22,23 @@ const Mothers: React.FC = () => {
     address: "",
     contact: "",
     email: "",
+    password: "",
     status: "Pregnant",
     dueDate: "",
   });
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const checkLoginStatus = () => {
-    const role = localStorage.getItem("role");
-    const fullName = localStorage.getItem("full_name");
-    if (role === "bhw" && fullName) {
-      setIsLoggedIn(true);
-    } else {
-      alert("You must be logged in as BHW to access this page.");
-    }
-  };
-
   const fetchMothers = async () => {
     const { data, error } = await supabase
       .from("mothers")
-      .select(
-        `
-        id,
-        name,
-        email,
-        contact,
-        status,
-        bhw:registered_by (
-          full_name
-        )
-      `
-      );
-
+      .select("id, name, email, contact, status, birthday, address, due_date");
     if (error) {
-      console.error("Error fetching mothers:", error.message);
+      console.error("Error fetching mothers:", error);
     } else {
       setMothers(data || []);
     }
   };
 
   useEffect(() => {
-    checkLoginStatus();
     fetchMothers();
   }, []);
 
@@ -73,76 +49,88 @@ const Mothers: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Register new mother (NO supabase.auth, direct insert to table)
   const registerMother = async () => {
-    if (!form.name || !form.email) {
-      alert("Please fill out all required fields");
+    if (!form.name || !form.email || !form.password) {
+      alert("Please fill out all required fields (Name, Email, Password)");
       return;
     }
-
-    if (!isLoggedIn) {
-      alert("You must be logged in to perform this action.");
-      return;
-    }
-
+  
     try {
-      // Get BHW id from localStorage
-      const bhwId = localStorage.getItem("bhw_id");
-
-      // Insert into mothers table
-      const { data, error } = await supabase
-        .from("mothers")
-        .insert([
-          {
-            name: form.name,
-            birthday: form.birthday,
-            address: form.address,
-            contact: form.contact,
-            email: form.email,
-            status: form.status,
-            due_date: form.dueDate,
-            registered_by: bhwId,
-          },
-        ])
-        .select(
-          `
-          id,
-          name,
-          email,
-          contact,
-          status,
-          bhw:registered_by (
-            full_name
-          )
-        `
-        );
-
-      if (error) {
-        console.error("Error registering mother:", error.message);
-        alert("Insert failed: " + error.message);
+      // 1. Sign up user via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      });
+  
+      if (authError) {
+        console.error("Auth signUp error:", authError);
+        alert("Error creating auth user: " + authError.message);
         return;
       }
-
-      // refresh UI
-      setMothers((prev) => [...prev, ...(data || [])]);
-
-      // reset form
+  
+      if (!authData.user) {
+        console.error("No user object after signUp:", authData);
+        alert("User creation failed.");
+        return;
+      }
+  
+      const userId = authData.user.id;
+  
+      // 2. Prepare data for insertion into mothers
+      const insertObj: any = {
+        user_id: userId,
+        name: form.name,
+        address: form.address || null,
+        contact: form.contact || null,
+        email: form.email,
+        status: form.status,
+      };
+  
+      if (form.birthday) {
+        insertObj.birthday = form.birthday;
+      }
+      if (form.dueDate) {
+        insertObj.due_date = form.dueDate;
+      }
+  
+      // 3. Insert into mothers table
+      const { error: insertError } = await supabase
+        .from("mothers")
+        .insert([insertObj]);
+  
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        alert("Failed to save mother data: " + insertError.message);
+        return;
+      }
+  
+      // 4. Done! No login. Show success, reset form, close modal, refresh list
+      alert("Mother registered successfully!");
+  
+      // Reset form
       setForm({
         name: "",
         birthday: "",
         address: "",
         contact: "",
         email: "",
+        password: "",
         status: "Pregnant",
         dueDate: "",
       });
-
+  
+      // Refresh mother list
+      await fetchMothers();
+  
+      // Close modal
       setShowModal(false);
+  
     } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Something went wrong.");
+      console.error("Unexpected error in registerMother:", err);
+      alert("Something went wrong during registration.");
     }
   };
+  
 
   return (
     <MainLayout>
@@ -155,7 +143,6 @@ const Mothers: React.FC = () => {
           </IonButton>
         </div>
 
-        {/* Mothers List */}
         <div className="mothers-layout">
           {mothers.length === 0 ? (
             <p className="empty-text">No mothers registered yet.</p>
@@ -168,7 +155,7 @@ const Mothers: React.FC = () => {
                     <th>Email</th>
                     <th>Contact</th>
                     <th>Status</th>
-                    <th>Registered By</th>
+                    <th>Due Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,7 +165,7 @@ const Mothers: React.FC = () => {
                       <td>{m.email}</td>
                       <td>{m.contact}</td>
                       <td>{m.status}</td>
-                      <td>{m.bhw?.full_name || "N/A"}</td>
+                      <td>{m.due_date || "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -193,9 +180,7 @@ const Mothers: React.FC = () => {
                     <p>{m.email}</p>
                     <p>{m.contact}</p>
                     <span className="status">{m.status}</span>
-                    <p className="registered-by">
-                      Registered by: {m.bhw?.full_name || "N/A"}
-                    </p>
+                    <p>Due: {m.due_date || "N/A"}</p>
                   </div>
                 ))}
               </div>
@@ -203,7 +188,6 @@ const Mothers: React.FC = () => {
           )}
         </div>
 
-        {/* Modal */}
         <IonModal
           isOpen={showModal}
           onDidDismiss={() => setShowModal(false)}
@@ -263,6 +247,15 @@ const Mothers: React.FC = () => {
                   />
                 </IonItem>
                 <IonItem>
+                  <IonLabel position="stacked">Password</IonLabel>
+                  <IonInput
+                    type="password"
+                    name="password"
+                    value={form.password}
+                    onIonChange={handleInputChange}
+                  />
+                </IonItem>
+                <IonItem>
                   <IonLabel position="stacked">Expected Due Date</IonLabel>
                   <IonInput
                     type="date"
@@ -287,3 +280,5 @@ const Mothers: React.FC = () => {
 };
 
 export default Mothers;
+
+

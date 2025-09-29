@@ -9,6 +9,8 @@ import {
   IonTitle,
   IonToolbar,
   IonLoading,
+  IonItem,
+  IonLabel,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
@@ -21,43 +23,50 @@ const MotherLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    try {
-      setError("");
-      setLoading(true);
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
 
-      // ✅ Use Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
+    setError("");
+    setLoading(true);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error || !data?.user) {
-        setError("Invalid email or password");
+      if (authError) {
+        // Handle specific errors
+        console.error("Auth login error:", authError);
+
+        if (
+          authError instanceof Error &&
+          authError.message.includes("Email not confirmed")
+        ) {
+          setError(
+            "Your email is not confirmed yet. Please check your inbox and verify your email."
+          );
+        } else {
+          setError(authError.message || "Login failed. Please try again.");
+        }
+        setLoading(false);
         return;
       }
 
-      // ✅ Fetch mother record linked to this user
-      const { data: mother, error: motherError } = await supabase
-        .from("mothers")
-        .select("id, name, email")
-        .eq("email", email)
-        .single();
-
-      if (motherError || !mother) {
-        setError("Mother account not found");
-        await supabase.auth.signOut();
+      if (!data?.user) {
+        setError("Login failed. No user data returned.");
+        setLoading(false);
         return;
       }
 
-      // ✅ Store info in localStorage
-      localStorage.setItem("mother_email", mother.email);
-      localStorage.setItem("mother_name", mother.name);
-
-      history.push("/Capstone/dashboardmother");
-    } catch (err) {
-      setError("Something went wrong. Try again.");
-      console.error(err);
-    } finally {
+      // Login successful, redirect user or do what you want here
+      setLoading(false);
+      history.push("/Capstone/dashboardmother"); // or your target route
+    } catch (error) {
+      console.error("Unexpected error during login:", error);
+      setError("Unexpected error occurred. Please try again.");
       setLoading(false);
     }
   };
@@ -69,29 +78,38 @@ const MotherLogin: React.FC = () => {
           <IonTitle>Mother Login</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
-        <IonInput
-          label="Email"
-          placeholder="Enter your email"
-          type="email"
-          value={email}
-          onIonChange={(e) => setEmail(e.detail.value || "")}
-        />
-        <IonInput
-          label="Password"
-          placeholder="Enter your password"
-          type="password"
-          value={password}
-          onIonChange={(e) => setPassword(e.detail.value || "")}
-        />
+      <IonContent fullscreen className="ion-padding">
+        <IonItem>
+          <IonLabel position="floating">Email</IonLabel>
+          <IonInput
+            type="email"
+            value={email}
+            onIonChange={(e) => setEmail(e.detail.value!)}
+            required
+          />
+        </IonItem>
 
-        {error && <IonText color="danger">{error}</IonText>}
+        <IonItem>
+          <IonLabel position="floating">Password</IonLabel>
+          <IonInput
+            type="password"
+            value={password}
+            onIonChange={(e) => setPassword(e.detail.value!)}
+            required
+          />
+        </IonItem>
+
+        {error && (
+          <IonText color="danger" className="ion-padding-top">
+            {error}
+          </IonText>
+        )}
 
         <IonButton expand="block" onClick={handleLogin} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+          Login
         </IonButton>
 
-        <IonLoading isOpen={loading} message="Please wait..." />
+        <IonLoading isOpen={loading} message={"Logging in..."} />
       </IonContent>
     </IonPage>
   );

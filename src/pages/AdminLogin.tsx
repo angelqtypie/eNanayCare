@@ -1,4 +1,5 @@
 // FILE: src/pages/BHWLogin.tsx
+
 import React, { useState } from "react";
 import {
   IonButton,
@@ -10,6 +11,8 @@ import {
   IonTitle,
   IonToolbar,
   IonLoading,
+  IonItem,
+  IonLabel,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
@@ -22,48 +25,44 @@ const BHWLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setError("");
+
+    if (!fullName || !password) {
+      setError("Full name and password are required.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      setError("");
+      console.log("Trying to login with:", { fullName, password });
 
-      if (!fullName.trim() || !password.trim()) {
-        setError("Full name and password are required");
-        return;
-      }
-
-      setLoading(true);
-
-      // Fetch profile by full_name
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("id, role, full_name, password")
-        .eq("full_name", fullName.trim())
+        .select("*")
+        .eq("full_name", fullName)
+        .eq("role", "bhw")
         .single();
 
       if (profileError || !profile) {
-        setError("No BHW found with this name");
+        console.log("Profile fetch error:", profileError);
+        setError("No BHW found with that name.");
         return;
       }
 
-      if (profile.role !== "bhw") {
-        setError("You are not authorized as BHW");
+      if (profile.password !== password) {
+        setError("Incorrect password.");
         return;
       }
 
-      // Check password (plain text for now — use bcrypt in production!)
-      if (profile.password !== password.trim()) {
-        setError("Invalid password");
-        return;
-      }
-
-      // Save session manually
       localStorage.setItem("role", profile.role);
       localStorage.setItem("full_name", profile.full_name);
       localStorage.setItem("bhw_id", profile.id);
 
       history.push("/Capstone/dashboardbhw");
     } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Try again.");
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -76,22 +75,31 @@ const BHWLogin: React.FC = () => {
           <IonTitle>BHW Login</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
-        <IonInput
-          label="Full Name"
-          placeholder="Enter your full name"
-          value={fullName}
-          onIonChange={(e) => setFullName(e.detail.value || "")}
-        />
-        <IonInput
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onIonChange={(e) => setPassword(e.detail.value || "")}
-        />
 
-        {error && <IonText color="danger">{error}</IonText>}
+      <IonContent className="ion-padding">
+        <IonItem>
+          <IonLabel position="floating">Full Name</IonLabel>
+          <IonInput
+            type="text"
+            value={fullName}
+            onIonChange={(e) => setFullName(e.detail.value || "")}
+          />
+        </IonItem>
+
+        <IonItem>
+          <IonLabel position="floating">Password</IonLabel>
+          <IonInput
+            type="password"
+            value={password}
+            onIonChange={(e) => setPassword(e.detail.value || "")}
+          />
+        </IonItem>
+
+        {error && (
+          <IonText color="danger">
+            <p className="ion-padding-top">{error}</p>
+          </IonText>
+        )}
 
         <IonButton expand="block" onClick={handleLogin} disabled={loading}>
           {loading ? "Logging in..." : "Login"}
