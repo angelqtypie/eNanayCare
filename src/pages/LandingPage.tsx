@@ -209,7 +209,7 @@ const Landing: React.FC = () => {
                       <IonButton
                         expand="block"
                         color="primary"
-                        onClick={() => history.push("/Capstone/dashboardmother")}
+                        onClick={() => history.push("/Capstone/login")}
                       >
                         <IonIcon icon={logInOutline} slot="start" />
                         Login as Mother
