@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonHeader,
@@ -14,23 +14,21 @@ import {
   IonSelect,
   IonSelectOption,
 } from "@ionic/react";
-import { addOutline, closeOutline, calendarOutline } from "ionicons/icons";
+import { addOutline, closeOutline, calendarOutline, closeOutline as close } from "ionicons/icons";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
+import { supabase } from "../utils/supabaseClient";
 import "./adminappointments.css";
 
 const Appointments: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
-
-  // Mock mothers list (later pwede nato i-link sa Mothers page or backend)
-  const mothers = [
-    { id: 1, name: "Maria Santos" },
-    { id: 2, name: "Ana Cruz" },
-    { id: 3, name: "Josefina Dela Rosa" },
-  ];
+  const [mothers, setMothers] = useState<any[]>([]);
+  const [calendarDate, setCalendarDate] = useState<Date | null>(new Date());
 
   const [form, setForm] = useState({
-    motherName: "",
+    motherId: "",
     date: "",
     time: "",
     notes: "",
@@ -40,36 +38,125 @@ const Appointments: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const addAppointment = () => {
-    if (!form.motherName || !form.date || !form.time) return;
-    setAppointments((prev) => [...prev, form]);
-    setForm({ motherName: "", date: "", time: "", notes: "" });
-    setShowModal(false);
+  // ✅ Local date formatter (fixes 1-day offset issue)
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
+
+  // ✅ Fetch mothers
+  const fetchMothers = async () => {
+    const { data, error } = await supabase
+      .from("mothers")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching mothers:", error);
+    } else {
+      setMothers(data || []);
+    }
+  };
+
+  // ✅ Fetch appointments
+  const fetchAppointments = async () => {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`
+        id,
+        date,
+        time,
+        notes,
+        mother:mothers ( id, name )
+      `)
+      .order("date", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching appointments:", error);
+    } else {
+      setAppointments(data || []);
+    }
+  };
+
+  // ✅ Add appointment
+  const addAppointment = async () => {
+    if (!form.motherId || !form.date || !form.time) return;
+
+    const { error } = await supabase.from("appointments").insert([
+      {
+        mother_id: form.motherId,
+        date: form.date,
+        time: form.time,
+        notes: form.notes,
+      },
+    ]);
+
+    if (error) {
+      console.error("Error adding appointment:", error);
+    } else {
+      setForm({ motherId: "", date: "", time: "", notes: "" });
+      setShowModal(false);
+      fetchAppointments(); // refresh list
+    }
+  };
+
+  useEffect(() => {
+    fetchMothers();
+    fetchAppointments();
+  }, []);
+
+  // ✅ Filter appointments by selected calendar date
+  const filteredAppointments = calendarDate
+    ? appointments.filter(
+        (a) =>
+          new Date(a.date).toDateString() ===
+          (calendarDate as Date).toDateString()
+      )
+    : appointments;
 
   return (
     <MainLayout>
-      <IonPage className="appointments-page">
         {/* HEADER */}
         <IonHeader className="appointments-header">
           <IonToolbar>
-            <div className="header-container">
-              <h1 className="page-title">
-                <IonIcon icon={calendarOutline} /> Appointments
-              </h1>
-              <IonButton className="add-btn" onClick={() => setShowModal(true)}>
-                <IonIcon icon={addOutline} slot="start" />
-                New Appointment
-              </IonButton>
-            </div>
           </IonToolbar>
         </IonHeader>
 
         {/* CONTENT */}
         <IonContent className="appointments-content">
           <div className="appointments-layout">
-            {appointments.length === 0 ? (
-              <p className="empty-text">No appointments scheduled yet.</p>
+            {/* Calendar */}
+            <div className="calendar-section">
+              <Calendar
+                value={calendarDate}
+                onClickDay={(date) => {
+                  setCalendarDate(date);
+                  setForm((prev) => ({
+                    ...prev,
+                    date: formatDate(date), // ✅ FIXED: no more UTC shift
+                  }));
+                  setShowModal(true);
+                }}
+                tileContent={({ date }) => {
+                  const hasAppointment = appointments.some(
+                    (a) => new Date(a.date).toDateString() === date.toDateString()
+                  );
+                  return hasAppointment ? <div className="dot"></div> : null;
+                }}
+                tileClassName={({ date }) => {
+                  const hasAppointment = appointments.some(
+                    (a) => new Date(a.date).toDateString() === date.toDateString()
+                  );
+                  return hasAppointment ? "has-appointment" : "";
+                }}
+              />
+            </div>
+
+            {/* Appointment List */}
+            {filteredAppointments.length === 0 ? (
+              <p className="empty-text">No appointments scheduled for this day.</p>
             ) : (
               <div className="table-wrapper">
                 {/* Desktop Table */}
@@ -83,9 +170,9 @@ const Appointments: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {appointments.map((a, i) => (
-                      <tr key={i}>
-                        <td>{a.motherName}</td>
+                    {filteredAppointments.map((a) => (
+                      <tr key={a.id}>
+                        <td>{a.mother?.name}</td>
                         <td>{a.date}</td>
                         <td>{a.time}</td>
                         <td>{a.notes}</td>
@@ -96,10 +183,14 @@ const Appointments: React.FC = () => {
 
                 {/* Mobile Cards */}
                 <div className="mobile-only appointments-cards">
-                  {appointments.map((a, i) => (
-                    <div key={i} className="appointment-card">
-                      <p><strong>{a.motherName}</strong></p>
-                      <p>{a.date} at {a.time}</p>
+                  {filteredAppointments.map((a) => (
+                    <div key={a.id} className="appointment-card">
+                      <p>
+                        <strong>{a.mother?.name}</strong>
+                      </p>
+                      <p>
+                        {a.date} at {a.time}
+                      </p>
                       <p>{a.notes}</p>
                     </div>
                   ))}
@@ -124,23 +215,23 @@ const Appointments: React.FC = () => {
                 color="medium"
                 onClick={() => setShowModal(false)}
               >
-                <IonIcon icon={closeOutline} />
+                <IonIcon icon={close} />
               </IonButton>
             </div>
 
             {/* BODY */}
             <div className="modal-body">
               <IonList className="form-list">
-                {/* Mother Dropdown */}
                 <IonItem>
                   <IonLabel position="stacked">Select Mother</IonLabel>
                   <IonSelect
-                    name="motherName"
-                    value={form.motherName}
-                    onIonChange={(e) => handleChange("motherName", e.detail.value)}
+                    name="motherId"
+                    value={form.motherId}
+                    placeholder="Choose a mother"
+                    onIonChange={(e) => handleChange("motherId", e.detail.value)}
                   >
                     {mothers.map((m) => (
-                      <IonSelectOption key={m.id} value={m.name}>
+                      <IonSelectOption key={m.id} value={m.id}>
                         {m.name}
                       </IonSelectOption>
                     ))}
@@ -168,6 +259,7 @@ const Appointments: React.FC = () => {
                 <IonItem>
                   <IonLabel position="stacked">Notes</IonLabel>
                   <IonInput
+                    placeholder="Optional"
                     value={form.notes}
                     onIonChange={(e) => handleChange("notes", e.detail.value!)}
                   />
@@ -178,12 +270,11 @@ const Appointments: React.FC = () => {
             {/* FOOTER */}
             <div className="modal-footer">
               <IonButton expand="block" onClick={addAppointment}>
-                Save
+                Save Appointment
               </IonButton>
             </div>
           </div>
         </IonModal>
-      </IonPage>
     </MainLayout>
   );
 };

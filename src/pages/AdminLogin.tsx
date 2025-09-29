@@ -1,5 +1,3 @@
-// FILE: src/pages/BHWLogin.tsx
-
 import React, { useState } from "react";
 import {
   IonButton,
@@ -35,30 +33,42 @@ const BHWLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log("Trying to login with:", { fullName, password });
+      const cleanName = fullName.trim();
 
-      const { data: profile, error: profileError } = await supabase
+      console.log("Trying to login with:", { fullName: cleanName, password });
+
+      // ✅ Use wildcards with ilike so it matches case-insensitive & exact text
+      const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("full_name", fullName)
-        .eq("role", "bhw")
-        .single();
+        .ilike("full_name", `%${cleanName}%`)
+        .eq("role", "bhw");
 
-      if (profileError || !profile) {
-        console.log("Profile fetch error:", profileError);
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        setError("Error fetching BHW profile.");
+        return;
+      }
+
+      if (!profiles || profiles.length === 0) {
         setError("No BHW found with that name.");
         return;
       }
+
+      // Expect only one profile, take first
+      const profile = profiles[0];
 
       if (profile.password !== password) {
         setError("Incorrect password.");
         return;
       }
 
+      // ✅ Save to localStorage
       localStorage.setItem("role", profile.role);
       localStorage.setItem("full_name", profile.full_name);
       localStorage.setItem("bhw_id", profile.id);
 
+      // Redirect to BHW dashboard
       history.push("/Capstone/dashboardbhw");
     } catch (err) {
       console.error("Login error:", err);

@@ -231,7 +231,7 @@ const Landing: React.FC = () => {
                       <IonButton
                         expand="block"
                         color="secondary"
-                        onClick={() => history.push("/Capstone/adminlogin")}
+                        onClick={() => history.push("/Capstone/dashboardbhw")}
                       >
                         <IonIcon icon={logInOutline} slot="start" />
                         Login as BHW Admin
