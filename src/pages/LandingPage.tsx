@@ -209,7 +209,7 @@ const Landing: React.FC = () => {
                       <IonButton
                         expand="block"
                         color="primary"
-                        onClick={() => history.push("/Capstone/login")}
+                        onClick={() => history.push("/eNanayCare/login")}
                       >
                         <IonIcon icon={logInOutline} slot="start" />
                         Login as Mother
@@ -231,7 +231,7 @@ const Landing: React.FC = () => {
                       <IonButton
                         expand="block"
                         color="secondary"
-                        onClick={() => history.push("/Capstone/dashboardbhw")}
+                        onClick={() => history.push("/eNanayCare/dashboardbhw")}
                       >
                         <IonIcon icon={logInOutline} slot="start" />
                         Login as BHW Admin

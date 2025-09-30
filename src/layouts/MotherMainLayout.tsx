@@ -63,7 +63,7 @@ const MotherMainLayout: React.FC<MotherMainLayoutProps> = ({ title, children }) 
       <IonItem
         button
         detail={false}
-        onClick={() => history.push("/Capstone/landingpage")}
+        onClick={() => history.push("/eNanayCare/landingpage")}
       >
         <IonIcon slot="start" icon={logOutOutline} />
         <IonLabel>Logout</IonLabel>
@@ -92,7 +92,7 @@ const MotherMainLayout: React.FC<MotherMainLayoutProps> = ({ title, children }) 
                 className="logout-btn"
                 color="medium"
                 fill="clear"
-                onClick={() => history.push("/Capstone/landingpage")}
+                onClick={() => history.push("/eNanayCare/landingpage")}
               >
                 <IonIcon icon={logOutOutline} slot="end" />
                 Logout

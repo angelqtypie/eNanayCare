@@ -35,7 +35,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const handleLogout = () => {
     setSidebarOpen(false);
-    history.push("/Capstone/landingpage");
+    history.push("/eNanayCare/landingpage");
   };
 
   return (
@@ -56,7 +56,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 src={logo}
                 alt="eNanayCare"
                 className="dashboard-logo"
-                onClick={() => goTo("/Capstone/dashboardbhw")}
+                onClick={() => goTo("/eNanayCare/dashboardbhw")}
               />
               <span className="app-title">eNanayCare</span>
             </div>
@@ -81,25 +81,25 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {/* SIDEBAR */}
           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
             <nav className="sidebar-nav">
-              <button className="side-item" onClick={() => goTo("/Capstone/dashboardbhw")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/dashboardbhw")}>
                 <IonIcon icon={pulseOutline} /> Dashboard
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/mothers")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/mothers")}>
                 <IonIcon icon={peopleOutline} /> Mothers
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/appointments")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/appointments")}>
                 <IonIcon icon={calendarOutline} /> Appointments
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/reminders")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/reminders")}>
                 <IonIcon icon={notificationsOutline} /> Reminders
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/adminfaq")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/adminfaq")}>
                 <IonIcon icon={chatbubbleEllipsesOutline} /> FAQ
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/guidelines")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/guidelines")}>
                 <IonIcon icon={documentTextOutline} /> DOH Guidelines
               </button>
-              <button className="side-item" onClick={() => goTo("/Capstone/booklet")}>
+              <button className="side-item" onClick={() => goTo("/eNanayCare/booklet")}>
                 <IonIcon icon={bookOutline} /> Pregnancy Booklet
               </button>
               <IonButton

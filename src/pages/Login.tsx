@@ -63,7 +63,7 @@ const MotherLogin: React.FC = () => {
 
       // Login successful, redirect user or do what you want here
       setLoading(false);
-      history.push("/Capstone/dashboardmother"); // or your target route
+      history.push("/eNanayCare/dashboardmother"); // or your target route
     } catch (error) {
       console.error("Unexpected error during login:", error);
       setError("Unexpected error occurred. Please try again.");

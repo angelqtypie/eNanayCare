@@ -38,17 +38,17 @@ const App: React.FC = () => (
   <IonApp>
     <IonReactRouter>
       <IonRouterOutlet>
-        <Route exact path="/Capstone/login" component={Login} />
-        <Route exact path="/Capstone/dashboardbhw" component={DashboardBHW} />
-        <Route exact path="/Capstone/dashboardmother" component={DashboardMother} />
-        <Route exact path="/Capstone/appointments" component={Appointments} />
-        <Route exact path="/Capstone/adminfaq" component={AdminFAQ} />
-        <Route exact path="/Capstone/adminlogin" component={AdminLogin} />
-        <Route exact path="/Capstone/mothers" component={Mothers} />
-        <Route exact path="/Capstone/reminders" component={Reminders} />
-        <Route exact path="/Capstone/landingpage" component={LandingPage} />
-        <Route exact path="/Capstone/">
-          <Redirect to="/Capstone/landingpage" />
+        <Route exact path="/eNanayCare/login" component={Login} />
+        <Route exact path="/eNanayCare/dashboardbhw" component={DashboardBHW} />
+        <Route exact path="/eNanayCare/dashboardmother" component={DashboardMother} />
+        <Route exact path="/eNanayCare/appointments" component={Appointments} />
+        <Route exact path="/eNanayCare/adminfaq" component={AdminFAQ} />
+        <Route exact path="/eNanayCare/adminlogin" component={AdminLogin} />
+        <Route exact path="/eNanayCare/mothers" component={Mothers} />
+        <Route exact path="/eNanayCare/reminders" component={Reminders} />
+        <Route exact path="/eNanayCare/landingpage" component={LandingPage} />
+        <Route exact path="/eNanayCare/">
+          <Redirect to="/eNanayCare/landingpage" />
         </Route>
       </IonRouterOutlet>
     </IonReactRouter>
