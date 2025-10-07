@@ -10,8 +10,6 @@ export default defineConfig({
     react(),
     legacy()
   ],
-
-  
   base: "/eNanayCare/",
   test: {
     globals: true,
