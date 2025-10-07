@@ -1,0 +1,44 @@
+/* Style for table headers */
+.table-header {
+    font-weight: bold;
+    background-color: #f2f2f2;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Section spacing */
+  section {
+    margin-bottom: 40px;
+  }
+  
+  /* Card styling for better visibility */
+  ion-card {
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+  }
+  
+  /* Improve list readability */
+  ion-list ion-item {
+    --inner-padding-end: 10px;
+    --padding-start: 16px;
+    font-size: 16px;
+  }
+  
+  /* Nutrition log and milestone entries */
+  ion-item ion-label {
+    white-space: normal;
+  }
+  
+  /* Footer styling */
+  .footer-note {
+    text-align: center;
+    margin: 50px 0 20px;
+    color: #888;
+    font-size: 13px;
+  }
+  
+  /* Modal iframe style fallback if needed */
+  iframe {
+    border: none;
+  }
+  

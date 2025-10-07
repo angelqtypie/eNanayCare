@@ -1,265 +1,86 @@
-/* ============ HEADER ============ */
+/* Reset + base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body, ion-content { font-family: 'Segoe UI', sans-serif; background: #f9fafb; }
+
+/* Header */
 .glass-header {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 1000;
-  display: flex;
-  justify-content: space-between;
-  transition: background 0.3s ease;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.8);
 }
-
-.glass-header:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-}
-
-.logo-img {
-  height: 42px;
-  margin-right: 10px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.app-name {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #004466;
-}
-
 .header-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .5rem 1rem;
 }
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  padding-right: 1rem;
-}
-
+.logo-img { height: 40px; margin-right: .6rem; }
+.app-name { font-size: 1.4rem; font-weight: 700; color: #1d3557; }
+.header-right { display: flex; gap: 1rem; align-items: center; }
 .header-right button {
-  background: none;
-  border: none;
-  font-weight: 600;
-  font-size: 1rem;
-  color: #004466;
-  cursor: pointer;
-  transition: color 0.3s ease;
+  background: none; border: none; font-size: 1rem;
+  cursor: pointer; color: #444; transition: color .3s;
+}
+.header-right button:hover { color: #0d6efd; }
+.menu-btn { display: none; }
+@media (max-width:768px){
+  .header-right button{ display:none; }
+  .menu-btn{ display:block; }
 }
 
-.header-right button:hover {
-  color: #ff6f91;
-}
-
-/* Hide burger on desktop */
-.menu-btn {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #004466;
-}
-
-/* 📱 Show burger on mobile, hide nav links */
-@media (max-width: 768px) {
-  .header-right button:not(.menu-btn) {
-    display: none;
-  }
-  .menu-btn {
-    display: block;
-  }
-}
-
-/* 💻 Show nav links on desktop, hide burger */
-@media (min-width: 769px) {
-  .header-right button:not(.menu-btn) {
-    display: inline-block;
-  }
-  .menu-btn {
-    display: none;
-  }
-}
-
-/* ============ HERO ============ */
+/* Hero */
 .hero {
-  position: relative;
-  background: url("https://buffalohealthyliving.com/wp-content/uploads/pregnant-women-support-group.jpg")
-    no-repeat center center/cover;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 90vh;
+  background: url("../assets/mother-care.jpg") center/cover no-repeat;
+  position: relative; display:flex; align-items:center; justify-content:center;
 }
-
 .hero-overlay {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 166, 166, 0.6),
-    rgba(255, 111, 145, 0.6)
-  );
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6));
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
 }
+.hero-content { text-align:center; color:#fff; padding: 0 1rem; max-width: 750px; }
+.hero-content h1 { font-size:2.5rem; margin-bottom:1rem; }
+.hero-content p { font-size:1.2rem; margin-bottom:1.5rem; }
+.cta-btn { border-radius:30px; font-weight:600; padding: 0.9rem 2rem; }
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.07);} 100%{transform:scale(1);} }
 
-.hero-content {
-  color: #fff;
-  text-align: center;
-  max-width: 700px;
-  padding: 2rem;
-  animation: fadeInUp 1.2s ease;
-}
-
-.hero-content h1 {
-  font-size: 3rem;
-  font-weight: 800;
-  margin-bottom: 1rem;
-  line-height: 1.2;
-}
-
-.hero-content p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-  font-weight: 300;
-}
-
-.cta-btn {
-  font-size: 1.2rem;
-  border-radius: 50px;
-  padding: 0.9rem 2.2rem;
-  background: linear-gradient(90deg, #ff6f91, #00a6a6);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-  transition: transform 0.3s ease;
-}
-
-.cta-btn:hover {
-  transform: scale(1.05);
-}
-
-/* CTA button pulse animation */
-.pulse {
-  animation: pulse 1.8s infinite;
-}
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(0, 166, 166, 0.6); }
-  70% { box-shadow: 0 0 0 20px rgba(0, 166, 166, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 166, 166, 0); }
-}
-
-/* Fade-in animation */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ============ FEATURES ============ */
-.features {
-  background: #fdfdfd;
-}
-
+/* Sections */
 .section-title {
-  margin: 2rem 0;
-  font-weight: 800;
-  text-align: center;
-  font-size: 2rem;
-  color: #004466;
+  text-align:center; font-size:2rem; margin-bottom:2rem; color:#1d3557; font-weight:700;
 }
+.about-img {
+  width:100%; border-radius:14px; box-shadow:0 6px 20px rgba(0,0,0,.15);
+}
+.about h2 { font-size:1.7rem; margin-bottom:1rem; }
 
+/* Features */
+.features { background:#f1f5f9; }
 .feature-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  min-height: 180px;
-  text-align: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff, #f9fcfc);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  padding: 1rem;
+  text-align:center; padding:1rem; border-radius:18px;
+  transition: transform .25s, box-shadow .25s;
+  background: #fff;
 }
-
-.feature-card ion-icon {
-  color: #00a6a6;
-  margin-bottom: 0.5rem;
-  font-size: 2rem;
-}
-
 .feature-card:hover {
-  transform: translateY(-10px) scale(1.03);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0,0,0,.1);
 }
+.feature-card ion-icon { color:#0d6efd; margin-bottom:.5rem; }
 
-/* ============ LOGIN ============ */
-.login-section {
-  background: #f9fdfd;
-}
-
+/* Login */
 .login-card {
-  border-radius: 20px;
-  text-align: center;
-  padding: 1rem;
-  transition: transform 0.3s, box-shadow 0.3s;
+  text-align:center; border-radius:18px; padding:.5rem;
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
 }
+.login-card ion-card-title { font-size:1.3rem; font-weight:600; color:#1d3557; }
+.login-card ion-button { margin-top:.6rem; border-radius:12px; font-weight:600; }
 
-.login-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-}
+/* Footer */
+.footer-container { text-align:center; padding:.6rem; }
+.footer-text { font-size:.9rem; color:#666; margin-bottom:.3rem; }
+.footer-links { font-size:.85rem; color:#888; }
+.footer-links a { color:#555; text-decoration:none; margin:0 5px; transition: color .2s; }
+.footer-links a:hover { color:#0d6efd; text-decoration:underline; }
 
-.mother-card {
-  border-top: 6px solid #ff6f91;
-}
-.bhw-card {
-  border-top: 6px solid #00a6a6;
-}
-
-/* ============ CTA SECTION ============ */
-.cta {
-  text-align: center;
-  background: linear-gradient(135deg, #ff6f91, #00a6a6);
-  border-radius: 20px;
-  color: #fff;
-  margin: 3rem 1rem;
-  padding: 3rem 2rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-}
-
-.cta h2 {
-  margin-bottom: 1.5rem;
-  font-size: 2rem;
-  font-weight: 800;
-}
-
-/* ============ FOOTER ============ */
-.footer-text {
-  text-align: center;
-  font-size: 0.75rem;
-  padding: 0.6rem;
-  color: #444;
-  background: #fafafa;
-  border-top: 1px solid #eee;
-}
-
-/* ✅ Fix sticky header overlap when scrolling to sections */
-section {
-  scroll-margin-top: 80px; /* adjust to match header height */
-}
-
-html {
-  scroll-behavior: smooth;
+/* Animations */
+.animate-fade-in { animation: fadeInUp 1s ease; }
+@keyframes fadeInUp {
+  from{opacity:0; transform:translateY(20px);}
+  to{opacity:1; transform:translateY(0);}
 }

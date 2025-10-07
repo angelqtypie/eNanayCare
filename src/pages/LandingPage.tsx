@@ -29,7 +29,6 @@ import {
   heartOutline,
   logInOutline,
   menuOutline,
-  logOutOutline,
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import "./LandingPage.css";
@@ -41,65 +40,40 @@ const Landing: React.FC = () => {
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <>
-      {/* ===== Side Menu (Mobile View) ===== */}
+      {/* Side Menu for Mobile */}
       <IonMenu contentId="main-content" side="end">
         <IonContent>
           <IonList>
-            <IonMenuToggle autoHide={false}>
-              <IonItem button onClick={() => scrollToSection("about")}>
-                <IonLabel>About</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-            <IonMenuToggle autoHide={false}>
-              <IonItem button onClick={() => scrollToSection("features")}>
-                <IonLabel>Features</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-            <IonMenuToggle autoHide={false}>
-              <IonItem button onClick={() => scrollToSection("login")}>
-                <IonLabel>Login</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
-            <IonMenuToggle autoHide={false}>
-              <IonItem
-                button
-                onClick={() => history.push("/Capstone/landingpage")}
-              >
-                <IonIcon icon={logOutOutline} slot="start" />
-                <IonLabel>Logout</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
+            {["about", "features", "login"].map((section, idx) => (
+              <IonMenuToggle key={idx} autoHide={false}>
+                <IonItem button onClick={() => scrollToSection(section)}>
+                  <IonLabel className="capitalize">{section}</IonLabel>
+                </IonItem>
+              </IonMenuToggle>
+            ))}
           </IonList>
         </IonContent>
       </IonMenu>
 
-      {/* ===== Main Page ===== */}
       <IonPage id="main-content">
         {/* Header */}
-        <IonHeader className="glass-header">
+        <IonHeader className="glass-header shadow-sm">
           <IonToolbar>
             <div className="header-container">
-              {/* Left side: logo */}
               <div className="header-left">
                 <img src={logo} alt="eNanayCare logo" className="logo-img" />
                 <IonTitle className="app-name">eNanayCare</IonTitle>
               </div>
 
-              {/* Right side: nav */}
               <nav className="header-right">
                 <button onClick={() => scrollToSection("about")}>About</button>
-                <button onClick={() => scrollToSection("features")}>
-                  Features
-                </button>
+                <button onClick={() => scrollToSection("features")}>Features</button>
                 <button onClick={() => scrollToSection("login")}>Login</button>
-                {/* ✅ Menu Toggle for mobile */}
                 <IonMenuButton className="menu-btn" autoHide={false}>
                   <IonIcon icon={menuOutline} size="large" />
                 </IonMenuButton>
@@ -109,14 +83,14 @@ const Landing: React.FC = () => {
         </IonHeader>
 
         <IonContent fullscreen>
-          {/* Hero Section */}
+          {/* Hero */}
           <section className="hero">
             <div className="hero-overlay">
               <div className="hero-content animate-fade-in">
                 <h1>Maternal Health Guidance & Awareness</h1>
                 <p>
-                  Digital tools to empower mothers and Barangay Health Workers
-                  with safe, accessible care.
+                  Empowering mothers and Barangay Health Workers with safe,
+                  accessible, digital care tools.
                 </p>
                 <IonButton
                   color="secondary"
@@ -130,7 +104,7 @@ const Landing: React.FC = () => {
             </div>
           </section>
 
-          {/* About Section */}
+          {/* About */}
           <section id="about" className="about ion-padding">
             <IonGrid>
               <IonRow className="ion-align-items-center">
@@ -140,17 +114,16 @@ const Landing: React.FC = () => {
                 <IonCol size="12" sizeMd="6">
                   <h2>About eNanayCare</h2>
                   <p>
-                    Mothers in rural areas often miss crucial checkups.
-                    eNanayCare bridges this gap with reminders, digital records,
-                    and educational resources — ensuring a safer and healthier
-                    pregnancy journey.
+                    Many rural mothers miss essential checkups. eNanayCare
+                    bridges this gap with reminders, digital health records, and
+                    education—bringing care closer to home.
                   </p>
                 </IonCol>
               </IonRow>
             </IonGrid>
           </section>
 
-          {/* Features Section */}
+          {/* Features */}
           <section id="features" className="features ion-padding">
             <h2 className="section-title">Our Core Features</h2>
             <IonGrid>
@@ -178,7 +151,7 @@ const Landing: React.FC = () => {
                   },
                 ].map((feature, index) => (
                   <IonCol size="12" sizeMd="6" sizeLg="3" key={index}>
-                    <IonCard className="feature-card glass-card hover-pop">
+                    <IonCard className="feature-card hover-pop glass-card">
                       <IonCardHeader>
                         <IonIcon icon={feature.icon} size="large" />
                         <IonCardTitle>{feature.title}</IonCardTitle>
@@ -193,23 +166,22 @@ const Landing: React.FC = () => {
 
           {/* Login Section */}
           <section id="login" className="login-section ion-padding">
-            <h2 className="section-title">Login Access</h2>
+            <h2 className="section-title">Login</h2>
             <IonGrid>
               <IonRow>
-                <IonCol size="12" sizeMd="6">
-                  <IonCard className="login-card mother-card hover-pop">
+                <IonCol size="12" sizeMd="6" offsetMd="3">
+                  <IonCard className="login-card hover-pop">
                     <IonCardHeader>
                       <IonCardTitle>Mother Login</IonCardTitle>
                     </IonCardHeader>
                     <IonCardContent>
-                      <p>
-                        Manage appointments, wellness logs, and personalized
-                        tips.
-                      </p>
                       <IonButton
                         expand="block"
                         color="primary"
-                        onClick={() => history.push("/eNanayCare/login")}
+                        size="large"
+                        onClick={() =>
+                          history.push("/eNanayCare/dashboardmother")
+                        }
                       >
                         <IonIcon icon={logInOutline} slot="start" />
                         Login as Mother
@@ -217,47 +189,23 @@ const Landing: React.FC = () => {
                     </IonCardContent>
                   </IonCard>
                 </IonCol>
-
-                <IonCol size="12" sizeMd="6">
-                  <IonCard className="login-card bhw-card hover-pop">
-                    <IonCardHeader>
-                      <IonCardTitle>BHW Admin Login</IonCardTitle>
-                    </IonCardHeader>
-                    <IonCardContent>
-                      <p>
-                        Monitor records, track high-risk cases, and support
-                        communities.
-                      </p>
-                      <IonButton
-                        expand="block"
-                        color="secondary"
-                        onClick={() => history.push("/eNanayCare/dashboardbhw")}
-                      >
-                        <IonIcon icon={logInOutline} slot="start" />
-                        Login as BHW Admin
-                      </IonButton>
-                    </IonCardContent>
-                  </IonCard>
-                </IonCol>
               </IonRow>
             </IonGrid>
-          </section>
-
-          {/* CTA Section */}
-          <section className="cta ion-padding">
-            <h2>Empowering Mothers. Supporting Communities.</h2>
-            <IonButton expand="block" color="primary" size="large">
-              Learn More
-            </IonButton>
           </section>
         </IonContent>
 
         {/* Footer */}
         <IonFooter>
           <IonToolbar>
-            <p className="footer-text">
-              © 2025 eNanayCare | Capstone Project by NBSC Students
-            </p>
+            <div className="footer-container">
+              <p className="footer-text">
+                © 2025 eNanayCare | Capstone Project by NBSC Students
+              </p>
+              <p className="footer-links">
+                <a href="/eNanayCare/login">BHW Login</a> |{" "}
+                <a href="/eNanayCare/login">Admin Login</a>
+              </p>
+            </div>
           </IonToolbar>
         </IonFooter>
       </IonPage>

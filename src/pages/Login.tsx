@@ -1,21 +1,22 @@
 import React, { useState } from "react";
 import {
-  IonButton,
-  IonContent,
-  IonInput,
   IonPage,
-  IonText,
   IonHeader,
-  IonTitle,
   IonToolbar,
-  IonLoading,
+  IonTitle,
+  IonContent,
   IonItem,
   IonLabel,
+  IonInput,
+  IonButton,
+  IonText,
+  IonLoading,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
+import bcrypt from "bcryptjs";
 
-const MotherLogin: React.FC = () => {
+const Login: React.FC = () => {
   const history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,50 +24,56 @@ const MotherLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setError("");
+
     if (!email || !password) {
-      setError("Please enter both email and password.");
+      setError("Please enter email and password.");
       return;
     }
 
-    setError("");
     setLoading(true);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // 🔹 Fetch user from Supabase users table
+      const { data: user, error: fetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .single();
 
-      if (authError) {
-        // Handle specific errors
-        console.error("Auth login error:", authError);
-
-        if (
-          authError instanceof Error &&
-          authError.message.includes("Email not confirmed")
-        ) {
-          setError(
-            "Your email is not confirmed yet. Please check your inbox and verify your email."
-          );
-        } else {
-          setError(authError.message || "Login failed. Please try again.");
-        }
+      if (fetchError || !user) {
+        setError("Invalid email or password.");
         setLoading(false);
         return;
       }
 
-      if (!data?.user) {
-        setError("Login failed. No user data returned.");
+      // 🔹 Verify password with bcrypt
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        setError("Invalid email or password.");
         setLoading(false);
         return;
       }
 
-      // Login successful, redirect user or do what you want here
-      setLoading(false);
-      history.push("/eNanayCare/dashboardmother"); // or your target route
-    } catch (error) {
-      console.error("Unexpected error during login:", error);
-      setError("Unexpected error occurred. Please try again.");
+      // 🔹 Save session locally
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("fullName", user.full_name);
+
+      // 🔹 Redirect by role
+      if (user.role === "admin") {
+        history.push("/eNanayCare/dashboardadmin");
+      } else if (user.role === "bhw") {
+        history.push("/eNanayCare/dashboardbhw");
+      } else if (user.role === "mother") {
+        history.push("/eNanayCare/dashboardmother");
+      } else {
+        setError("This account has no valid role.");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -75,10 +82,11 @@ const MotherLogin: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Mother Login</IonTitle>
+          <IonTitle>Login</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="ion-padding">
+
+      <IonContent className="ion-padding">
         <IonItem>
           <IonLabel position="floating">Email</IonLabel>
           <IonInput
@@ -109,10 +117,10 @@ const MotherLogin: React.FC = () => {
           Login
         </IonButton>
 
-        <IonLoading isOpen={loading} message={"Logging in..."} />
+        <IonLoading isOpen={loading} message="Logging in..." />
       </IonContent>
     </IonPage>
   );
 };
 
-export default MotherLogin;
+export default Login;
