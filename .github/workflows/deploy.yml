@@ -1,4 +1,4 @@
-nname: Develop
+name: Deploy to GitHub Pages
 
 on:
   push:
