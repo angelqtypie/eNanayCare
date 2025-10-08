@@ -17,6 +17,7 @@ import {
   IonCard,
   IonSelect,
   IonSelectOption,
+  IonText,
 } from "@ionic/react";
 import { logOutOutline, addOutline, trashOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
@@ -34,10 +35,13 @@ const ManageUsers: React.FC = () => {
   const history = useHistory();
   const [users, setUsers] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
+
   const [newUser, setNewUser] = useState({
     email: "",
     full_name: "",
     role: "mother",
+    password: "",
   });
 
   // Helper to safely parse JSON
@@ -50,7 +54,7 @@ const ManageUsers: React.FC = () => {
     }
   };
 
-  // Fetch users
+  // Fetch users from `users` table
   const fetchUsers = async () => {
     const { data, error } = await supabase
       .from("users")
@@ -65,19 +69,27 @@ const ManageUsers: React.FC = () => {
     fetchUsers();
   }, []);
 
-  // Logout
   const handleLogout = () => {
     history.push("/eNanayCare/landingpage");
   };
 
-  // Add user (calls your Edge Function)
+  // ✅ Add user using Edge Function with password
   const handleAddUser = async () => {
+    setError("");
+
+    const { email, full_name, role, password } = newUser;
+
+    if (!email || !full_name || !role || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     try {
       const res = await fetch(import.meta.env.VITE_SUPABASE_FUNCTION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify(newUser),
       });
@@ -85,16 +97,15 @@ const ManageUsers: React.FC = () => {
       const result = await safeParseJSON(res);
       if (!res.ok) throw new Error(result?.error || "Request failed");
 
-      alert("✅ Invitation sent! User can check their email to set a password.");
+      alert("✅ User created successfully.");
       setShowModal(false);
-      setNewUser({ email: "", full_name: "", role: "mother" });
+      setNewUser({ email: "", full_name: "", role: "mother", password: "" });
       fetchUsers();
     } catch (err) {
-      alert("❌ Failed: " + (err as Error).message);
+      setError("❌ Failed: " + (err as Error).message);
     }
   };
 
-  // Delete user (calls delete-user function)
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
 
@@ -103,7 +114,7 @@ const ManageUsers: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ user_id: id }),
       });
@@ -169,7 +180,7 @@ const ManageUsers: React.FC = () => {
         {/* Add User Modal */}
         <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
           <IonContent className="ion-padding">
-            <h2 className="text-xl font-bold mb-4">Invite New User</h2>
+            <h2 className="text-xl font-bold mb-4">Add New User</h2>
 
             <IonItem>
               <IonLabel position="floating">Full Name</IonLabel>
@@ -193,6 +204,17 @@ const ManageUsers: React.FC = () => {
             </IonItem>
 
             <IonItem>
+              <IonLabel position="floating">Password</IonLabel>
+              <IonInput
+                type="password"
+                value={newUser.password}
+                onIonChange={(e) =>
+                  setNewUser({ ...newUser, password: e.detail.value! })
+                }
+              />
+            </IonItem>
+
+            <IonItem>
               <IonLabel>Role</IonLabel>
               <IonSelect
                 value={newUser.role}
@@ -206,13 +228,19 @@ const ManageUsers: React.FC = () => {
               </IonSelect>
             </IonItem>
 
+            {error && (
+              <IonText color="danger">
+                <p className="ion-padding-top">{error}</p>
+              </IonText>
+            )}
+
             <IonButton
               expand="block"
               color="success"
               className="mt-4"
               onClick={handleAddUser}
             >
-              Send Invite
+              Create User
             </IonButton>
 
             <IonButton

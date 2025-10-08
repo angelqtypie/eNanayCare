@@ -18,7 +18,6 @@ import LandingPage from "./pages/LandingPage";
 import Mothers from "./pages/Mothers";
 import Reminders from "./pages/Reminders";
 import AdminFAQ from "./pages/AdminFAQ";
-import SetPassword from "./pages/SetPassword";
 import AdminUserPage from "./pages/AdminUserPage";
 
 /* Ionic Core CSS */
@@ -53,7 +52,6 @@ const App: React.FC = () => (
         <Route exact path="/mothers" component={Mothers} />
         <Route exact path="/AdminUserPage" component={AdminUserPage} />
         <Route exact path="/reminders" component={Reminders} />
-        <Route exact path="/setpassword" component={SetPassword} />
         <Route exact path="/landingpage" component={LandingPage} />
         <Route exact path="/">
           <Redirect to="/landingpage" />
