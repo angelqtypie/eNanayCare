@@ -1,23 +1,24 @@
 import React, { useState } from "react";
 import {
-  IonButton,
-  IonContent,
-  IonInput,
   IonPage,
-  IonText,
   IonHeader,
-  IonTitle,
   IonToolbar,
-  IonLoading,
+  IonTitle,
+  IonContent,
   IonItem,
   IonLabel,
+  IonInput,
+  IonButton,
+  IonText,
+  IonLoading,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
+import bcrypt from "bcryptjs";
 
-const BHWLogin: React.FC = () => {
+const Login: React.FC = () => {
   const history = useHistory();
-  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,51 +26,50 @@ const BHWLogin: React.FC = () => {
   const handleLogin = async () => {
     setError("");
 
-    if (!fullName || !password) {
-      setError("Full name and password are required.");
+    if (!email || !password) {
+      setError("Please enter email and password.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const cleanName = fullName.trim();
-
-      console.log("Trying to login with:", { fullName: cleanName, password });
-
-      // ✅ Use wildcards with ilike so it matches case-insensitive & exact text
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
+      // 🔹 Fetch user from Supabase users table
+      const { data: user, error: fetchError } = await supabase
+        .from("users")
         .select("*")
-        .ilike("full_name", `%${cleanName}%`)
-        .eq("role", "bhw");
+        .eq("email", email)
+        .single();
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        setError("Error fetching BHW profile.");
+      if (fetchError || !user) {
+        setError("Invalid email or password.");
+        setLoading(false);
         return;
       }
 
-      if (!profiles || profiles.length === 0) {
-        setError("No BHW found with that name.");
+      // 🔹 Verify password with bcrypt
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        setError("Invalid email or password.");
+        setLoading(false);
         return;
       }
 
-      // Expect only one profile, take first
-      const profile = profiles[0];
+      // 🔹 Save session locally
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("fullName", user.full_name);
 
-      if (profile.password !== password) {
-        setError("Incorrect password.");
-        return;
+      // 🔹 Redirect by role
+      if (user.role === "admin") {
+        history.push("/dashboardadmin");
+      } else if (user.role === "bhw") {
+        history.push("/dashboardbhw");
+      } else if (user.role === "mother") {
+        history.push("/dashboardmother");
+      } else {
+        setError("This account has no valid role.");
       }
-
-      // ✅ Save to localStorage
-      localStorage.setItem("role", profile.role);
-      localStorage.setItem("full_name", profile.full_name);
-      localStorage.setItem("bhw_id", profile.id);
-
-      // Redirect to BHW dashboard
-      history.push("/Capstone/dashboardbhw");
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
@@ -82,17 +82,18 @@ const BHWLogin: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>BHW Login</IonTitle>
+          <IonTitle>Admin Login</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
         <IonItem>
-          <IonLabel position="floating">Full Name</IonLabel>
+          <IonLabel position="floating">Email</IonLabel>
           <IonInput
-            type="text"
-            value={fullName}
-            onIonChange={(e) => setFullName(e.detail.value || "")}
+            type="email"
+            value={email}
+            onIonChange={(e) => setEmail(e.detail.value!)}
+            required
           />
         </IonItem>
 
@@ -101,24 +102,25 @@ const BHWLogin: React.FC = () => {
           <IonInput
             type="password"
             value={password}
-            onIonChange={(e) => setPassword(e.detail.value || "")}
+            onIonChange={(e) => setPassword(e.detail.value!)}
+            required
           />
         </IonItem>
 
         {error && (
-          <IonText color="danger">
-            <p className="ion-padding-top">{error}</p>
+          <IonText color="danger" className="ion-padding-top">
+            {error}
           </IonText>
         )}
 
         <IonButton expand="block" onClick={handleLogin} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+          Login
         </IonButton>
 
-        <IonLoading isOpen={loading} message="Please wait..." />
+        <IonLoading isOpen={loading} message="Logging in..." />
       </IonContent>
     </IonPage>
   );
 };
 
-export default BHWLogin;
+export default Login;

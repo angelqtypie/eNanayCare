@@ -14,7 +14,6 @@ import {
 } from "@ionic/react";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
-import bcrypt from "bcryptjs";
 
 const Login: React.FC = () => {
   const history = useHistory();
@@ -25,51 +24,60 @@ const Login: React.FC = () => {
 
   const handleLogin = async () => {
     setError("");
+    setLoading(true);
 
     if (!email || !password) {
       setError("Please enter email and password.");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
     try {
-      // 🔹 Fetch user from Supabase users table
-      const { data: user, error: fetchError } = await supabase
+      // ✅ Log in using Supabase Auth
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (loginError || !data.user) {
+        setError("Invalid email or password.");
+        return;
+      }
+
+      const userId = data.user.id;
+
+      // ✅ Fetch additional user data from 'users' table (role, name, etc.)
+      const { data: profile, error: profileError } = await supabase
         .from("users")
-        .select("*")
-        .eq("email", email)
+        .select("role, full_name")
+        .eq("id", userId)
         .single();
 
-      if (fetchError || !user) {
-        setError("Invalid email or password.");
-        setLoading(false);
+      if (profileError || !profile) {
+        setError("Could not fetch user profile.");
         return;
       }
 
-      // 🔹 Verify password with bcrypt
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        setError("Invalid email or password.");
-        setLoading(false);
-        return;
+      // ✅ Save session data locally (optional)
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("role", profile.role);
+      localStorage.setItem("fullName", profile.full_name);
+
+      // ✅ Redirect based on role
+      switch (profile.role) {
+        case "admin":
+          history.push("/dashboardadmin");
+          break;
+        case "bhw":
+          history.push("/dashboardbhw");
+          break;
+        case "mother":
+          history.push("/dashboardmother");
+          break;
+        default:
+          setError("This account has no valid role.");
       }
 
-      // 🔹 Save session locally
-      localStorage.setItem("userId", user.id);
-      localStorage.setItem("role", user.role);
-      localStorage.setItem("fullName", user.full_name);
-
-      // 🔹 Redirect by role
-      if (user.role === "admin") {
-        history.push("/eNanayCare/dashboardadmin");
-      } else if (user.role === "bhw") {
-        history.push("/eNanayCare/dashboardbhw");
-      } else if (user.role === "mother") {
-        history.push("/eNanayCare/dashboardmother");
-      } else {
-        setError("This account has no valid role.");
-      }
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
@@ -109,7 +117,7 @@ const Login: React.FC = () => {
 
         {error && (
           <IonText color="danger" className="ion-padding-top">
-            {error}
+            <p>{error}</p>
           </IonText>
         )}
 
