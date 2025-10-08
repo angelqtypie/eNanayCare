@@ -1,3 +1,4 @@
+// src/pages/LandingPage.tsx
 import React from "react";
 import {
   IonPage,
@@ -49,13 +50,18 @@ const Landing: React.FC = () => {
       <IonMenu contentId="main-content" side="end">
         <IonContent>
           <IonList>
-            {["about", "features", "login"].map((section, idx) => (
+            {["about", "features"].map((section, idx) => (
               <IonMenuToggle key={idx} autoHide={false}>
                 <IonItem button onClick={() => scrollToSection(section)}>
                   <IonLabel className="capitalize">{section}</IonLabel>
                 </IonItem>
               </IonMenuToggle>
             ))}
+            <IonMenuToggle autoHide={false}>
+              <IonItem button onClick={() => history.push("/login")}>
+                <IonLabel>Login</IonLabel>
+              </IonItem>
+            </IonMenuToggle>
           </IonList>
         </IonContent>
       </IonMenu>
@@ -72,8 +78,10 @@ const Landing: React.FC = () => {
 
               <nav className="header-right">
                 <button onClick={() => scrollToSection("about")}>About</button>
-                <button onClick={() => scrollToSection("features")}>Features</button>
-                <button onClick={() => scrollToSection("login")}>Login</button>
+                <button onClick={() => scrollToSection("features")}>
+                  Features
+                </button>
+                <button onClick={() => history.push("/login")}>Login</button>
                 <IonMenuButton className="menu-btn" autoHide={false}>
                   <IonIcon icon={menuOutline} size="large" />
                 </IonMenuButton>
@@ -96,7 +104,7 @@ const Landing: React.FC = () => {
                   color="secondary"
                   size="large"
                   className="cta-btn pulse"
-                  onClick={() => scrollToSection("login")}
+                  onClick={() => history.push("/login")}
                 >
                   Get Started
                 </IonButton>
@@ -163,35 +171,6 @@ const Landing: React.FC = () => {
               </IonRow>
             </IonGrid>
           </section>
-
-          {/* Login Section */}
-          <section id="login" className="login-section ion-padding">
-            <h2 className="section-title">Login</h2>
-            <IonGrid>
-              <IonRow>
-                <IonCol size="12" sizeMd="6" offsetMd="3">
-                  <IonCard className="login-card hover-pop">
-                    <IonCardHeader>
-                      <IonCardTitle>Mother Login</IonCardTitle>
-                    </IonCardHeader>
-                    <IonCardContent>
-                      <IonButton
-                        expand="block"
-                        color="primary"
-                        size="large"
-                        onClick={() =>
-                          history.push("/eNanayCare/dashboardmother")
-                        }
-                      >
-                        <IonIcon icon={logInOutline} slot="start" />
-                        Login as Mother
-                      </IonButton>
-                    </IonCardContent>
-                  </IonCard>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
-          </section>
         </IonContent>
 
         {/* Footer */}
@@ -202,8 +181,13 @@ const Landing: React.FC = () => {
                 © 2025 eNanayCare | Capstone Project by NBSC Students
               </p>
               <p className="footer-links">
-                <a href="/eNanayCare/login">BHW Login</a> |{" "}
-                <a href="/eNanayCare/login">Admin Login</a>
+                <IonButton fill="clear" routerLink="/login">
+                  BHW Login
+                </IonButton>
+                |
+                <IonButton fill="clear" routerLink="/login">
+                  Admin Login
+                </IonButton>
               </p>
             </div>
           </IonToolbar>

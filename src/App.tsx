@@ -1,5 +1,10 @@
+// src/App.tsx
 import { Redirect, Route } from "react-router-dom";
-import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
+import {
+  IonApp,
+  IonRouterOutlet,
+  setupIonicReact,
+} from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import React from "react";
 
@@ -7,15 +12,16 @@ import React from "react";
 import Login from "./pages/Login";
 import DashboardBHW from "./pages/DashboardBHW";
 import DashboardMother from "./pages/DashboardMother";
-import DashboardAdmin from "./pages/DashboardAdmin"; 
+import DashboardAdmin from "./pages/DashboardAdmin";
 import Appointments from "./pages/Appointments";
 import LandingPage from "./pages/LandingPage";
 import Mothers from "./pages/Mothers";
 import Reminders from "./pages/Reminders";
 import AdminFAQ from "./pages/AdminFAQ";
+import SetPassword from "./pages/SetPassword";
 import AdminUserPage from "./pages/AdminUserPage";
 
-/* Core CSS */
+/* Ionic Core CSS */
 import "@ionic/react/css/core.css";
 import "@ionic/react/css/normalize.css";
 import "@ionic/react/css/structure.css";
@@ -35,24 +41,22 @@ setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    <IonReactRouter>
+    {/* ✅ Basename ensures correct routing on GitHub Pages */}
+    <IonReactRouter basename="/eNanayCare">
       <IonRouterOutlet>
-        <Route exact path="/eNanayCare/login" component={Login} />
-        <Route exact path="/eNanayCare/dashboardbhw" component={DashboardBHW} />
-        <Route
-          exact
-          path="/eNanayCare/dashboardmother"
-          component={DashboardMother}
-        />
-        <Route exact path="/eNanayCare/dashboardadmin" component={DashboardAdmin} />
-        <Route exact path="/eNanayCare/appointments" component={Appointments} />
-        <Route exact path="/eNanayCare/adminfaq" component={AdminFAQ} />
-        <Route exact path="/eNanayCare/mothers" component={Mothers} />
-        <Route exact path="/eNanayCare/AdminUserPage" component={AdminUserPage} />  
-        <Route exact path="/eNanayCare/reminders" component={Reminders} />
-        <Route exact path="/eNanayCare/landingpage" component={LandingPage} />
-        <Route exact path="/eNanayCare/">
-          <Redirect to="/eNanayCare/landingpage" />
+        <Route exact path="/login" component={Login} />
+        <Route exact path="/dashboardbhw" component={DashboardBHW} />
+        <Route exact path="/dashboardmother" component={DashboardMother} />
+        <Route exact path="/dashboardadmin" component={DashboardAdmin} />
+        <Route exact path="/appointments" component={Appointments} />
+        <Route exact path="/adminfaq" component={AdminFAQ} />
+        <Route exact path="/mothers" component={Mothers} />
+        <Route exact path="/AdminUserPage" component={AdminUserPage} />
+        <Route exact path="/reminders" component={Reminders} />
+        <Route exact path="/setpassword" component={SetPassword} />
+        <Route exact path="/landingpage" component={LandingPage} />
+        <Route exact path="/">
+          <Redirect to="/landingpage" />
         </Route>
       </IonRouterOutlet>
     </IonReactRouter>
