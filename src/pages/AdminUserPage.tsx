@@ -70,7 +70,7 @@ const ManageUsers: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    history.push("/eNanayCare/landingpage");
+    history.push("/landingpage");
   };
 
   // ✅ Add user using Edge Function with password

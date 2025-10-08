@@ -30,7 +30,9 @@ const Mothers: React.FC = () => {
   const fetchMothers = async () => {
     const { data, error } = await supabase
       .from("mothers")
-      .select("id, name, email, contact, status, birthday, address, due_date");
+      .select("id, name, email, contact, status, birthday, address, due_date")
+      .order("created_at", { ascending: false });
+
     if (error) {
       console.error("Error fetching mothers:", error);
     } else {
@@ -54,60 +56,52 @@ const Mothers: React.FC = () => {
       alert("Please fill out all required fields (Name, Email, Password)");
       return;
     }
-  
+
     try {
-      // 1. Sign up user via Supabase Auth
+      // 1️⃣ Create auth user via Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
-  
+
       if (authError) {
         console.error("Auth signUp error:", authError);
-        alert("Error creating auth user: " + authError.message);
+        alert("Error creating user: " + authError.message);
         return;
       }
-  
+
       if (!authData.user) {
-        console.error("No user object after signUp:", authData);
         alert("User creation failed.");
         return;
       }
-  
-      const userId = authData.user.id;
-  
-      // 2. Prepare data for insertion into mothers
-      const insertObj: any = {
-        user_id: userId,
+
+      const authUserId = authData.user.id;
+
+      // 2️⃣ Insert into mothers table
+      const insertObj = {
+        auth_user_id: authUserId,
         name: form.name,
+        birthday: form.birthday || null,
         address: form.address || null,
         contact: form.contact || null,
         email: form.email,
         status: form.status,
+        due_date: form.dueDate || null,
       };
-  
-      if (form.birthday) {
-        insertObj.birthday = form.birthday;
-      }
-      if (form.dueDate) {
-        insertObj.due_date = form.dueDate;
-      }
-  
-      // 3. Insert into mothers table
-      const { error: insertError } = await supabase
-        .from("mothers")
-        .insert([insertObj]);
-  
+
+      const { error: insertError } = await supabase.from("mothers").insert([insertObj]);
       if (insertError) {
         console.error("Insert error:", insertError);
-        alert("Failed to save mother data: " + insertError.message);
+        alert("Failed to save mother info: " + insertError.message);
         return;
       }
-  
-      // 4. Done! No login. Show success, reset form, close modal, refresh list
-      alert("Mother registered successfully!");
-  
-      // Reset form
+
+      alert("Mother registered successfully! Email confirmation sent.");
+
+      // Reset form + refresh list
       setForm({
         name: "",
         birthday: "",
@@ -118,19 +112,13 @@ const Mothers: React.FC = () => {
         status: "Pregnant",
         dueDate: "",
       });
-  
-      // Refresh mother list
       await fetchMothers();
-  
-      // Close modal
       setShowModal(false);
-  
     } catch (err) {
-      console.error("Unexpected error in registerMother:", err);
+      console.error("Unexpected error:", err);
       alert("Something went wrong during registration.");
     }
   };
-  
 
   return (
     <MainLayout>
@@ -163,9 +151,9 @@ const Mothers: React.FC = () => {
                     <tr key={i}>
                       <td>{m.name}</td>
                       <td>{m.email}</td>
-                      <td>{m.contact}</td>
+                      <td>{m.contact || "N/A"}</td>
                       <td>{m.status}</td>
-                      <td>{m.due_date || "N/A"}</td>
+                      <td>{m.due_date ? new Date(m.due_date).toLocaleDateString() : "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,13 +162,11 @@ const Mothers: React.FC = () => {
               <div className="mobile-only mothers-cards">
                 {mothers.map((m, i) => (
                   <div key={i} className="mother-card">
-                    <p>
-                      <strong>{m.name}</strong>
-                    </p>
+                    <p><strong>{m.name}</strong></p>
                     <p>{m.email}</p>
-                    <p>{m.contact}</p>
+                    <p>{m.contact || "N/A"}</p>
                     <span className="status">{m.status}</span>
-                    <p>Due: {m.due_date || "N/A"}</p>
+                    <p>Due: {m.due_date ? new Date(m.due_date).toLocaleDateString() : "N/A"}</p>
                   </div>
                 ))}
               </div>
@@ -205,64 +191,37 @@ const Mothers: React.FC = () => {
               <IonList className="form-list">
                 <IonItem>
                   <IonLabel position="stacked">Full Name</IonLabel>
-                  <IonInput
-                    name="name"
-                    value={form.name}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput name="name" value={form.name} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Birthday</IonLabel>
-                  <IonInput
-                    type="date"
-                    name="birthday"
-                    value={form.birthday}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput type="date" name="birthday" value={form.birthday} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Address</IonLabel>
-                  <IonInput
-                    name="address"
-                    value={form.address}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput name="address" value={form.address} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Contact Number</IonLabel>
-                  <IonInput
-                    type="tel"
-                    name="contact"
-                    value={form.contact}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput type="tel" name="contact" value={form.contact} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Email</IonLabel>
-                  <IonInput
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput type="email" name="email" value={form.email} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Password</IonLabel>
-                  <IonInput
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput type="password" name="password" value={form.password} onIonChange={handleInputChange} />
                 </IonItem>
+
                 <IonItem>
                   <IonLabel position="stacked">Expected Due Date</IonLabel>
-                  <IonInput
-                    type="date"
-                    name="dueDate"
-                    value={form.dueDate}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput type="date" name="dueDate" value={form.dueDate} onIonChange={handleInputChange} />
                 </IonItem>
               </IonList>
             </div>
@@ -280,5 +239,3 @@ const Mothers: React.FC = () => {
 };
 
 export default Mothers;
-
-

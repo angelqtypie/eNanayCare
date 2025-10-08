@@ -1,188 +1,290 @@
+import React, { useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
-  IonCard,
-  IonCardContent,
   IonGrid,
   IonRow,
   IonCol,
+  IonCard,
+  IonCardContent,
+  IonButton,
+  IonIcon,
   IonList,
   IonItem,
   IonLabel,
-  IonModal,
-  IonButtons,
-  IonButton
-} from '@ionic/react';
-import React from 'react'
-import { useState } from 'react';
-import './PregnantBooklet.css'; // Optional custom styles
+  IonInput,
+  IonText,
+} from "@ionic/react";
+import {
+  chatbubbleOutline,
+  send,
+  close,
+  logOutOutline,
+  calendarOutline,
+  heartOutline,
+  medkitOutline,
+  clipboardOutline,
+  schoolOutline,
+} from "ionicons/icons";
+import { supabase } from "../utils/supabaseClient";
+import "./DashboardMother.css";
 
-const PregnancyBooklet: React.FC = () => {
-  const [showPDF, setShowPDF] = useState(false);
+const DashboardMother: React.FC = () => {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [healthRecords, setHealthRecords] = useState<any[]>([]);
+  const [immunizations, setImmunizations] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [input, setInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const history = useHistory();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userId = localStorage.getItem("userId");
+  const fullName = localStorage.getItem("fullName") || "Nanay";
+
+  useEffect(() => {
+    if (!userId) {
+      setError("User not logged in");
+      return;
+    }
+    fetchAllData();
+  }, [userId]);
+
+  const fetchAllData = async () => {
+    try {
+      const [appt, records, immu, bhwNotes, edu] = await Promise.all([
+        supabase.from("appointments").select("*").eq("mother_id", userId),
+        supabase.from("health_records").select("*").eq("mother_id", userId),
+        supabase.from("immunizations").select("*").eq("mother_id", userId),
+        supabase.from("health_worker_notes").select("*").eq("mother_id", userId),
+        supabase.from("educational_materials").select("*"),
+      ]);
+
+      setAppointments(appt.data || []);
+      setHealthRecords(records.data || []);
+      setImmunizations(immu.data || []);
+      setNotes(bhwNotes.data || []);
+      setMaterials(edu.data || []);
+    } catch (error) {
+      setError("Failed to fetch data");
+    }
+  };
+
+  const goTo = (path: string) => {
+    setSidebarOpen(false);
+    history.push(path);
+  };
+
+  const handleLogout = () => {
+    setSidebarOpen(false);
+    history.push("/landingpage");
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+
+    const userMsg = { sender: "user" as const, text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+
+    setTimeout(() => {
+      const botReply = getMAMABOTReply(input);
+      setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
+      scrollChatToBottom();
+    }, 700);
+  };
+
+  const scrollChatToBottom = () => {
+    setTimeout(() => {
+      const chatBody = document.getElementById("chatBody");
+      if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+    }, 100);
+  };
+
+  const getMAMABOTReply = (msg: string): string => {
+    msg = msg.toLowerCase();
+    if (msg.includes("nutrition") || msg.includes("eat"))
+      return "Eat iron-rich foods like malunggay, fish, and green vegetables. Avoid caffeine and alcohol.";
+    if (msg.includes("exercise"))
+      return "Prenatal yoga, walking, and light stretching are safe for most mothers.";
+    if (msg.includes("danger") || msg.includes("sign"))
+      return "Seek help if you have severe headaches, bleeding, blurred vision, or swelling.";
+    if (msg.includes("hello") || msg.includes("hi"))
+      return "Hello Nanay! I'm MAMABOT, your pregnancy care assistant. How can I help today?";
+    return "You can ask me about nutrition, vaccines, exercise, or pregnancy warning signs.";
+  };
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle> Pregnancy Booklet</IonTitle>
+      <IonHeader translucent>
+        <IonToolbar className="header-toolbar">
+          <IonTitle>Mother Dashboard</IonTitle>
+          <IonButton fill="clear" slot="end" color="danger" onClick={handleLogout}>
+            <IonIcon icon={logOutOutline} /> Logout
+          </IonButton>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        <h2>Welcome, <strong>Maria Dela Cruz</strong></h2>
+      <IonContent className="dashboard-content">
+        {error && <IonText color="danger">{error}</IonText>}
 
-        {/* Section 1: Appointments */}
-        <section>
-          <h3> Upcoming Appointments</h3>
-          <IonCard><IonCardContent> Oct 10, 2025 – 10:00 AM – Prenatal Check-up  Confirmed</IonCardContent></IonCard>
-          <IonCard><IonCardContent> Oct 20, 2025 – 9:00 AM – Ultrasound  Reminder Set</IonCardContent></IonCard>
-          <IonCard><IonCardContent> Nov 5, 2025 – 1:00 PM – Nutrition Counseling  Pending</IonCardContent></IonCard>
-        </section>
-
-        {/* Section 2: Health Records */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>📓 Pregnancy Health Records</h3>
-          <IonGrid>
-            <IonRow className="table-header">
-              <IonCol size="1">#</IonCol>
-              <IonCol>Date</IonCol>
-              <IonCol>BP</IonCol>
-              <IonCol>Weight</IonCol>
-              <IonCol>Fundal Height</IonCol>
-              <IonCol>Notes</IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>1</IonCol>
-              <IonCol>Sept 5</IonCol>
-              <IonCol>110/70</IonCol>
-              <IonCol>56kg</IonCol>
-              <IonCol>20 cm</IonCol>
-              <IonCol>Normal progress</IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>2</IonCol>
-              <IonCol>Oct 10</IonCol>
-              <IonCol>115/75</IonCol>
-              <IonCol>58kg</IonCol>
-              <IonCol>23 cm</IonCol>
-              <IonCol>Advised iron supplements</IonCol>
-            </IonRow>
-          </IonGrid>
-        </section>
-
-        {/* Section 3: Educational Materials */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>📚 Maternal Health Educational Materials</h3>
-          <IonList>
-            <IonItem button onClick={() => setShowPDF(true)}>
-              <IonLabel>📄 Nutrition Guide for 2nd Trimester</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>📄 10 Danger Signs During Pregnancy</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>📄 DOH Maternal Care Handbook 2024</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>📄 Iron-Rich Meal Plan</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>📄 How to Prepare for Delivery (Checklist)</IonLabel>
-            </IonItem>
-          </IonList>
-        </section>
-
-        {/* Section 4: Milestones */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>🍼 Pregnancy Milestones Tracker</h3>
-          <IonList>
-            <IonItem><IonLabel>✅ First heartbeat detected – 8 weeks</IonLabel></IonItem>
-            <IonItem><IonLabel>✅ First ultrasound completed – 12 weeks</IonLabel></IonItem>
-            <IonItem><IonLabel>🔜 Gender reveal scheduled – 20 weeks</IonLabel></IonItem>
-            <IonItem><IonLabel>🔜 Third-trimester checkup – 28 weeks</IonLabel></IonItem>
-          </IonList>
-        </section>
-
-        {/* Section 5: Nutrition Log */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>🥗 Nutrition Log</h3>
-          <IonList>
-            <IonItem>
-              <IonLabel><strong>Oct 1:</strong> Ate iron-rich breakfast (eggs, spinach)</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel><strong>Oct 2:</strong> Missed taking prenatal vitamins</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel><strong>Oct 3:</strong> High protein lunch (chicken + rice)</IonLabel>
-            </IonItem>
-          </IonList>
-        </section>
-
-        {/* Section 6: Doctor's Notes */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>🩺 Doctor’s Notes</h3>
-          <IonCard>
-            <IonCardContent>
-              <p><strong>Note from Dr. Reyes (Oct 10):</strong></p>
-              <p>Patient is doing well. Advised to continue iron supplements and track fetal movement regularly. Next appointment will include glucose screening.</p>
-            </IonCardContent>
-          </IonCard>
-        </section>
-
-        {/* Section 7: Immunization Tracker */}
-        <section style={{ marginTop: '30px' }}>
-          <h3>💉 Immunization Tracker</h3>
-          <IonGrid>
-            <IonRow className="table-header">
-              <IonCol>Vaccine</IonCol>
-              <IonCol>Date</IonCol>
-              <IonCol>Status</IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>Tetanus Toxoid (TT1)</IonCol>
-              <IonCol>Sept 12, 2025</IonCol>
-              <IonCol>✅ Completed</IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>Tetanus Toxoid (TT2)</IonCol>
-              <IonCol>Oct 15, 2025</IonCol>
-              <IonCol>⏳ Scheduled</IonCol>
-            </IonRow>
-          </IonGrid>
-        </section>
-
-        {/* Footer */}
-        <div style={{ textAlign: 'center', margin: '50px 0', color: '#777' }}>
-          <small>Barangay Alae Maternal Care System – Pregnancy Booklet © 2025</small>
+        <div className="welcome-section">
+          <h1>
+            Welcome, <span>{fullName}</span>
+          </h1>
+          <p>Track your appointments, immunizations, and pregnancy health records.</p>
         </div>
 
-        {/* Modal for PDF preview */}
-        <IonModal isOpen={showPDF} onDidDismiss={() => setShowPDF(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>📄 Nutrition Guide</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowPDF(false)}>Close</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent>
-            <iframe
-              src="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-              title="Nutrition Guide PDF"
-              width="100%"
-              height="100%"
-              style={{ border: 'none', height: '100vh' }}
-            ></iframe>
-          </IonContent>
-        </IonModal>
+        <IonGrid className="cards-grid">
+          <IonRow>
+            <IonCol size="12" sizeMd="6">
+              <IonCard className="glass-card pink">
+                <IonCardContent>
+                  <IonIcon icon={calendarOutline} className="card-icon" />
+                  <h2>Appointments</h2>
+                  {appointments.length ? (
+                    appointments.map((a, i) => (
+                      <p key={i}>{new Date(a.appointment_date).toLocaleDateString()} — {a.purpose}</p>
+                    ))
+                  ) : (
+                    <p className="muted">No upcoming appointments.</p>
+                  )}
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+
+            <IonCol size="12" sizeMd="6">
+              <IonCard className="glass-card purple">
+                <IonCardContent>
+                  <IonIcon icon={heartOutline} className="card-icon" />
+                  <h2>Health Records</h2>
+                  {healthRecords.length ? (
+                    healthRecords.map((r, i) => (
+                      <p key={i}>
+                        BP: {r.blood_pressure || "-"} — Weight: {r.weight}kg
+                      </p>
+                    ))
+                  ) : (
+                    <p className="muted">No health records yet.</p>
+                  )}
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+
+            <IonCol size="12" sizeMd="6">
+              <IonCard className="glass-card teal">
+                <IonCardContent>
+                  <IonIcon icon={medkitOutline} className="card-icon" />
+                  <h2>Immunizations</h2>
+                  {immunizations.length ? (
+                    immunizations.map((im, i) => (
+                      <p key={i}>
+                        {im.vaccine_name} — {new Date(im.date).toLocaleDateString()}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="muted">No immunizations recorded.</p>
+                  )}
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+
+            <IonCol size="12" sizeMd="6">
+              <IonCard className="glass-card orange">
+                <IonCardContent>
+                  <IonIcon icon={clipboardOutline} className="card-icon" />
+                  <h2>BHW Notes</h2>
+                  {notes.length ? (
+                    notes.map((n, i) => (
+                      <p key={i}>
+                        <b>{n.bhw_name}:</b> {n.note}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="muted">No notes yet.</p>
+                  )}
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+
+        <div className="education-section">
+          <h2>
+            <IonIcon icon={schoolOutline} /> Educational Materials
+          </h2>
+          <IonList>
+            {materials.length ? (
+              materials.map((m, i) => (
+                <IonItem key={i}>
+                  <IonLabel>
+                    <h3>{m.title}</h3>
+                    <p>{m.content}</p>
+                  </IonLabel>
+                </IonItem>
+              ))
+            ) : (
+              <IonItem>
+                <IonLabel>No educational materials available.</IonLabel>
+              </IonItem>
+            )}
+          </IonList>
+        </div>
+
+        {/* Chatbot Floating */}
+        <div className="mamabot">
+          {showChat ? (
+            <div className="chat-box">
+              <div className="chat-header">
+                <b>MAMABOT</b>
+                <IonIcon
+                  icon={close}
+                  className="close-icon"
+                  onClick={() => setShowChat(false)}
+                />
+              </div>
+
+              <div className="chat-body" id="chatBody">
+                {messages.length === 0 && (
+                  <div className="msg bot">
+                    Hello <b>Nanay!</b> I'm <b>MAMABOT</b> — your pregnancy assistant.
+                    You can ask about nutrition, exercise, or warning signs.
+                  </div>
+                )}
+                {messages.map((m, i) => (
+                  <div key={i} className={`msg ${m.sender}`}>
+                    {m.text}
+                  </div>
+                ))}
+              </div>
+
+              <div className="chat-input">
+                <IonInput
+                  placeholder="Ask something..."
+                  value={input}
+                  onIonChange={(e) => setInput(e.detail.value!)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                />
+                <IonButton fill="clear" onClick={handleSend}>
+                  <IonIcon icon={send} />
+                </IonButton>
+              </div>
+            </div>
+          ) : (
+            <button className="chat-fab" onClick={() => setShowChat(true)}>
+              <IonIcon icon={chatbubbleOutline} />
+            </button>
+          )}
+        </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default PregnancyBooklet;
+export default DashboardMother;
