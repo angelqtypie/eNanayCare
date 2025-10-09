@@ -44,10 +44,6 @@ import {
 import { supabase } from "../utils/supabaseClient";
 import "./DashboardMother.css";
 
-/**
- * Trusted static educational materials (safe, WHO/DOH-style).
- * Keep editable by developer/BHW.
- */
 const STATIC_MATERIALS = [
   {
     id: "static-1",
@@ -103,46 +99,34 @@ const STATIC_MATERIALS = [
 ];
 
 const DashboardMother: React.FC = () => {
-  // local states
   const [appointments, setAppointments] = useState<any[]>([]);
   const [healthRecords, setHealthRecords] = useState<any[]>([]);
   const [immunizations, setImmunizations] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]); // merged: db first, static next
+  const [materials, setMaterials] = useState<any[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const history = useHistory();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Profile edit modal
   const [profile, setProfile] = useState<any>({});
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const history = useHistory();
 
-  // user identity from localStorage (login should set these)
   const userId = localStorage.getItem("userId");
   const fullName = (localStorage.getItem("fullName") || "Nanay").trim() || "Nanay";
 
-  // on mount: always load static materials; then try DB fetch if logged in
   useEffect(() => {
-    // always show static materials so mothers can read even if DB empty
     setMaterials(STATIC_MATERIALS);
-
     if (!userId) {
       setError("User not logged in");
-      // still allow reading static content
       return;
     }
-
-    // if logged in, fetch personal and DB materials
     fetchAllData();
     fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // fetch supabase data and merge educational materials
   const fetchAllData = async () => {
     try {
       const [appt, records, immu, bhwNotes, edu] = await Promise.all([
@@ -158,10 +142,8 @@ const DashboardMother: React.FC = () => {
       setImmunizations(immu.data || []);
       setNotes(bhwNotes.data || []);
 
-      // merge DB-ed materials in front (DB first so admin uploads show first)
       const dbMaterials = edu.data || [];
       if (dbMaterials.length) {
-        // normalize to {id, title, content, url}
         const normalized = dbMaterials.map((m: any, idx: number) => ({
           id: m.id ?? `db-${idx}`,
           title: m.title ?? m.name ?? "Untitled",
@@ -176,12 +158,14 @@ const DashboardMother: React.FC = () => {
     }
   };
 
-  // profile fetch/save
   const fetchProfile = async () => {
     try {
-      const { data, error: pErr } = await supabase.from("mothers").select("*").eq("id", userId).single();
+      const { data, error: pErr } = await supabase
+        .from("mothers")
+        .select("*")
+        .eq("id", userId)
+        .single();
       if (pErr && pErr.code !== "PGRST116") {
-        // ignore 'no rows' gracefully, other errors show
         console.warn("fetchProfile warning:", pErr.message || pErr);
       }
       if (data) setProfile(data);
@@ -196,7 +180,7 @@ const DashboardMother: React.FC = () => {
         setToastMsg("You must be logged in to save profile.");
         return;
       }
-      // attempt update; if no row exists, upsert
+
       const updates = {
         id: userId,
         full_name: profile.full_name ?? fullName,
@@ -204,15 +188,18 @@ const DashboardMother: React.FC = () => {
         contact_number: profile.contact_number ?? null,
         expected_delivery: profile.expected_delivery ?? null,
       };
-      const { error: upErr } = await supabase.from("mothers").upsert(updates, { returning: "minimal" });
+
+      // ✅ FIXED: Removed { returning: "minimal" }
+      const { error: upErr } = await supabase.from("mothers").upsert(updates);
+
       if (upErr) {
         console.error("saveProfile error:", upErr);
         setToastMsg("Failed to save profile.");
         return;
       }
+
       setShowProfileModal(false);
       setToastMsg("Profile saved.");
-      // update localStorage fullName if changed
       if (updates.full_name) localStorage.setItem("fullName", updates.full_name);
     } catch (err) {
       console.error("saveProfile exception:", err);
@@ -220,26 +207,27 @@ const DashboardMother: React.FC = () => {
     }
   };
 
-  // Navigation helpers
   const goTo = (path: string) => {
     setSidebarOpen(false);
     history.push(path);
   };
 
   const handleLogout = () => {
-    // clear local session keys locally (actual auth sign-out should be handled separately)
     localStorage.removeItem("userId");
     localStorage.removeItem("fullName");
     history.push("/landingpage");
   };
 
-  // Simple rule-based MAMABOT replies
   const getMAMABOTReply = (msg: string): string => {
     const text = msg.toLowerCase();
-    if (text.includes("nutrition") || text.includes("eat")) return "Eat iron-rich foods like malunggay, fish, and green vegetables. Avoid alcohol and raw foods.";
-    if (text.includes("exercise")) return "Light walking or prenatal yoga is helpful if your doctor approves.";
-    if (text.includes("bleed") || text.includes("danger") || text.includes("sign")) return "If you have heavy bleeding, severe headache, or decreased baby movement — go to the health center immediately.";
-    if (text.includes("hello") || text.includes("hi")) return `Hello ${fullName || "Nanay"}! I'm MAMABOT — how can I help?`;
+    if (text.includes("nutrition") || text.includes("eat"))
+      return "Eat iron-rich foods like malunggay, fish, and green vegetables. Avoid alcohol and raw foods.";
+    if (text.includes("exercise"))
+      return "Light walking or prenatal yoga is helpful if your doctor approves.";
+    if (text.includes("bleed") || text.includes("danger") || text.includes("sign"))
+      return "If you have heavy bleeding, severe headache, or decreased baby movement — go to the health center immediately.";
+    if (text.includes("hello") || text.includes("hi"))
+      return `Hello ${fullName || "Nanay"}! I'm MAMABOT — how can I help?`;
     return "Try asking about nutrition, warning signs, vaccines, or exercise.";
   };
 
@@ -251,7 +239,6 @@ const DashboardMother: React.FC = () => {
     setTimeout(() => {
       const botReply = getMAMABOTReply(question);
       setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
-      // scroll chat
       setTimeout(() => {
         const chatBody = document.getElementById("chatBody");
         if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
@@ -259,11 +246,8 @@ const DashboardMother: React.FC = () => {
     }, 600);
   };
 
-  // render helpers
   const openMaterial = (m: any) => {
-    if (m.url) {
-      window.open(m.url, "_blank", "noopener");
-    }
+    if (m.url) window.open(m.url, "_blank", "noopener");
   };
 
   return (
@@ -281,13 +265,10 @@ const DashboardMother: React.FC = () => {
         {error && <IonText color="danger" className="ion-padding">{error}</IonText>}
 
         <div className="welcome-section">
-          <h1>
-            Welcome, <span>{fullName}</span>
-          </h1>
+          <h1>Welcome, <span>{fullName}</span></h1>
           <p>Track your appointments, immunizations, and pregnancy health records.</p>
         </div>
 
-        {/* CARDS */}
         <IonGrid className="cards-grid">
           <IonRow>
             <IonCol size="12" sizeMd="6">
@@ -298,7 +279,9 @@ const DashboardMother: React.FC = () => {
                   {appointments.length ? (
                     appointments.map((a, i) => (
                       <p key={i}>
-                        {a.appointment_date ? new Date(a.appointment_date).toLocaleDateString() : "Date not set"} — {a.purpose}
+                        {a.appointment_date
+                          ? new Date(a.appointment_date).toLocaleDateString()
+                          : "Date not set"} — {a.purpose}
                       </p>
                     ))
                   ) : (
@@ -364,11 +347,8 @@ const DashboardMother: React.FC = () => {
           </IonRow>
         </IonGrid>
 
-        {/* EDUCATIONAL MATERIALS */}
         <div className="education-section">
-          <h2>
-            <IonIcon icon={schoolOutline} /> Educational Materials
-          </h2>
+          <h2><IonIcon icon={schoolOutline} /> Educational Materials</h2>
           <IonList>
             {materials.length ? (
               materials.map((m, i) => (
@@ -392,7 +372,6 @@ const DashboardMother: React.FC = () => {
           </IonList>
         </div>
 
-        {/* Floating menu buttons (responsive) */}
         <div className="floating-menu">
           <IonButton expand="full" onClick={() => setShowProfileModal(true)} style={{ marginBottom: 8 }}>
             <IonIcon slot="start" icon={createOutline} /> Edit Profile
@@ -405,7 +384,6 @@ const DashboardMother: React.FC = () => {
           </IonButton>
         </div>
 
-        {/* MAMABOT (chat) */}
         <div className="mamabot">
           {showChat ? (
             <div className="chat-box">
@@ -421,14 +399,17 @@ const DashboardMother: React.FC = () => {
                   </div>
                 )}
                 {messages.map((m, i) => (
-                  <div key={i} className={`msg ${m.sender}`}>
-                    {m.text}
-                  </div>
+                  <div key={i} className={`msg ${m.sender}`}>{m.text}</div>
                 ))}
               </div>
 
               <div className="chat-input">
-                <IonInput placeholder="Ask something..." value={input} onIonChange={(e) => setInput(e.detail.value!)} onKeyDown={(e) => e.key === "Enter" && handleSend()} />
+                <IonInput
+                  placeholder="Ask something..."
+                  value={input}
+                  onIonChange={(e) => setInput(e.detail.value!)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                />
                 <IonButton fill="clear" onClick={handleSend}>
                   <IonIcon icon={send} />
                 </IonButton>
@@ -443,7 +424,6 @@ const DashboardMother: React.FC = () => {
           )}
         </div>
 
-        {/* Profile Modal */}
         <IonModal isOpen={showProfileModal} onDidDismiss={() => setShowProfileModal(false)}>
           <IonHeader>
             <IonToolbar>
@@ -453,43 +433,69 @@ const DashboardMother: React.FC = () => {
               </IonButton>
             </IonToolbar>
           </IonHeader>
+
           <IonContent className="ion-padding">
             <IonItemDivider>Personal Info</IonItemDivider>
             <IonItem>
               <IonLabel position="stacked">Full Name</IonLabel>
-              <IonInput value={profile.full_name ?? fullName} onIonChange={(e) => setProfile({ ...profile, full_name: e.detail.value })} />
+              <IonInput
+                value={profile.full_name ?? fullName}
+                onIonChange={(e) => setProfile({ ...profile, full_name: e.detail.value })}
+              />
             </IonItem>
 
             <IonItem>
               <IonLabel position="stacked">Address</IonLabel>
-              <IonInput value={profile.address ?? ""} onIonChange={(e) => setProfile({ ...profile, address: e.detail.value })} />
+              <IonInput
+                value={profile.address ?? ""}
+                onIonChange={(e) => setProfile({ ...profile, address: e.detail.value })}
+              />
             </IonItem>
 
             <IonItem>
               <IonLabel position="stacked">Contact Number</IonLabel>
-              <IonInput value={profile.contact_number ?? ""} onIonChange={(e) => setProfile({ ...profile, contact_number: e.detail.value })} />
+              <IonInput
+                value={profile.contact_number ?? ""}
+                onIonChange={(e) => setProfile({ ...profile, contact_number: e.detail.value })}
+              />
             </IonItem>
 
             <IonItem>
               <IonLabel position="stacked">Expected Delivery Date</IonLabel>
-              <IonInput type="date" value={profile.expected_delivery ?? ""} onIonChange={(e) => setProfile({ ...profile, expected_delivery: e.detail.value })} />
+              <IonInput
+                type="date"
+                value={profile.expected_delivery ?? ""}
+                onIonChange={(e) => setProfile({ ...profile, expected_delivery: e.detail.value })}
+              />
             </IonItem>
 
             <IonItem>
               <IonLabel position="stacked">Notes (optional)</IonLabel>
-              <IonTextarea value={profile.notes ?? ""} onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value })} />
+              <IonTextarea
+                value={profile.notes ?? ""}
+                onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value })}
+              />
             </IonItem>
 
             <IonButton expand="block" color="success" onClick={saveProfile} style={{ marginTop: 16 }}>
               Save Profile
             </IonButton>
           </IonContent>
+
           <IonFooter>
-            <div style={{ padding: 10, textAlign: "center", color: "#666" }}>Changes are saved to your health record.</div>
+            <div style={{ padding: 10, textAlign: "center", color: "#666" }}>
+              Your information is stored securely.
+            </div>
           </IonFooter>
         </IonModal>
 
-        <IonToast isOpen={!!toastMsg} message={toastMsg ?? ""} duration={2000} onDidDismiss={() => setToastMsg(null)} />
+        <IonToast
+          isOpen={!!toastMsg}
+          message={toastMsg ?? ""}
+          duration={2500}
+          color="success"
+          onDidDismiss={() => setToastMsg(null)}
+        />
       </IonContent>
     </IonPage>
   );
