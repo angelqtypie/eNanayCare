@@ -1,127 +1,216 @@
-/* src/pages/DashboardMother.css */
-
+/* ---- Layout & Page ---- */
 .dashboard-content {
-    background: linear-gradient(180deg, #fff7f8, #f0fcfa);
-    min-height: 100vh;
-    padding: 16px;
-  }
-  
-  .header-toolbar {
-    background-color: #ffdde8;
-    color: #4a004a;
-  }
-  
-  .welcome-section {
-    text-align: center;
-    padding: 1rem 0;
-  }
-  
-  .welcome-section h1 {
-    color: #d63384;
-    font-weight: 700;
-  }
-  
+  background: linear-gradient(180deg, #fff7f8, #f0fcfa);
+  min-height: 100vh;
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.header-toolbar {
+  background-color: #ffe2eb;
+  color: #4a004a;
+  font-weight: 600;
+}
+
+/* ---- Welcome Section ---- */
+.welcome-section {
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 25px;
+}
+
+.welcome-section h1 {
+  color: #d63384;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.welcome-section span {
+  color: #c2185b;
+}
+
+/* ---- Cards ---- */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.glass-card {
+  border-radius: 16px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+}
+
+.glass-card h2 {
+  margin: 6px 0;
+  font-size: 1.15rem;
+  color: #333;
+}
+
+.card-icon {
+  font-size: 24px;
+  margin-right: 8px;
+  color: #d63384;
+  vertical-align: middle;
+}
+
+.pink { background: #ffeaf3; }
+.purple { background: #f3e8ff; }
+.teal { background: #e6fff7; }
+.orange { background: #fff5e6; }
+
+.muted {
+  color: #777;
+  font-size: 0.9rem;
+}
+
+/* ---- Educational Section ---- */
+.education-section {
+  background: #fffafc;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.education-section h2 {
+  color: #d63384;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.education-section ion-item {
+  --background: transparent;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.education-section ion-label h3 {
+  font-weight: 600;
+  color: #222;
+}
+
+.education-section ion-label p {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ---- Floating Menu Buttons ---- */
+.floating-menu {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 25px 0;
+}
+
+.floating-menu ion-button {
+  flex: 1;
+  min-width: 150px;
+  border-radius: 10px;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(214, 51, 132, 0.2);
+}
+
+/* ---- Chatbot (MAMABOT) ---- */
+.mamabot .chat-box {
+  position: fixed;
+  right: 20px;
+  bottom: 100px;
+  width: 320px;
+  max-width: 90%;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 999;
+}
+
+.chat-header {
+  background: #d63384;
+  color: white;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-body {
+  padding: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.msg {
+  padding: 8px 12px;
+  border-radius: 12px;
+  line-height: 1.4;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: #ffe5f1;
+}
+
+.msg.bot {
+  align-self: flex-start;
+  background: #e6fff5;
+}
+
+.chat-input {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #eee;
+}
+
+.chat-input ion-input {
+  flex: 1;
+  --padding-start: 10px;
+}
+
+.chat-fab,
+ion-fab-button {
+  --background: #d63384;
+  --color: white;
+}
+
+/* ---- Responsive Fixes ---- */
+@media (max-width: 768px) {
   .cards-grid {
-    margin-top: 1rem;
+    grid-template-columns: 1fr;
   }
-  
-  .glass-card {
-    border-radius: 18px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    color: #333;
-  }
-  
-  .glass-card h2 {
-    margin-top: 0.5rem;
-    font-size: 1.2rem;
-  }
-  
-  .card-icon {
-    font-size: 24px;
-    color: #d63384;
-    margin-right: 6px;
-  }
-  
-  .pink { background: #ffeaf3; }
-  .purple { background: #f3e8ff; }
-  .teal { background: #e6fff7; }
-  .orange { background: #fff5e6; }
-  
-  .education-section {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background: #fffafc;
-    border-radius: 16px;
-  }
-  
-  .education-section h2 {
-    color: #d63384;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  
-  /* Chatbot */
-  .chat-fab {
-    position: fixed;
-    bottom: 22px;
-    right: 22px;
-    background: #d63384;
-    border: none;
-    color: white;
-    border-radius: 50%;
-    padding: 14px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  }
-  
-  .chat-box {
+
+  .floating-menu {
     position: fixed;
     bottom: 80px;
-    right: 20px;
-    background: white;
-    width: 300px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    display: flex;
+    right: 12px;
     flex-direction: column;
+    width: 160px;
+    align-items: stretch;
+    z-index: 999;
   }
-  
-  .chat-header {
-    background: #d63384;
-    color: white;
-    padding: 10px;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    display: flex;
-    justify-content: space-between;
+
+  .education-section {
+    padding: 15px;
   }
-  
-  .chat-body {
-    padding: 10px;
-    max-height: 200px;
-    overflow-y: auto;
+
+  .chat-box {
+    width: 92%;
+    left: 4%;
+    right: 4%;
   }
-  
-  .msg {
-    margin: 6px 0;
-    padding: 8px;
-    border-radius: 10px;
-    max-width: 80%;
-  }
-  
-  .msg.user {
-    background: #ffe5f1;
-    align-self: flex-end;
-  }
-  
-  .msg.bot {
-    background: #e6fff5;
-    align-self: flex-start;
-  }
-  
-  .chat-input {
-    display: flex;
-    align-items: center;
-    border-top: 1px solid #eee;
-  }
-  
+}

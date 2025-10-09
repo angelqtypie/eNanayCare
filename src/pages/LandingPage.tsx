@@ -81,10 +81,6 @@ const Landing: React.FC = () => {
                 <button onClick={() => scrollToSection("features")}>
                   Features
                 </button>
-                <button onClick={() => history.push("/login")}>Login</button>
-                <IonMenuButton className="menu-btn" autoHide={false}>
-                  <IonIcon icon={menuOutline} size="large" />
-                </IonMenuButton>
               </nav>
             </div>
           </IonToolbar>

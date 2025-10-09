@@ -58,7 +58,7 @@ const Mothers: React.FC = () => {
     }
 
     try {
-      // 1️⃣ Create auth user via Supabase
+      // 1️⃣ Create Supabase Auth User
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -67,41 +67,53 @@ const Mothers: React.FC = () => {
         },
       });
 
-      if (authError) {
-        console.error("Auth signUp error:", authError);
-        alert("Error creating user: " + authError.message);
-        return;
-      }
-
-      if (!authData.user) {
-        alert("User creation failed.");
+      if (authError || !authData.user) {
+        console.error("Auth error:", authError);
+        alert("Auth sign-up failed: " + authError?.message);
         return;
       }
 
       const authUserId = authData.user.id;
 
-      // 2️⃣ Insert into mothers table
-      const insertObj = {
-        auth_user_id: authUserId,
-        name: form.name,
-        birthday: form.birthday || null,
-        address: form.address || null,
-        contact: form.contact || null,
-        email: form.email,
-        status: form.status,
-        due_date: form.dueDate || null,
-      };
+      // 2️⃣ Insert into your `users` table
+      const { error: userInsertError } = await supabase.from("users").insert([
+        {
+          id: authUserId,
+          email: form.email,
+          full_name: form.name,
+          role: "mother",
+          created_at: new Date().toISOString(),
+          password: null, // optional
+        }
+      ]);
 
-      const { error: insertError } = await supabase.from("mothers").insert([insertObj]);
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        alert("Failed to save mother info: " + insertError.message);
+      if (userInsertError) {
+        console.error("Error inserting into users:", userInsertError);
+        alert("User insert failed: " + userInsertError.message);
         return;
       }
 
-      alert("Mother registered successfully! Email confirmation sent.");
+      // 3️⃣ Insert into mothers table
+      const { error: motherInsertError } = await supabase.from("mothers").insert([
+        {
+          auth_user_id: authUserId,
+          name: form.name,
+          birthday: form.birthday || null,
+          address: form.address || null,
+          contact: form.contact || null,
+          email: form.email,
+          status: form.status,
+          due_date: form.dueDate || null
+        }
+      ]);
 
-      // Reset form + refresh list
+      if (motherInsertError) {
+        console.error("Error inserting into mothers:", motherInsertError);
+        alert("Mother insert failed: " + motherInsertError.message);
+        return;
+      }
+
+      alert("Mother registered successfully!");
       setForm({
         name: "",
         birthday: "",
@@ -114,9 +126,10 @@ const Mothers: React.FC = () => {
       });
       await fetchMothers();
       setShowModal(false);
+
     } catch (err) {
       console.error("Unexpected error:", err);
-      alert("Something went wrong during registration.");
+      alert("Unexpected error occurred.");
     }
   };
 
