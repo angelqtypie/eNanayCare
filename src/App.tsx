@@ -19,6 +19,12 @@ import Mothers from "./pages/Mothers";
 import Reminders from "./pages/Reminders";
 import AdminFAQ from "./pages/AdminFAQ";
 import AdminUserPage from "./pages/AdminUserPage";
+import MothersCalendar from './pages/MothersCalendar';
+import MothersProfile from './pages/MothersProfile';
+
+
+
+
 
 /* Ionic Core CSS */
 import "@ionic/react/css/core.css";
@@ -52,6 +58,8 @@ const App: React.FC = () => (
         <Route exact path="/mothers" component={Mothers} />
         <Route exact path="/AdminUserPage" component={AdminUserPage} />
         <Route exact path="/reminders" component={Reminders} />
+        <Route exact path="/mothersProfile" component={MothersProfile} />
+        <Route exact path="/mothersCalendar" component={MothersCalendar} />        
         <Route exact path="/landingpage" component={LandingPage} />
         <Route exact path="/">
           <Redirect to="/landingpage" />

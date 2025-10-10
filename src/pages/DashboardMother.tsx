@@ -1,4 +1,3 @@
-// src/pages/DashboardMother.tsx
 import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import {
@@ -21,6 +20,8 @@ import {
   IonText,
   IonModal,
   IonFooter,
+  IonSegment,
+  IonSegmentButton,
   IonItemDivider,
   IonTextarea,
   IonToast,
@@ -38,78 +39,91 @@ import {
   clipboardOutline,
   schoolOutline,
   createOutline,
+  personOutline,
+  homeOutline,
   listOutline,
   callOutline,
 } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import "./DashboardMother.css";
 
-const STATIC_MATERIALS = [
+// ---------- ✅ Types ----------
+interface EducationalMaterial {
+  id: string | number;
+  title: string;
+  content: string;
+  url?: string | null;
+}
+
+interface Appointment {
+  id: string | number;
+  appointment_date?: string;
+  purpose?: string;
+}
+
+interface HealthRecord {
+  id: string | number;
+  blood_pressure?: string;
+  weight?: number;
+}
+
+interface Immunization {
+  id: string | number;
+  vaccine_name?: string;
+  date?: string;
+}
+
+interface BhwNote {
+  id: string | number;
+  bhw_name?: string;
+  note?: string;
+}
+
+interface MotherProfile {
+  id?: string;
+  full_name?: string;
+  address?: string;
+  contact_number?: string;
+  expected_delivery?: string;
+  notes?: string;
+}
+
+// ---------- ✅ Static Educational Materials ----------
+const STATIC_MATERIALS: EducationalMaterial[] = [
   {
-    id: "static-1",
-    title: "Pregnancy Do’s and Don’ts",
-    content: `
-      <b>DO:</b><br/>
-      • Eat iron-rich foods (malunggay, fish, greens).<br/>
-      • Take iron & folic acid supplements as prescribed.<br/>
-      • Drink 8–10 glasses of water daily.<br/>
-      • Attend prenatal visits at your health center.<br/><br/>
-      <b>DON'T:</b><br/>
-      • Do not smoke or use alcohol.<br/>
-      • Avoid self-medication without a doctor.<br/>
-      • Avoid heavy lifting and toxic fumes.
-    `,
+    id: 1,
+    title: "Healthy Pregnancy Nutrition",
+    content:
+      "Eat a balanced diet rich in fruits, vegetables, and protein. Drink plenty of water and take your prenatal vitamins daily.",
+    url: "https://www.who.int/news-room/fact-sheets/detail/healthy-diet",
   },
   {
-    id: "static-2",
-    title: "Warning Signs — Seek Help Immediately",
-    content: `
-      • Severe headache, blurred vision, or dizziness.<br/>
-      • Heavy vaginal bleeding or fluid leakage.<br/>
-      • Severe abdominal pain or decreased fetal movement.<br/>
-      • High fever or convulsions.
-    `,
+    id: 2,
+    title: "Exercise During Pregnancy",
+    content:
+      "Light exercises such as walking and stretching can help you stay healthy and ease delivery, unless advised otherwise by your doctor.",
+    url: "https://www.cdc.gov/physical-activity-basics/guidelines/adults/pregnant-or-postpartum.html",
   },
   {
-    id: "static-3",
-    title: "Nutrition Tips",
-    content: `
-      • Eat a balanced diet: grains, protein (eggs, fish, legumes), fruits, vegetables, dairy.<br/>
-      • Avoid raw/undercooked foods and unpasteurized milk.<br/>
-      • Small frequent meals if you have nausea.
-    `,
-  },
-  {
-    id: "static-4",
-    title: "Exercise & Wellness",
-    content: `
-      • Light exercises (walking, stretching, prenatal yoga) are good if your provider approves.<br/>
-      • Rest, sleep well, and maintain mental wellbeing — talk to family or BHW if stressed.
-    `,
-  },
-  {
-    id: "static-5",
-    title: "Important Immunizations",
-    content: `
-      • Tetanus Toxoid (TT) — protect mum & baby from tetanus.<br/>
-      • Influenza vaccine — recommended during pregnancy.<br/>
-      • COVID-19 vaccine — recommended by DOH/WHO for pregnant women.
-    `,
+    id: 3,
+    title: "Immunization Schedule for Mothers",
+    content:
+      "Make sure to receive your tetanus toxoid (TT) vaccines as recommended by your health provider to protect you and your baby.",
+    url: "https://www.who.int/immunization/diseases/maternal/en/",
   },
 ];
 
 const DashboardMother: React.FC = () => {
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [healthRecords, setHealthRecords] = useState<any[]>([]);
-  const [immunizations, setImmunizations] = useState<any[]>([]);
-  const [notes, setNotes] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [immunizations, setImmunizations] = useState<Immunization[]>([]);
+  const [notes, setNotes] = useState<BhwNote[]>([]);
+  const [materials, setMaterials] = useState<EducationalMaterial[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profile, setProfile] = useState<any>({});
+  const [profile, setProfile] = useState<MotherProfile>({});
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const history = useHistory();
@@ -125,6 +139,7 @@ const DashboardMother: React.FC = () => {
     }
     fetchAllData();
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const fetchAllData = async () => {
@@ -137,18 +152,18 @@ const DashboardMother: React.FC = () => {
         supabase.from("educational_materials").select("*"),
       ]);
 
-      setAppointments(appt.data || []);
-      setHealthRecords(records.data || []);
-      setImmunizations(immu.data || []);
-      setNotes(bhwNotes.data || []);
+      setAppointments((appt.data as Appointment[]) || []);
+      setHealthRecords((records.data as HealthRecord[]) || []);
+      setImmunizations((immu.data as Immunization[]) || []);
+      setNotes((bhwNotes.data as BhwNote[]) || []);
 
-      const dbMaterials = edu.data || [];
+      const dbMaterials = (edu.data as EducationalMaterial[]) || [];
       if (dbMaterials.length) {
-        const normalized = dbMaterials.map((m: any, idx: number) => ({
+        const normalized = dbMaterials.map((m, idx) => ({
           id: m.id ?? `db-${idx}`,
-          title: m.title ?? m.name ?? "Untitled",
-          content: m.content ?? m.description ?? m.summary ?? "",
-          url: m.file_url ?? m.url ?? null,
+          title: m.title ?? "Untitled",
+          content: m.content ?? "",
+          url: m.url ?? null,
         }));
         setMaterials((prev) => [...normalized, ...prev]);
       }
@@ -160,14 +175,12 @@ const DashboardMother: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      const { data, error: pErr } = await supabase
+      const { data } = await supabase
         .from("mothers")
         .select("*")
         .eq("id", userId)
         .single();
-      if (pErr && pErr.code !== "PGRST116") {
-        console.warn("fetchProfile warning:", pErr.message || pErr);
-      }
+
       if (data) setProfile(data);
     } catch (err) {
       console.error("fetchProfile error:", err);
@@ -187,9 +200,9 @@ const DashboardMother: React.FC = () => {
         address: profile.address ?? null,
         contact_number: profile.contact_number ?? null,
         expected_delivery: profile.expected_delivery ?? null,
+        notes: profile.notes ?? null,
       };
 
-      // ✅ FIXED: Removed { returning: "minimal" }
       const { error: upErr } = await supabase.from("mothers").upsert(updates);
 
       if (upErr) {
@@ -207,10 +220,7 @@ const DashboardMother: React.FC = () => {
     }
   };
 
-  const goTo = (path: string) => {
-    setSidebarOpen(false);
-    history.push(path);
-  };
+  const goTo = (path: string) => history.push(path);
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -227,7 +237,7 @@ const DashboardMother: React.FC = () => {
     if (text.includes("bleed") || text.includes("danger") || text.includes("sign"))
       return "If you have heavy bleeding, severe headache, or decreased baby movement — go to the health center immediately.";
     if (text.includes("hello") || text.includes("hi"))
-      return `Hello ${fullName || "Nanay"}! I'm MAMABOT — how can I help?`;
+      return `Hello ${fullName}! I'm MAMABOT — how can I help?`;
     return "Try asking about nutrition, warning signs, vaccines, or exercise.";
   };
 
@@ -246,42 +256,48 @@ const DashboardMother: React.FC = () => {
     }, 600);
   };
 
-  const openMaterial = (m: any) => {
+  const openMaterial = (m: EducationalMaterial) => {
     if (m.url) window.open(m.url, "_blank", "noopener");
   };
 
   return (
     <IonPage>
-      <IonHeader translucent>
+      <IonHeader className="ion-no-border">
         <IonToolbar className="header-toolbar">
-          <IonTitle>Mother Dashboard</IonTitle>
-          <IonButton fill="clear" slot="end" color="danger" onClick={handleLogout}>
+          <IonButton fill="clear">
+            <IonIcon icon={listOutline} />
+          </IonButton>
+          <IonTitle className="ion-text-center">eNanayCare</IonTitle>
+          <IonButton fill="clear" slot="end" onClick={handleLogout}>
             <IonIcon icon={logOutOutline} /> Logout
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="dashboard-content">
-        {error && <IonText color="danger" className="ion-padding">{error}</IonText>}
+        {error && <IonText color="danger">{error}</IonText>}
 
         <div className="welcome-section">
-          <h1>Welcome, <span>{fullName}</span></h1>
+          <h1>
+            Welcome, <span>{fullName}</span>
+          </h1>
           <p>Track your appointments, immunizations, and pregnancy health records.</p>
         </div>
 
         <IonGrid className="cards-grid">
           <IonRow>
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="6" sizeMd="6">
               <IonCard className="glass-card pink">
                 <IonCardContent>
                   <IonIcon icon={calendarOutline} className="card-icon" />
                   <h2>Appointments</h2>
                   {appointments.length ? (
-                    appointments.map((a, i) => (
-                      <p key={i}>
+                    appointments.slice(0, 3).map((a) => (
+                      <p key={a.id}>
                         {a.appointment_date
                           ? new Date(a.appointment_date).toLocaleDateString()
-                          : "Date not set"} — {a.purpose}
+                          : "Date not set"}{" "}
+                        — {a.purpose}
                       </p>
                     ))
                   ) : (
@@ -291,14 +307,14 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="6" sizeMd="6">
               <IonCard className="glass-card purple">
                 <IonCardContent>
                   <IonIcon icon={heartOutline} className="card-icon" />
                   <h2>Health Records</h2>
                   {healthRecords.length ? (
-                    healthRecords.map((r, i) => (
-                      <p key={i}>
+                    healthRecords.slice(0, 3).map((r) => (
+                      <p key={r.id}>
                         BP: {r.blood_pressure || "-"} — Weight: {r.weight ? `${r.weight}kg` : "-"}
                       </p>
                     ))
@@ -309,15 +325,16 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="6" sizeMd="6">
               <IonCard className="glass-card teal">
                 <IonCardContent>
                   <IonIcon icon={medkitOutline} className="card-icon" />
                   <h2>Immunizations</h2>
                   {immunizations.length ? (
-                    immunizations.map((im, i) => (
-                      <p key={i}>
-                        {im.vaccine_name || "-"} — {im.date ? new Date(im.date).toLocaleDateString() : "-"}
+                    immunizations.slice(0, 3).map((im) => (
+                      <p key={im.id}>
+                        {im.vaccine_name || "-"} —{" "}
+                        {im.date ? new Date(im.date).toLocaleDateString() : "-"}
                       </p>
                     ))
                   ) : (
@@ -327,14 +344,14 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="6" sizeMd="6">
               <IonCard className="glass-card orange">
                 <IonCardContent>
                   <IonIcon icon={clipboardOutline} className="card-icon" />
                   <h2>BHW Notes</h2>
                   {notes.length ? (
-                    notes.map((n, i) => (
-                      <p key={i}>
+                    notes.slice(0, 3).map((n) => (
+                      <p key={n.id}>
                         <b>{n.bhw_name || "BHW"}:</b> {n.note}
                       </p>
                     ))
@@ -348,12 +365,14 @@ const DashboardMother: React.FC = () => {
         </IonGrid>
 
         <div className="education-section">
-          <h2><IonIcon icon={schoolOutline} /> Educational Materials</h2>
+          <h2>
+            <IonIcon icon={schoolOutline} /> Educational Materials
+          </h2>
           <IonList>
             {materials.length ? (
-              materials.map((m, i) => (
+              materials.map((m) => (
                 <IonItem
-                  key={m.id ?? i}
+                  key={m.id}
                   button={!!m.url}
                   detail={!!m.url}
                   onClick={() => (m.url ? openMaterial(m) : null)}
@@ -372,18 +391,7 @@ const DashboardMother: React.FC = () => {
           </IonList>
         </div>
 
-        <div className="floating-menu">
-          <IonButton expand="full" onClick={() => setShowProfileModal(true)} style={{ marginBottom: 8 }}>
-            <IonIcon slot="start" icon={createOutline} /> Edit Profile
-          </IonButton>
-          <IonButton expand="full" color="secondary" onClick={() => goTo("/materials")} style={{ marginBottom: 8 }}>
-            <IonIcon slot="start" icon={listOutline} /> More Materials
-          </IonButton>
-          <IonButton expand="full" color="tertiary" onClick={() => goTo("/contactbhw")}>
-            <IonIcon slot="start" icon={callOutline} /> Contact BHW
-          </IonButton>
-        </div>
-
+        {/* Chatbot */}
         <div className="mamabot">
           {showChat ? (
             <div className="chat-box">
@@ -391,24 +399,24 @@ const DashboardMother: React.FC = () => {
                 <b>MAMABOT</b>
                 <IonIcon icon={close} className="close-icon" onClick={() => setShowChat(false)} />
               </div>
-
               <div className="chat-body" id="chatBody">
                 {messages.length === 0 && (
                   <div className="msg bot">
-                    Hello <b>{fullName}</b>! I'm <b>MAMABOT</b> — your pregnancy assistant. Ask me about nutrition, exercise, or warning signs.
+                    Hello <b>{fullName}</b>! I'm <b>MAMABOT</b> — your pregnancy assistant.
                   </div>
                 )}
                 {messages.map((m, i) => (
-                  <div key={i} className={`msg ${m.sender}`}>{m.text}</div>
+                  <div key={i} className={`msg ${m.sender}`}>
+                    {m.text}
+                  </div>
                 ))}
               </div>
-
               <div className="chat-input">
                 <IonInput
                   placeholder="Ask something..."
                   value={input}
                   onIonChange={(e) => setInput(e.detail.value!)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e: any) => e.key === "Enter" && handleSend()}
                 />
                 <IonButton fill="clear" onClick={handleSend}>
                   <IonIcon icon={send} />
@@ -424,6 +432,7 @@ const DashboardMother: React.FC = () => {
           )}
         </div>
 
+        {/* Profile Modal */}
         <IonModal isOpen={showProfileModal} onDidDismiss={() => setShowProfileModal(false)}>
           <IonHeader>
             <IonToolbar>
@@ -440,7 +449,9 @@ const DashboardMother: React.FC = () => {
               <IonLabel position="stacked">Full Name</IonLabel>
               <IonInput
                 value={profile.full_name ?? fullName}
-                onIonChange={(e) => setProfile({ ...profile, full_name: e.detail.value })}
+                onIonChange={(e) =>
+                  setProfile({ ...profile, full_name: e.detail.value ?? "" })
+                }
               />
             </IonItem>
 
@@ -448,7 +459,7 @@ const DashboardMother: React.FC = () => {
               <IonLabel position="stacked">Address</IonLabel>
               <IonInput
                 value={profile.address ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, address: e.detail.value })}
+                onIonChange={(e) => setProfile({ ...profile, address: e.detail.value ?? "" })}
               />
             </IonItem>
 
@@ -456,7 +467,9 @@ const DashboardMother: React.FC = () => {
               <IonLabel position="stacked">Contact Number</IonLabel>
               <IonInput
                 value={profile.contact_number ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, contact_number: e.detail.value })}
+                onIonChange={(e) =>
+                  setProfile({ ...profile, contact_number: e.detail.value ?? "" })
+                }
               />
             </IonItem>
 
@@ -465,7 +478,9 @@ const DashboardMother: React.FC = () => {
               <IonInput
                 type="date"
                 value={profile.expected_delivery ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, expected_delivery: e.detail.value })}
+                onIonChange={(e) =>
+                  setProfile({ ...profile, expected_delivery: e.detail.value ?? "" })
+                }
               />
             </IonItem>
 
@@ -473,7 +488,7 @@ const DashboardMother: React.FC = () => {
               <IonLabel position="stacked">Notes (optional)</IonLabel>
               <IonTextarea
                 value={profile.notes ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value })}
+                onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value ?? "" })}
               />
             </IonItem>
 
@@ -497,6 +512,24 @@ const DashboardMother: React.FC = () => {
           onDidDismiss={() => setToastMsg(null)}
         />
       </IonContent>
+      <IonFooter className="ion-no-border dashboard-footer">
+        <IonToolbar>
+          <IonSegment value="dashboard" className="footer-segment">
+            <IonSegmentButton value="dashboard" onClick={() => goTo("/dashboardmother")}>
+              <IonIcon icon={homeOutline} />
+              <IonLabel>Dashboard</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="calendar" onClick={() => goTo("/motherscalendar")}>
+              <IonIcon icon={calendarOutline} />
+              <IonLabel>Calendar</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value="profile" onClick={() => goTo("/mothersprofile")}>
+              <IonIcon icon={personOutline} />
+              <IonLabel>Profile</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+        </IonToolbar>
+      </IonFooter>
     </IonPage>
   );
 };
