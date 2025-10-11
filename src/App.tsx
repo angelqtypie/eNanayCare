@@ -17,12 +17,11 @@ import Appointments from "./pages/Appointments";
 import LandingPage from "./pages/LandingPage";
 import Mothers from "./pages/Mothers";
 import Reminders from "./pages/Reminders";
-import AdminFAQ from "./pages/AdminFAQ";
 import AdminUserPage from "./pages/AdminUserPage";
 import MothersCalendar from './pages/MothersCalendar';
 import MothersProfile from './pages/MothersProfile';
-
-
+import HealthRecords from './pages/HealthRecords';
+import Notifications from './pages/Notifications';
 
 
 
@@ -42,6 +41,8 @@ import "@ionic/react/css/display.css";
 import "@ionic/react/css/palettes/dark.system.css";
 import "./theme/variables.css";
 
+
+
 setupIonicReact();
 
 const App: React.FC = () => (
@@ -54,12 +55,13 @@ const App: React.FC = () => (
         <Route exact path="/dashboardmother" component={DashboardMother} />
         <Route exact path="/dashboardadmin" component={DashboardAdmin} />
         <Route exact path="/appointments" component={Appointments} />
-        <Route exact path="/adminfaq" component={AdminFAQ} />
         <Route exact path="/mothers" component={Mothers} />
         <Route exact path="/AdminUserPage" component={AdminUserPage} />
         <Route exact path="/reminders" component={Reminders} />
+        <Route exact path="/healthrecords" component={HealthRecords} />        
         <Route exact path="/mothersProfile" component={MothersProfile} />
-        <Route exact path="/mothersCalendar" component={MothersCalendar} />        
+        <Route exact path="/mothersCalendar" component={MothersCalendar} /> 
+        <Route exact path="/notifications" component={Notifications} />       
         <Route exact path="/landingpage" component={LandingPage} />
         <Route exact path="/">
           <Redirect to="/landingpage" />

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import Calendar, { CalendarProps } from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import {
   IonPage,
   IonHeader,
@@ -8,15 +10,24 @@ import {
   IonCard,
   IonCardContent,
   IonList,
-  IonItem,
-  IonLabel,
   IonText,
 } from "@ionic/react";
 import { supabase } from "../utils/supabaseClient";
 
+type Appointment = {
+  id: string;
+  mother_id: string;
+  date: string;
+  time?: string;
+  location?: string;
+  notes?: string;
+  status?: string;
+};
+
 const MothersCalendar: React.FC = () => {
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
@@ -24,90 +35,89 @@ const MothersCalendar: React.FC = () => {
       setError("User not logged in");
       return;
     }
-    fetchAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAppointments(userId);
   }, [userId]);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (uid: string) => {
     try {
       const { data, error: e } = await supabase
         .from("appointments")
         .select("*")
-        .eq("mother_id", userId)
-        .order("appointment_date", { ascending: true });
+        .eq("mother_id", uid)
+        .order("date", { ascending: true });
 
-      if (e) {
-        console.error("fetchAppointments error:", e);
-        setError("Failed to load appointments.");
-        return;
-      }
+      if (e) throw e;
       setAppointments(data || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load appointments.");
     }
   };
+  
+  // ✅ Safe fix for react-calendar v5 type signature
+  const handleDateChange: CalendarProps["onChange"] = (value) => {
+    if (value instanceof Date) {
+      setSelectedDate(value);
+    } else if (Array.isArray(value) && value[0] instanceof Date) {
+      setSelectedDate(value[0]);
+    }
+  };
 
-  const today = new Date();
-  const isSameDay = (d1: Date, d2: Date) =>
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
-
-  const todayAppts = appointments.filter((a) => a.appointment_date && isSameDay(new Date(a.appointment_date), today));
-  const upcomingAppts = appointments.filter((a) => {
-    if (!a.appointment_date) return false;
-    const ad = new Date(a.appointment_date);
-    // upcoming means date after today
-    return ad > today && !isSameDay(ad, today);
-  });
+  const appointmentsForDate = appointments.filter(
+    (a) => a.date && new Date(a.date).toDateString() === selectedDate.toDateString()
+  );
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar className="header-toolbar">
-          <IonTitle>Appointments</IonTitle>
+          <IonTitle>Appointments Calendar</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="dashboard-content">
-        {error && <IonText color="danger" className="ion-padding">{error}</IonText>}
+      <IonContent className="ion-padding">
+        {error && <IonText color="danger">{error}</IonText>}
 
-        <div style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Today</h3>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <Calendar
+            onChange={handleDateChange}
+            value={selectedDate}
+            tileContent={({ date, view }) => {
+              if (view === "month") {
+                const hasAppt = appointments.some(
+                  (a) => new Date(a.date).toDateString() === date.toDateString()
+                );
+                return hasAppt ? (
+                  <span style={{ color: "red", fontWeight: "bold" }}>•</span>
+                ) : null;
+              }
+              return null;
+            }}
+          />
         </div>
-        {todayAppts.length ? (
+
+        <h3>Appointments on {selectedDate.toDateString()}</h3>
+        {appointmentsForDate.length ? (
           <IonList>
-            {todayAppts.map((a: any, i: number) => (
-              <IonCard key={i} className="glass-card">
+            {appointmentsForDate.map((a) => (
+              <IonCard key={a.id} className="glass-card">
                 <IonCardContent>
-                  <h4>{a.purpose}</h4>
-                  <p>{a.appointment_date ? new Date(a.appointment_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Time not set"}</p>
-                  <p className="muted">{a.location || ""}</p>
+                  <h4>{a.notes || "Appointment"}</h4>
+                  <p>
+                    <b>Time:</b> {a.time || "N/A"}
+                  </p>
+                  <p>
+                    <b>Location:</b> {a.location || ""}
+                  </p>
+                  <p>
+                    <b>Status:</b> {a.status || "Scheduled"}
+                  </p>
                 </IonCardContent>
               </IonCard>
             ))}
           </IonList>
         ) : (
-          <p className="muted">No appointments for today.</p>
-        )}
-
-        <div style={{ marginTop: 20, marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>Upcoming</h3>
-        </div>
-
-        {upcomingAppts.length ? (
-          upcomingAppts.map((a: any, i: number) => (
-            <IonCard key={i} className="glass-card">
-              <IonCardContent>
-                <h4>{a.purpose}</h4>
-                <p>{a.appointment_date ? new Date(a.appointment_date).toLocaleString() : "Date not set"}</p>
-                <p className="muted">{a.location || ""}</p>
-              </IonCardContent>
-            </IonCard>
-          ))
-        ) : (
-          <p className="muted">No upcoming appointments.</p>
+          <p className="muted">No appointments on this date.</p>
         )}
       </IonContent>
     </IonPage>

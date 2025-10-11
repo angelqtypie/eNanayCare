@@ -1,264 +1,169 @@
 import React, { useEffect, useState } from "react";
-import { useHistory } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
+  IonButton,
+  IonIcon,
+  IonCard,
+  IonCardContent,
   IonGrid,
   IonRow,
   IonCol,
-  IonCard,
-  IonCardContent,
-  IonButton,
-  IonIcon,
   IonList,
   IonItem,
   IonLabel,
   IonInput,
-  IonText,
-  IonModal,
+  IonToast,
   IonFooter,
   IonSegment,
   IonSegmentButton,
-  IonItemDivider,
-  IonTextarea,
-  IonToast,
   IonFab,
   IonFabButton,
 } from "@ionic/react";
 import {
   chatbubbleOutline,
-  send,
   close,
-  logOutOutline,
+  send,
+  homeOutline,
   calendarOutline,
+  personOutline,
+  logOutOutline,
   heartOutline,
   medkitOutline,
   clipboardOutline,
   schoolOutline,
-  createOutline,
-  personOutline,
-  homeOutline,
   listOutline,
-  callOutline,
+  pinOutline,
 } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
+import { useHistory } from "react-router-dom";
 import "./DashboardMother.css";
 
-// ---------- ✅ Types ----------
-interface EducationalMaterial {
-  id: string | number;
-  title: string;
-  content: string;
-  url?: string | null;
-}
-
 interface Appointment {
-  id: string | number;
-  appointment_date?: string;
+  id: string;
+  date: string;
+  time?: string;
+  location?: string;
+  status?: string;
   purpose?: string;
+  notes?: string;
 }
 
 interface HealthRecord {
-  id: string | number;
+  id: string;
   blood_pressure?: string;
   weight?: number;
 }
 
 interface Immunization {
-  id: string | number;
+  id: string;
   vaccine_name?: string;
   date?: string;
 }
 
 interface BhwNote {
-  id: string | number;
+  id: string;
   bhw_name?: string;
   note?: string;
 }
 
-interface MotherProfile {
-  id?: string;
-  full_name?: string;
-  address?: string;
-  contact_number?: string;
-  expected_delivery?: string;
-  notes?: string;
-}
-
-// ---------- ✅ Static Educational Materials ----------
-const STATIC_MATERIALS: EducationalMaterial[] = [
-  {
-    id: 1,
-    title: "Healthy Pregnancy Nutrition",
-    content:
-      "Eat a balanced diet rich in fruits, vegetables, and protein. Drink plenty of water and take your prenatal vitamins daily.",
-    url: "https://www.who.int/news-room/fact-sheets/detail/healthy-diet",
-  },
-  {
-    id: 2,
-    title: "Exercise During Pregnancy",
-    content:
-      "Light exercises such as walking and stretching can help you stay healthy and ease delivery, unless advised otherwise by your doctor.",
-    url: "https://www.cdc.gov/physical-activity-basics/guidelines/adults/pregnant-or-postpartum.html",
-  },
-  {
-    id: 3,
-    title: "Immunization Schedule for Mothers",
-    content:
-      "Make sure to receive your tetanus toxoid (TT) vaccines as recommended by your health provider to protect you and your baby.",
-    url: "https://www.who.int/immunization/diseases/maternal/en/",
-  },
-];
-
 const DashboardMother: React.FC = () => {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const history = useHistory();
+  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   const [immunizations, setImmunizations] = useState<Immunization[]>([]);
   const [notes, setNotes] = useState<BhwNote[]>([]);
-  const [materials, setMaterials] = useState<EducationalMaterial[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<MotherProfile>({});
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const history = useHistory();
 
   const userId = localStorage.getItem("userId");
-  const fullName = (localStorage.getItem("fullName") || "Nanay").trim() || "Nanay";
+  const fullName = localStorage.getItem("fullName") || "Nanay";
 
   useEffect(() => {
-    setMaterials(STATIC_MATERIALS);
-    if (!userId) {
-      setError("User not logged in");
-      return;
-    }
-    fetchAllData();
-    fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (userId) fetchMotherProfile();
   }, [userId]);
 
-  const fetchAllData = async () => {
-    try {
-      const [appt, records, immu, bhwNotes, edu] = await Promise.all([
-        supabase.from("appointments").select("*").eq("mother_id", userId),
-        supabase.from("health_records").select("*").eq("mother_id", userId),
-        supabase.from("immunizations").select("*").eq("mother_id", userId),
-        supabase.from("health_worker_notes").select("*").eq("mother_id", userId),
-        supabase.from("educational_materials").select("*"),
-      ]);
+  const fetchMotherProfile = async () => {
+    const { data: mother, error } = await supabase
+      .from("mothers")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .single();
 
-      setAppointments((appt.data as Appointment[]) || []);
-      setHealthRecords((records.data as HealthRecord[]) || []);
-      setImmunizations((immu.data as Immunization[]) || []);
-      setNotes((bhwNotes.data as BhwNote[]) || []);
-
-      const dbMaterials = (edu.data as EducationalMaterial[]) || [];
-      if (dbMaterials.length) {
-        const normalized = dbMaterials.map((m, idx) => ({
-          id: m.id ?? `db-${idx}`,
-          title: m.title ?? "Untitled",
-          content: m.content ?? "",
-          url: m.url ?? null,
-        }));
-        setMaterials((prev) => [...normalized, ...prev]);
-      }
-    } catch (err) {
-      console.error("fetchAllData error:", err);
-      setError("Failed to fetch data");
-    }
+    if (error) console.error("Error fetching mother:", error);
+    if (mother) fetchAllData(mother.id);
   };
 
-  const fetchProfile = async () => {
-    try {
-      const { data } = await supabase
-        .from("mothers")
-        .select("*")
-        .eq("id", userId)
-        .single();
+  const fetchAllData = async (motherId: string) => {
+    const { data: appts } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("mother_id", motherId)
+      .order("date", { ascending: true });
 
-      if (data) setProfile(data);
-    } catch (err) {
-      console.error("fetchProfile error:", err);
-    }
+    const today = new Date();
+    const upcoming = (appts || []).find(
+      (a: Appointment) => new Date(a.date) >= today && a.status === "Scheduled"
+    );
+    setNextAppointment(upcoming || null);
+
+    const { data: recs } = await supabase
+      .from("health_records")
+      .select("*")
+      .eq("mother_id", motherId)
+      .order("encounter_date", { ascending: false });
+
+    const { data: imms } = await supabase
+      .from("immunizations")
+      .select("*")
+      .eq("mother_id", motherId)
+      .order("date_administered", { ascending: false });
+
+    const { data: bhw } = await supabase
+      .from("health_worker_notes")
+      .select("*")
+      .eq("mother_id", motherId)
+      .order("created_at", { ascending: false });
+
+    setHealthRecords(recs || []);
+    setImmunizations(imms || []);
+    setNotes(bhw || []);
   };
-
-  const saveProfile = async () => {
-    try {
-      if (!userId) {
-        setToastMsg("You must be logged in to save profile.");
-        return;
-      }
-
-      const updates = {
-        id: userId,
-        full_name: profile.full_name ?? fullName,
-        address: profile.address ?? null,
-        contact_number: profile.contact_number ?? null,
-        expected_delivery: profile.expected_delivery ?? null,
-        notes: profile.notes ?? null,
-      };
-
-      const { error: upErr } = await supabase.from("mothers").upsert(updates);
-
-      if (upErr) {
-        console.error("saveProfile error:", upErr);
-        setToastMsg("Failed to save profile.");
-        return;
-      }
-
-      setShowProfileModal(false);
-      setToastMsg("Profile saved.");
-      if (updates.full_name) localStorage.setItem("fullName", updates.full_name);
-    } catch (err) {
-      console.error("saveProfile exception:", err);
-      setToastMsg("Failed to save profile.");
-    }
-  };
-
-  const goTo = (path: string) => history.push(path);
 
   const handleLogout = () => {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("fullName");
+    localStorage.clear();
     history.push("/landingpage");
-  };
-
-  const getMAMABOTReply = (msg: string): string => {
-    const text = msg.toLowerCase();
-    if (text.includes("nutrition") || text.includes("eat"))
-      return "Eat iron-rich foods like malunggay, fish, and green vegetables. Avoid alcohol and raw foods.";
-    if (text.includes("exercise"))
-      return "Light walking or prenatal yoga is helpful if your doctor approves.";
-    if (text.includes("bleed") || text.includes("danger") || text.includes("sign"))
-      return "If you have heavy bleeding, severe headache, or decreased baby movement — go to the health center immediately.";
-    if (text.includes("hello") || text.includes("hi"))
-      return `Hello ${fullName}! I'm MAMABOT — how can I help?`;
-    return "Try asking about nutrition, warning signs, vaccines, or exercise.";
   };
 
   const handleSend = () => {
     if (!input.trim()) return;
-    setMessages((prev) => [...prev, { sender: "user", text: input }]);
-    const question = input;
+    const text = input.trim();
+    setMessages((prev) => [...prev, { sender: "user", text }]);
     setInput("");
+
     setTimeout(() => {
-      const botReply = getMAMABOTReply(question);
-      setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
-      setTimeout(() => {
-        const chatBody = document.getElementById("chatBody");
-        if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
-      }, 50);
+      let reply = "Try asking about nutrition, danger signs, or exercise.";
+      const q = text.toLowerCase();
+
+      if (q.includes("nutrition"))
+        reply = "Eat iron-rich foods like malunggay, fish, and green vegetables.";
+      else if (q.includes("exercise"))
+        reply = "Prenatal yoga or light walking is safe if approved by your doctor.";
+      else if (q.includes("hello"))
+        reply = `Hello ${fullName}! I'm MAMABOT here to assist you.`;
+      else if (q.includes("danger"))
+        reply = "Seek help immediately if you have bleeding, headache, or blurry vision.";
+
+      setMessages((prev) => [...prev, { sender: "bot", text: reply }]);
     }, 600);
   };
 
-  const openMaterial = (m: EducationalMaterial) => {
-    if (m.url) window.open(m.url, "_blank", "noopener");
-  };
+  const goTo = (path: string) => history.push(path);
 
   return (
     <IonPage>
@@ -268,15 +173,13 @@ const DashboardMother: React.FC = () => {
             <IonIcon icon={listOutline} />
           </IonButton>
           <IonTitle className="ion-text-center">eNanayCare</IonTitle>
-          <IonButton fill="clear" slot="end" onClick={handleLogout}>
+          <IonButton fill="clear" slot="end" color="danger" onClick={handleLogout}>
             <IonIcon icon={logOutOutline} /> Logout
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="dashboard-content">
-        {error && <IonText color="danger">{error}</IonText>}
-
         <div className="welcome-section">
           <h1>
             Welcome, <span>{fullName}</span>
@@ -286,20 +189,33 @@ const DashboardMother: React.FC = () => {
 
         <IonGrid className="cards-grid">
           <IonRow>
-            <IonCol size="6" sizeMd="6">
-              <IonCard className="glass-card pink">
+            {/* Appointments */}
+            <IonCol size="6">
+              <IonCard className="glass-card pink" button onClick={() => goTo("/motherscalendar")}>
                 <IonCardContent>
                   <IonIcon icon={calendarOutline} className="card-icon" />
-                  <h2>Appointments</h2>
-                  {appointments.length ? (
-                    appointments.slice(0, 3).map((a) => (
-                      <p key={a.id}>
-                        {a.appointment_date
-                          ? new Date(a.appointment_date).toLocaleDateString()
-                          : "Date not set"}{" "}
-                        — {a.purpose}
+                  <h2>Appointment</h2>
+                  {nextAppointment ? (
+                    <div className="appt-minimal">
+                      <p className="appt-date">
+                        {new Date(nextAppointment.date).toLocaleDateString()}{" "}
+                        {nextAppointment.time && `• ${nextAppointment.time.replace(":00", "")} am`}
                       </p>
-                    ))
+                      <p className="appt-location">
+                        <IonIcon icon={pinOutline} /> {nextAppointment.location || "Health Center"}
+                      </p>
+                      <p className="appt-status">
+                        <b>Status:</b>{" "}
+                        <span
+                          style={{
+                            color: nextAppointment.status === "Scheduled" ? "green" : "gray",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {nextAppointment.status}
+                        </span>
+                      </p>
+                    </div>
                   ) : (
                     <p className="muted">No upcoming appointments.</p>
                   )}
@@ -307,15 +223,16 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="6" sizeMd="6">
+            {/* Health Records */}
+            <IonCol size="6">
               <IonCard className="glass-card purple">
                 <IonCardContent>
                   <IonIcon icon={heartOutline} className="card-icon" />
                   <h2>Health Records</h2>
                   {healthRecords.length ? (
-                    healthRecords.slice(0, 3).map((r) => (
+                    healthRecords.slice(0, 2).map((r) => (
                       <p key={r.id}>
-                        BP: {r.blood_pressure || "-"} — Weight: {r.weight ? `${r.weight}kg` : "-"}
+                        BP: {r.blood_pressure || "-"} | Wt: {r.weight ? `${r.weight}kg` : "-"}
                       </p>
                     ))
                   ) : (
@@ -325,16 +242,16 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="6" sizeMd="6">
+            {/* Immunizations */}
+            <IonCol size="6">
               <IonCard className="glass-card teal">
                 <IonCardContent>
                   <IonIcon icon={medkitOutline} className="card-icon" />
                   <h2>Immunizations</h2>
                   {immunizations.length ? (
-                    immunizations.slice(0, 3).map((im) => (
+                    immunizations.slice(0, 2).map((im) => (
                       <p key={im.id}>
-                        {im.vaccine_name || "-"} —{" "}
-                        {im.date ? new Date(im.date).toLocaleDateString() : "-"}
+                        {im.vaccine_name} — {new Date(im.date || "").toLocaleDateString()}
                       </p>
                     ))
                   ) : (
@@ -344,15 +261,16 @@ const DashboardMother: React.FC = () => {
               </IonCard>
             </IonCol>
 
-            <IonCol size="6" sizeMd="6">
+            {/* BHW Notes */}
+            <IonCol size="6">
               <IonCard className="glass-card orange">
                 <IonCardContent>
                   <IonIcon icon={clipboardOutline} className="card-icon" />
                   <h2>BHW Notes</h2>
                   {notes.length ? (
-                    notes.slice(0, 3).map((n) => (
+                    notes.slice(0, 2).map((n) => (
                       <p key={n.id}>
-                        <b>{n.bhw_name || "BHW"}:</b> {n.note}
+                        <b>{n.bhw_name}</b>: {n.note}
                       </p>
                     ))
                   ) : (
@@ -364,145 +282,70 @@ const DashboardMother: React.FC = () => {
           </IonRow>
         </IonGrid>
 
+        {/* Educational Materials */}
         <div className="education-section">
           <h2>
             <IonIcon icon={schoolOutline} /> Educational Materials
           </h2>
           <IonList>
-            {materials.length ? (
-              materials.map((m) => (
-                <IonItem
-                  key={m.id}
-                  button={!!m.url}
-                  detail={!!m.url}
-                  onClick={() => (m.url ? openMaterial(m) : null)}
-                >
-                  <IonLabel>
-                    <h3>{m.title}</h3>
-                    <p dangerouslySetInnerHTML={{ __html: m.content }} />
-                  </IonLabel>
-                </IonItem>
-              ))
-            ) : (
-              <IonItem>
-                <IonLabel>No educational materials available.</IonLabel>
-              </IonItem>
-            )}
+            <IonItem>
+              <IonLabel>
+                <h3>Healthy Pregnancy Nutrition</h3>
+                <p>Eat balanced meals and stay hydrated every day.</p>
+              </IonLabel>
+            </IonItem>
+            <IonItem>
+              <IonLabel>
+                <h3>Exercise During Pregnancy</h3>
+                <p>Try light stretching or walking daily if approved by your doctor.</p>
+              </IonLabel>
+            </IonItem>
           </IonList>
         </div>
 
-        {/* Chatbot */}
-        <div className="mamabot">
-          {showChat ? (
-            <div className="chat-box">
-              <div className="chat-header">
-                <b>MAMABOT</b>
-                <IonIcon icon={close} className="close-icon" onClick={() => setShowChat(false)} />
-              </div>
-              <div className="chat-body" id="chatBody">
-                {messages.length === 0 && (
-                  <div className="msg bot">
-                    Hello <b>{fullName}</b>! I'm <b>MAMABOT</b> — your pregnancy assistant.
-                  </div>
-                )}
-                {messages.map((m, i) => (
+        {/* Floating Chatbot */}
+        {showChat && (
+          <div className="chat-box small">
+            <div className="chat-header">
+              <b>MAMABOT</b>
+              <IonIcon icon={close} onClick={() => setShowChat(false)} className="close-icon" />
+            </div>
+            <div className="chat-body">
+              {messages.length === 0 ? (
+                <div className="msg bot">
+                  Hi <b>{fullName}</b>! 👋 I'm MAMABOT, your pregnancy assistant 🤰
+                </div>
+              ) : (
+                messages.map((m, i) => (
                   <div key={i} className={`msg ${m.sender}`}>
                     {m.text}
                   </div>
-                ))}
-              </div>
-              <div className="chat-input">
-                <IonInput
-                  placeholder="Ask something..."
-                  value={input}
-                  onIonChange={(e) => setInput(e.detail.value!)}
-                  onKeyDown={(e: any) => e.key === "Enter" && handleSend()}
-                />
-                <IonButton fill="clear" onClick={handleSend}>
-                  <IonIcon icon={send} />
-                </IonButton>
-              </div>
+                ))
+              )}
             </div>
-          ) : (
-            <IonFab vertical="bottom" horizontal="end" slot="fixed">
-              <IonFabButton color="primary" onClick={() => setShowChat(true)}>
-                <IonIcon icon={chatbubbleOutline} />
-              </IonFabButton>
-            </IonFab>
-          )}
-        </div>
-
-        {/* Profile Modal */}
-        <IonModal isOpen={showProfileModal} onDidDismiss={() => setShowProfileModal(false)}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>Edit Profile</IonTitle>
-              <IonButton slot="end" fill="clear" onClick={() => setShowProfileModal(false)}>
-                <IonIcon icon={close} />
+            <div className="chat-floating-input">
+              <IonInput
+                placeholder="Ask something..."
+                value={input}
+                onIonChange={(e) => setInput(e.detail.value!)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSend();
+                }}
+              />
+              <IonButton fill="clear" color="primary" onClick={handleSend}>
+                <IonIcon icon={send} />
               </IonButton>
-            </IonToolbar>
-          </IonHeader>
-
-          <IonContent className="ion-padding">
-            <IonItemDivider>Personal Info</IonItemDivider>
-            <IonItem>
-              <IonLabel position="stacked">Full Name</IonLabel>
-              <IonInput
-                value={profile.full_name ?? fullName}
-                onIonChange={(e) =>
-                  setProfile({ ...profile, full_name: e.detail.value ?? "" })
-                }
-              />
-            </IonItem>
-
-            <IonItem>
-              <IonLabel position="stacked">Address</IonLabel>
-              <IonInput
-                value={profile.address ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, address: e.detail.value ?? "" })}
-              />
-            </IonItem>
-
-            <IonItem>
-              <IonLabel position="stacked">Contact Number</IonLabel>
-              <IonInput
-                value={profile.contact_number ?? ""}
-                onIonChange={(e) =>
-                  setProfile({ ...profile, contact_number: e.detail.value ?? "" })
-                }
-              />
-            </IonItem>
-
-            <IonItem>
-              <IonLabel position="stacked">Expected Delivery Date</IonLabel>
-              <IonInput
-                type="date"
-                value={profile.expected_delivery ?? ""}
-                onIonChange={(e) =>
-                  setProfile({ ...profile, expected_delivery: e.detail.value ?? "" })
-                }
-              />
-            </IonItem>
-
-            <IonItem>
-              <IonLabel position="stacked">Notes (optional)</IonLabel>
-              <IonTextarea
-                value={profile.notes ?? ""}
-                onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value ?? "" })}
-              />
-            </IonItem>
-
-            <IonButton expand="block" color="success" onClick={saveProfile} style={{ marginTop: 16 }}>
-              Save Profile
-            </IonButton>
-          </IonContent>
-
-          <IonFooter>
-            <div style={{ padding: 10, textAlign: "center", color: "#666" }}>
-              Your information is stored securely.
             </div>
-          </IonFooter>
-        </IonModal>
+          </div>
+        )}
+
+        {!showChat && (
+          <IonFab vertical="bottom" horizontal="end" slot="fixed">
+            <IonFabButton color="primary" onClick={() => setShowChat(true)}>
+              <IonIcon icon={chatbubbleOutline} />
+            </IonFabButton>
+          </IonFab>
+        )}
 
         <IonToast
           isOpen={!!toastMsg}
@@ -512,6 +355,7 @@ const DashboardMother: React.FC = () => {
           onDidDismiss={() => setToastMsg(null)}
         />
       </IonContent>
+
       <IonFooter className="ion-no-border dashboard-footer">
         <IonToolbar>
           <IonSegment value="dashboard" className="footer-segment">
@@ -523,7 +367,7 @@ const DashboardMother: React.FC = () => {
               <IonIcon icon={calendarOutline} />
               <IonLabel>Calendar</IonLabel>
             </IonSegmentButton>
-            <IonSegmentButton value="profile" onClick={() => goTo("/mothersprofile")}>
+            <IonSegmentButton value="profile">
               <IonIcon icon={personOutline} />
               <IonLabel>Profile</IonLabel>
             </IonSegmentButton>

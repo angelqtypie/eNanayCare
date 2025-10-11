@@ -13,12 +13,11 @@ import {
   peopleOutline,
   calendarOutline,
   notificationsOutline,
-  chatbubbleEllipsesOutline,
   documentTextOutline,
-  bookOutline,
   logOutOutline,
   pulseOutline,
   personCircleOutline,
+  heartOutline,
 } from "ionicons/icons";
 import logo from "../assets/logo.svg";
 import "./MainLayout.css";
@@ -34,6 +33,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const handleLogout = () => {
+    localStorage.clear();
     setSidebarOpen(false);
     history.push("/landingpage");
   };
@@ -44,7 +44,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <IonHeader className="layout-header">
         <IonToolbar className="toolbar no-padding">
           <div className="header-container">
-            {/* LEFT */}
             <div className="header-left">
               <button
                 className="sidebar-toggle mobile-only"
@@ -61,12 +60,11 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <span className="app-title">eNanayCare</span>
             </div>
 
-            {/* RIGHT (desktop only) */}
             <div className="header-right desktop-only">
               <div className="user-profile">
                 <IonIcon icon={personCircleOutline} className="profile-icon" />
                 <div>
-                  <p className="profile-name">{fullName} </p>
+                  <p className="profile-name">{fullName}</p>
                   <p className="profile-role">Barangay Health Worker</p>
                 </div>
               </div>
@@ -90,18 +88,19 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <button className="side-item" onClick={() => goTo("/appointments")}>
                 <IonIcon icon={calendarOutline} /> Appointments
               </button>
-              <button className="side-item" onClick={() => goTo("/reminders")}>
-                <IonIcon icon={notificationsOutline} /> Reminders
+              <button className="side-item" onClick={() => goTo("/healthrecords")}>
+                <IonIcon icon={heartOutline} /> Health Records
               </button>
-              <button className="side-item" onClick={() => goTo("/adminfaq")}>
-                <IonIcon icon={chatbubbleEllipsesOutline} /> FAQ
+              <button className="side-item" onClick={() => goTo("/notifications")}>
+                <IonIcon icon={notificationsOutline} /> Notifications
               </button>
-              <button className="side-item" onClick={() => goTo("/guidelines")}>
-                <IonIcon icon={documentTextOutline} /> DOH Guidelines
+              <button className="side-item" onClick={() => goTo("/reports")}>
+                <IonIcon icon={documentTextOutline} /> Reports
               </button>
-              <button className="side-item" onClick={() => goTo("/booklet")}>
-                <IonIcon icon={bookOutline} /> Pregnancy Booklet
+              <button className="side-item" onClick={() => goTo("/riskmonitoring")}>
+                <IonIcon icon={pulseOutline} /> Risk Monitoring
               </button>
+
               <IonButton
                 className="logout-btn"
                 color="medium"
@@ -111,15 +110,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout
               </IonButton>
-
-              {/* Logout (mobile only, inside sidebar) */}
-              <button className="side-item mobile-only" onClick={handleLogout}>
-                <IonIcon icon={logOutOutline} /> Logout
-              </button>
             </nav>
           </aside>
 
-          {/* MAIN CONTENT */}
           <main className="main-dashboard">{children}</main>
         </div>
       </IonContent>
