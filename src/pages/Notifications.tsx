@@ -44,6 +44,15 @@ interface Mother {
   name: string;
 }
 
+interface Appointment {
+  id: string;
+  date: string;
+  location?: string;
+  status: string;
+  mother_id: string;
+  mothers?: { name: string }[]; // ✅ Fix: Supabase returns array
+}
+
 const NotificationPage: React.FC = () => {
   const [notificationsData, setNotificationsData] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -168,7 +177,7 @@ const NotificationPage: React.FC = () => {
     }
   };
 
-  // ✅ Check upcoming appointments (auto reminders)
+  // ✅ Auto-generate reminders for upcoming appointments
   const checkUpcomingAppointments = async () => {
     try {
       const today = new Date();
@@ -184,12 +193,12 @@ const NotificationPage: React.FC = () => {
 
       if (error) throw error;
 
-      for (const appt of appointments || []) {
-        const name = appt.mothers?.name || "Mother";
+      for (const appt of (appointments as Appointment[]) || []) {
+        const name = appt.mothers && appt.mothers.length > 0 ? appt.mothers[0].name : "Mother";
         const apptDate = new Date(appt.date).toLocaleDateString();
         const message = `Reminder: ${name} has a prenatal check-up on ${apptDate}${
           appt.location ? " at " + appt.location : ""
-        }.`;
+        }.`; 
 
         const { data: existing } = await supabase
           .from("notifications")
@@ -215,7 +224,7 @@ const NotificationPage: React.FC = () => {
     }
   };
 
-  // ✅ Load + realtime listener + auto refresh every 5 mins
+  // ✅ Load everything
   useEffect(() => {
     fetchNotifications();
     fetchMothers();
@@ -226,16 +235,11 @@ const NotificationPage: React.FC = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications" },
-        (payload: any) => {
-          console.log("Realtime update:", payload);
-          fetchNotifications();
-        }
+        () => fetchNotifications()
       )
       .subscribe();
 
-    // 🔁 Auto refresh reminders every 5 minutes
     const interval = setInterval(() => {
-      console.log("⏰ Auto-checking upcoming appointments...");
       checkUpcomingAppointments();
     }, 5 * 60 * 1000);
 
@@ -245,11 +249,9 @@ const NotificationPage: React.FC = () => {
     };
   }, []);
 
-  // ✅ Filter + helpers
+  // ✅ Helpers
   const filteredNotifications =
-    filter === "all"
-      ? notificationsData
-      : notificationsData.filter((n) => n.type === filter);
+    filter === "all" ? notificationsData : notificationsData.filter((n) => n.type === filter);
 
   const unreadCount = notificationsData.filter((n) => !n.is_read).length;
 
@@ -259,7 +261,6 @@ const NotificationPage: React.FC = () => {
         return "#e74c3c";
       case "reminder":
         return "#f1c40f";
-      case "info":
       default:
         return "#3498db";
     }
@@ -331,7 +332,7 @@ const NotificationPage: React.FC = () => {
           )}
         </div>
 
-        {/* ✅ Floating FAB */}
+        {/* Floating FAB */}
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
           <IonFabButton color="primary" onClick={() => setShowModal(true)}>
             <IonIcon icon={add} />
@@ -343,7 +344,7 @@ const NotificationPage: React.FC = () => {
           </IonFabButton>
         </IonFab>
 
-        {/* ✅ Add Notification Modal */}
+        {/* Add Notification Modal */}
         <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
           <div style={{ padding: 16, maxWidth: 600, margin: "0 auto" }}>
             <h3>Add Notification</h3>
@@ -361,7 +362,9 @@ const NotificationPage: React.FC = () => {
                 <IonLabel position="stacked">Message</IonLabel>
                 <IonInput
                   value={formData.message}
-                  onIonChange={(e) => setFormData({ ...formData, message: (e.target as any).value })}
+                  onIonChange={(e) =>
+                    setFormData({ ...formData, message: (e.target as any).value })
+                  }
                 />
               </IonItem>
 
