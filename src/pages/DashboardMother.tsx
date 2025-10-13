@@ -1,380 +1,189 @@
 import React, { useEffect, useState } from "react";
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButton,
-  IonIcon,
   IonCard,
   IonCardContent,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonToast,
-  IonFooter,
-  IonSegment,
-  IonSegmentButton,
-  IonFab,
-  IonFabButton,
+  IonIcon,
+  IonSpinner,
 } from "@ionic/react";
 import {
-  chatbubbleOutline,
-  close,
-  send,
-  homeOutline,
   calendarOutline,
-  personOutline,
-  logOutOutline,
   heartOutline,
-  medkitOutline,
-  clipboardOutline,
-  schoolOutline,
-  listOutline,
-  pinOutline,
+  bulbOutline,
+  bandageOutline,
 } from "ionicons/icons";
-import { supabase } from "../utils/supabaseClient";
 import { useHistory } from "react-router-dom";
+import MotherMainLayout from "../layouts/MotherMainLayout";
+import { supabase } from "../utils/supabaseClient";
 import "./DashboardMother.css";
-
-interface Appointment {
-  id: string;
-  date: string;
-  time?: string;
-  location?: string;
-  status?: string;
-  purpose?: string;
-  notes?: string;
-}
-
-interface HealthRecord {
-  id: string;
-  blood_pressure?: string;
-  weight?: number;
-}
-
-interface Immunization {
-  id: string;
-  vaccine_name?: string;
-  date?: string;
-}
-
-interface BhwNote {
-  id: string;
-  bhw_name?: string;
-  note?: string;
-}
 
 const DashboardMother: React.FC = () => {
   const history = useHistory();
-  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
-  const [immunizations, setImmunizations] = useState<Immunization[]>([]);
-  const [notes, setNotes] = useState<BhwNote[]>([]);
-  const [showChat, setShowChat] = useState(false);
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
-  const [input, setInput] = useState("");
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [motherName, setMotherName] = useState("Mommy");
+  const [dailyTip, setDailyTip] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const userId = localStorage.getItem("userId");
-  const fullName = localStorage.getItem("fullName") || "Nanay";
+  // 🌸 Fallback tips
+  const fallbackTips = [
+    "Stay hydrated — drink at least 8 glasses of water daily 💧",
+    "Eat more fruits and vegetables for a balanced diet 🥦🍎",
+    "Take short naps to fight fatigue 😴",
+    "Avoid skipping prenatal vitamins 💊",
+    "Walk for at least 20 minutes a day (if approved by your doctor) 🚶‍♀️",
+    "Always keep your prenatal check-up schedule 📅",
+    "Avoid stress — meditation and calm music help 🎵",
+    "Talk to your baby — it helps bonding early 🤰💬",
+    "Get enough sleep — your body needs rest 🌙",
+    "Eat iron-rich foods like spinach and red meat to prevent anemia 🥩",
+    "Don’t forget to smile — your journey is beautiful 💕",
+    "Monitor your baby’s movements daily 🍼",
+    "Avoid smoking and alcohol — your baby depends on you 🚫",
+    "Stay positive — healthy mom, healthy baby 💖",
+  ];
 
+  // 🔹 Fetch nickname from mother_settings
   useEffect(() => {
-    if (userId) fetchMotherProfile();
-  }, [userId]);
+    const fetchNickname = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        if (!userId) return;
 
-  const fetchMotherProfile = async () => {
-    const { data: mother, error } = await supabase
-      .from("mothers")
-      .select("id")
-      .eq("auth_user_id", userId)
-      .single();
+        // Get the mother.id first using auth_user_id
+        const { data: mother, error: motherError } = await supabase
+          .from("mothers")
+          .select("id")
+          .eq("auth_user_id", userId)
+          .single();
 
-    if (error) console.error("Error fetching mother:", error);
-    if (mother) fetchAllData(mother.id);
-  };
+        if (motherError || !mother) {
+          console.warn("Mother record not found:", motherError?.message);
+          return;
+        }
 
-  const fetchAllData = async (motherId: string) => {
-    const { data: appts } = await supabase
-      .from("appointments")
-      .select("*")
-      .eq("mother_id", motherId)
-      .order("date", { ascending: true });
+        // Now fetch nickname
+        const { data: settings, error: settingsError } = await supabase
+          .from("mother_settings")
+          .select("nickname")
+          .eq("mother_id", mother.id)
+          .single();
 
-    const today = new Date();
-    const upcoming = (appts || []).find(
-      (a: Appointment) => new Date(a.date) >= today && a.status === "Scheduled"
-    );
-    setNextAppointment(upcoming || null);
+        if (settingsError) {
+          console.warn("Settings fetch error:", settingsError.message);
+          return;
+        }
 
-    const { data: recs } = await supabase
-      .from("health_records")
-      .select("*")
-      .eq("mother_id", motherId)
-      .order("encounter_date", { ascending: false });
+        if (settings?.nickname) {
+          setMotherName(settings.nickname);
+        } else {
+          const fallback = localStorage.getItem("fullName") || "Mommy";
+          setMotherName(fallback);
+        }
+      } catch (err) {
+        console.error("fetchNickname error:", err);
+      }
+    };
 
-    const { data: imms } = await supabase
-      .from("immunizations")
-      .select("*")
-      .eq("mother_id", motherId)
-      .order("date_administered", { ascending: false });
+    fetchNickname();
+  }, []);
 
-    const { data: bhw } = await supabase
-      .from("health_worker_notes")
-      .select("*")
-      .eq("mother_id", motherId)
-      .order("created_at", { ascending: false });
+  // 🔹 Fetch educational tips
+  useEffect(() => {
+    interface Tip {
+      title?: string;
+      content?: string;
+    }
 
-    setHealthRecords(recs || []);
-    setImmunizations(imms || []);
-    setNotes(bhw || []);
-  };
+    const fetchTips = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("educational_materials")
+          .select("title, content")
+          .eq("is_published", true)
+          .ilike("category", "%Maternal Health%");
 
-  const handleLogout = () => {
-    localStorage.clear();
-    history.push("/landingpage");
-  };
+        if (error) throw error;
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const text = input.trim();
-    setMessages((prev) => [...prev, { sender: "user", text }]);
-    setInput("");
+        const tipList =
+          data && data.length > 0
+            ? (data as Tip[]).map((t) => t.content || t.title || "")
+            : fallbackTips;
 
-    setTimeout(() => {
-      let reply = "Try asking about nutrition, danger signs, or exercise.";
-      const q = text.toLowerCase();
+        setDailyTip(tipList[Math.floor(Math.random() * tipList.length)]);
+      } catch (err) {
+        console.error("Error fetching tips:", err);
+        setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      if (q.includes("nutrition"))
-        reply = "Eat iron-rich foods like malunggay, fish, and green vegetables.";
-      else if (q.includes("exercise"))
-        reply = "Prenatal yoga or light walking is safe if approved by your doctor.";
-      else if (q.includes("hello"))
-        reply = `Hello ${fullName}! I'm MAMABOT here to assist you.`;
-      else if (q.includes("danger"))
-        reply = "Seek help immediately if you have bleeding, headache, or blurry vision.";
-
-      setMessages((prev) => [...prev, { sender: "bot", text: reply }]);
-    }, 600);
-  };
-
-  const goTo = (path: string) => history.push(path);
+    fetchTips();
+  }, []);
 
   return (
-    <IonPage>
-      <IonHeader className="ion-no-border">
-        <IonToolbar className="header-toolbar">
-          <IonButton fill="clear">
-            <IonIcon icon={listOutline} />
-          </IonButton>
-          <IonTitle className="ion-text-center">eNanayCare</IonTitle>
-          <IonButton fill="clear" slot="end" color="danger" onClick={handleLogout}>
-            <IonIcon icon={logOutOutline} /> Logout
-          </IonButton>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="dashboard-content">
-        <div className="welcome-section">
-          <h1>
-            Welcome, <span>{fullName}</span>
-          </h1>
-          <p>Track your appointments, immunizations, and pregnancy health records.</p>
-        </div>
-
-        <IonGrid className="cards-grid">
-          <IonRow>
-            {/* Appointments */}
-            <IonCol size="6">
-              <IonCard className="glass-card pink" button onClick={() => goTo("/motherscalendar")}>
-                <IonCardContent>
-                  <IonIcon icon={calendarOutline} className="card-icon" />
-                  <h2>Appointment</h2>
-                  {nextAppointment ? (
-                    <div className="appt-minimal">
-                      <p className="appt-date">
-                        {new Date(nextAppointment.date).toLocaleDateString()}{" "}
-                        {nextAppointment.time && `• ${nextAppointment.time.replace(":00", "")} am`}
-                      </p>
-                      <p className="appt-location">
-                        <IonIcon icon={pinOutline} /> {nextAppointment.location || "Health Center"}
-                      </p>
-                      <p className="appt-status">
-                        <b>Status:</b>{" "}
-                        <span
-                          style={{
-                            color: nextAppointment.status === "Scheduled" ? "green" : "gray",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {nextAppointment.status}
-                        </span>
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="muted">No upcoming appointments.</p>
-                  )}
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-
-            {/* Health Records */}
-            <IonCol size="6">
-              <IonCard className="glass-card purple">
-                <IonCardContent>
-                  <IonIcon icon={heartOutline} className="card-icon" />
-                  <h2>Health Records</h2>
-                  {healthRecords.length ? (
-                    healthRecords.slice(0, 2).map((r) => (
-                      <p key={r.id}>
-                        BP: {r.blood_pressure || "-"} | Wt: {r.weight ? `${r.weight}kg` : "-"}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No health records yet.</p>
-                  )}
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-
-            {/* Immunizations */}
-            <IonCol size="6">
-              <IonCard className="glass-card teal">
-                <IonCardContent>
-                  <IonIcon icon={medkitOutline} className="card-icon" />
-                  <h2>Immunizations</h2>
-                  {immunizations.length ? (
-                    immunizations.slice(0, 2).map((im) => (
-                      <p key={im.id}>
-                        {im.vaccine_name} — {new Date(im.date || "").toLocaleDateString()}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No immunizations recorded.</p>
-                  )}
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-
-            {/* BHW Notes */}
-            <IonCol size="6">
-              <IonCard className="glass-card orange">
-                <IonCardContent>
-                  <IonIcon icon={clipboardOutline} className="card-icon" />
-                  <h2>BHW Notes</h2>
-                  {notes.length ? (
-                    notes.slice(0, 2).map((n) => (
-                      <p key={n.id}>
-                        <b>{n.bhw_name}</b>: {n.note}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="muted">No notes yet.</p>
-                  )}
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
-
-        {/* Educational Materials */}
-        <div className="education-section">
-          <h2>
-            <IonIcon icon={schoolOutline} /> Educational Materials
-          </h2>
-          <IonList>
-            <IonItem>
-              <IonLabel>
-                <h3>Healthy Pregnancy Nutrition</h3>
-                <p>Eat balanced meals and stay hydrated every day.</p>
-              </IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>
-                <h3>Exercise During Pregnancy</h3>
-                <p>Try light stretching or walking daily if approved by your doctor.</p>
-              </IonLabel>
-            </IonItem>
-          </IonList>
-        </div>
-
-        {/* Floating Chatbot */}
-        {showChat && (
-          <div className="chat-box small">
-            <div className="chat-header">
-              <b>MAMABOT</b>
-              <IonIcon icon={close} onClick={() => setShowChat(false)} className="close-icon" />
-            </div>
-            <div className="chat-body">
-              {messages.length === 0 ? (
-                <div className="msg bot">
-                  Hi <b>{fullName}</b>! 👋 I'm MAMABOT, your pregnancy assistant 🤰
-                </div>
-              ) : (
-                messages.map((m, i) => (
-                  <div key={i} className={`msg ${m.sender}`}>
-                    {m.text}
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="chat-floating-input">
-              <IonInput
-                placeholder="Ask something..."
-                value={input}
-                onIonChange={(e) => setInput(e.detail.value!)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSend();
-                }}
-              />
-              <IonButton fill="clear" color="primary" onClick={handleSend}>
-                <IonIcon icon={send} />
-              </IonButton>
-            </div>
+    <MotherMainLayout>
+      <IonContent className="dashboard-content" fullscreen scrollY={true}>
+        {/* 🌸 Header Section */}
+        <div className="header-gradient">
+          <div className="header-text">
+            <h2>
+              Hello, <span>{motherName}</span>
+            </h2>
+            <p>Your journey to motherhood is beautiful 🌼</p>
           </div>
-        )}
+          <div className="floating-decor decor-1">🍼</div>
+          <div className="floating-decor decor-2">🌸</div>
+        </div>
 
-        {!showChat && (
-          <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton color="primary" onClick={() => setShowChat(true)}>
-              <IonIcon icon={chatbubbleOutline} />
-            </IonFabButton>
-          </IonFab>
-        )}
+        {/* 🩷 Cards Section */}
+        <div className="cards-grid">
+          <IonCard
+            className="mother-card pink"
+            button
+            onClick={() => history.push("/motherscalendar")}
+          >
+            <IonCardContent>
+              <IonIcon icon={calendarOutline} className="card-icon" />
+              <h3>Appointment</h3>
+              <p>Next check-up: Oct 15, 2025 • 10:30 AM</p>
+              <span className="status">Scheduled</span>
+            </IonCardContent>
+          </IonCard>
 
-        <IonToast
-          isOpen={!!toastMsg}
-          message={toastMsg ?? ""}
-          duration={2500}
-          color="success"
-          onDidDismiss={() => setToastMsg(null)}
-        />
+          <IonCard
+            className="mother-card lavender"
+            button
+            onClick={() => history.push("/motherhealthrecords")}
+          >
+            <IonCardContent>
+              <IonIcon icon={heartOutline} className="card-icon" />
+              <h3>Health Records</h3>
+              <p>BP: - | Weight: 160kg</p>
+            </IonCardContent>
+          </IonCard>
+
+          <IonCard className="mother-card peach">
+            <IonCardContent>
+              <IonIcon icon={bulbOutline} className="card-icon" />
+              <h3>Tip for Today</h3>
+              {loading ? <IonSpinner name="dots" /> : <p>{dailyTip}</p>}
+            </IonCardContent>
+          </IonCard>
+
+          <IonCard
+            className="mother-card blue"
+            button
+            onClick={() => history.push("/motherimmunization")}
+          >
+            <IonCardContent>
+              <IonIcon icon={bandageOutline} className="card-icon" />
+              <h3>Immunization</h3>
+              <p>No records yet</p>
+            </IonCardContent>
+          </IonCard>
+        </div>
       </IonContent>
-
-      <IonFooter className="ion-no-border dashboard-footer">
-        <IonToolbar>
-          <IonSegment value="dashboard" className="footer-segment">
-            <IonSegmentButton value="dashboard" onClick={() => goTo("/dashboardmother")}>
-              <IonIcon icon={homeOutline} />
-              <IonLabel>Dashboard</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="calendar" onClick={() => goTo("/motherscalendar")}>
-              <IonIcon icon={calendarOutline} />
-              <IonLabel>Calendar</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="profile">
-              <IonIcon icon={personOutline} />
-              <IonLabel>Profile</IonLabel>
-            </IonSegmentButton>
-          </IonSegment>
-        </IonToolbar>
-      </IonFooter>
-    </IonPage>
+    </MotherMainLayout>
   );
 };
 

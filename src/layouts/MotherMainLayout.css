@@ -1,0 +1,128 @@
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+}
+
+.mother-logo {
+  height: 34px;
+  width: 34px;
+}
+
+.app-title {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #ff5c8d;
+  text-shadow: 0 0 4px rgba(255, 150, 180, 0.4);
+  margin-left: 8px;
+}
+
+.highlight {
+  color: #ffa1c0;
+}
+
+/* Pink Profile Icon */
+.profile-icon {
+  font-size: 2rem;
+  color: #ff5c8d;
+  transition: 0.2s;
+}
+
+.profile-icon:hover {
+  transform: scale(1.1);
+  color: #ff3b74;
+}
+
+/* Footer Navigation */
+.mother-footer-nav {
+  display: flex;
+  justify-content: space-around;
+  background: #fff;
+  border-top: 1px solid #eee;
+  padding: 3px 0;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  z-index: 9;
+}
+
+.mother-footer-nav ion-button {
+  flex-direction: column;
+  color: #ff5c8d;
+}
+
+.mother-footer-nav ion-icon {
+  font-size: 1.3rem;
+}
+
+
+
+/* CHATBOT */
+.chat-box {
+  position: fixed;
+  bottom: 90px;
+  right: 15px;
+  width: 270px;
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  background: #ff7fa2;
+  color: white;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-body {
+  padding: 10px;
+  height: 220px;
+  overflow-y: auto;
+  background: #fffafc;
+}
+
+.msg {
+  margin: 4px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.msg.user {
+  background: #ffe6ee;
+  align-self: flex-end;
+  text-align: right;
+}
+
+.msg.bot {
+  background: #f4f4f4;
+  align-self: flex-start;
+}
+
+.chat-floating-input {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #ddd;
+  background: white;
+  padding: 5px;
+}
+
+.chat-floating-input ion-input {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.chat-fab {
+  --background: #ff5c8d;
+  --color: white;
+  bottom: 90px;
+  right: 15px;
+}

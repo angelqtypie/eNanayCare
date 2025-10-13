@@ -16,13 +16,15 @@ import DashboardAdmin from "./pages/DashboardAdmin";
 import Appointments from "./pages/Appointments";
 import LandingPage from "./pages/LandingPage";
 import Mothers from "./pages/Mothers";
-import Reminders from "./pages/Reminders";
+import EducationalMaterials from "./pages/EducationalMaterials";
 import AdminUserPage from "./pages/AdminUserPage";
 import MothersCalendar from './pages/MothersCalendar';
 import MothersProfile from './pages/MothersProfile';
 import HealthRecords from './pages/HealthRecords';
-import Notifications from './pages/Notifications';
-
+import AdminMaterials from './pages/AdminMaterials';
+import motherappoinments from './pages/motherappoinments';
+import motherhealthrecords from './pages/motherhealthrecords';
+import mothernotifications from './pages/mothernotifications';
 
 
 /* Ionic Core CSS */
@@ -57,11 +59,14 @@ const App: React.FC = () => (
         <Route exact path="/appointments" component={Appointments} />
         <Route exact path="/mothers" component={Mothers} />
         <Route exact path="/AdminUserPage" component={AdminUserPage} />
-        <Route exact path="/reminders" component={Reminders} />
+        <Route exact path="/motherhealthrecords" component={motherhealthrecords} />
+        <Route exact path="/mothernotifications" component={mothernotifications} />
+        <Route exact path="/educationalmaterials" component={EducationalMaterials} />
+        <Route exact path="/motherappoinments" component={motherappoinments} />
         <Route exact path="/healthrecords" component={HealthRecords} />        
         <Route exact path="/mothersProfile" component={MothersProfile} />
-        <Route exact path="/mothersCalendar" component={MothersCalendar} /> 
-        <Route exact path="/notifications" component={Notifications} />       
+        <Route exact path="/adminmaterials" component={AdminMaterials} />
+        <Route exact path="/mothersCalendar" component={MothersCalendar} />      
         <Route exact path="/landingpage" component={LandingPage} />
         <Route exact path="/">
           <Redirect to="/landingpage" />

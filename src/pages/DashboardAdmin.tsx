@@ -1,24 +1,17 @@
+// src/pages/DashboardAdmin.tsx
 import React, { useEffect, useState } from "react";
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButton,
-  IonContent,
-  IonIcon,
-} from "@ionic/react";
+import { IonIcon } from "@ionic/react";
 import {
   peopleCircleOutline,
   bookOutline,
   calendarOutline,
   documentTextOutline,
-  logOutOutline,
 } from "ionicons/icons";
 import { motion } from "framer-motion";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
-import "./DashboardAdmin.css"; // Import CSS
+import AdminMainLayout from "../layouts/AdminLayout";
+import "./DashboardAdmin.css";
 
 const DashboardAdmin: React.FC = () => {
   const history = useHistory();
@@ -32,11 +25,6 @@ const DashboardAdmin: React.FC = () => {
     reports: 0,
     schedules: 0,
   });
-
-  const handleLogout = () => {
-    localStorage.clear();
-    history.push("/landingpage");
-  };
 
   const fetchCounts = async () => {
     const { data: users } = await supabase.from("users").select("role");
@@ -55,6 +43,7 @@ const DashboardAdmin: React.FC = () => {
       const bhw = users.filter((u: any) => u.role === "bhw").length;
       const mothers = users.filter((u: any) => u.role === "mother").length;
       const admins = users.filter((u: any) => u.role === "admin").length;
+
       setCounts({
         total,
         bhw,
@@ -107,54 +96,36 @@ const DashboardAdmin: React.FC = () => {
   ];
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary" className="header-toolbar">
-          <IonTitle className="header-title">Admin Dashboard</IonTitle>
-          <IonButton
-            color="light"
-            fill="clear"
-            className="logout-button"
-            slot="end"
-            onClick={handleLogout}
+    <AdminMainLayout>
+      <div className="dashboard-header">
+        <h1>Good morning, Admin 👋</h1>
+        <p>Here’s an overview of system activity and quick navigation.</p>
+      </div>
+
+      <div className="dashboard-grid">
+        {cards.map((card, index) => (
+          <motion.div
+            key={index}
+            className="dashboard-card"
+            style={{ borderTopColor: card.color }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => history.push(card.link)}
           >
-            <IonIcon icon={logOutOutline} className="logout-icon" />
-            Logout
-          </IonButton>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="dashboard-container">
-        <div className="dashboard-header">
-          <h1>Welcome, Admin 👋</h1>
-          <p>Overview of system status and quick navigation.</p>
-        </div>
-
-        <div className="dashboard-grid">
-          {cards.map((card, index) => (
-            <motion.div
-              key={index}
-              className="dashboard-card"
-              style={{ borderTopColor: card.color }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => history.push(card.link)}
-            >
-              <div className="card-content">
-                <div className="card-header">
-                  <IonIcon icon={card.icon} style={{ color: card.color }} />
-                  <h3>{card.title}</h3>
-                </div>
-                <p className="card-subtitle">{card.subtitle}</p>
-                <div className="card-footer" style={{ color: card.color }}>
-                  <span className="card-value">{card.value}</span>
-                </div>
+            <div className="card-content">
+              <div className="card-header">
+                <IonIcon icon={card.icon} style={{ color: card.color }} />
+                <h3>{card.title}</h3>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </IonContent>
-    </IonPage>
+              <p className="card-subtitle">{card.subtitle}</p>
+              <div className="card-footer" style={{ color: card.color }}>
+                <span className="card-value">{card.value}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </AdminMainLayout>
   );
 };
 

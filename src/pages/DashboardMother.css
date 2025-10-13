@@ -1,323 +1,156 @@
-/* ----------------------------------------------------
-   Google Font
----------------------------------------------------- */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-/* ----------------------------------------------------
-   Global Theme Variables
----------------------------------------------------- */
-:root {
-  --ion-color-primary: #f5317f;
-  --ion-color-primary-rgb: 245,49,127;
-  --ion-color-primary-shade: #d82b6f;
-  --ion-color-primary-tint: #f6458b;
-
-  --ion-color-secondary: #5e35b1;
-  --ion-color-tertiary: #00bcd4;
-  --ion-color-success: #66bb6a;
-  --ion-color-warning: #ffca28;
-  --ion-color-danger: #ef5350;
-  --ion-color-light: #f4f5f8;
-  --ion-color-dark: #222428;
-
-  /* Light pastel card backgrounds */
-  --card-pink-light: linear-gradient(145deg, #fff5f8, #ffe6ee);
-  --card-purple-light: linear-gradient(145deg, #f6ecff, #ede3ff);
-  --card-teal-light: linear-gradient(145deg, #e0f7fa, #ccf3f7);
-  --card-orange-light: linear-gradient(145deg, #fff8e1, #fff0c5);
-
-  /* Text colors */
-  --text-dark: #333;
-  --text-medium: #666;
-  --text-light: #999;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 10px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
-}
-
-/* ----------------------------------------------------
-   General Layout
----------------------------------------------------- */
-body {
-  font-family: 'Poppins', sans-serif;
-}
-
 .dashboard-content {
-  --background: linear-gradient(135deg, #fce4ec 0%, #e0f7fa 100%);
-  padding: 16px;
-  color: var(--text-dark);
+  --background: #fffaf6;
+  background: linear-gradient(180deg, #ffe8d6 0%, #fff9f3 100%);
+  min-height: 100vh;
+  padding-bottom: 5rem;
 }
 
-ion-header {
-  box-shadow: var(--shadow-sm);
-}
-
-.header-toolbar {
-  --background: #fff;
-  color: var(--text-dark);
-  padding: 0 12px;
-}
-.header-toolbar ion-title {
-  font-weight: 600;
-}
-.header-toolbar ion-button ion-icon {
-  margin-right: 4px;
-}
-
-/* ----------------------------------------------------
-   Welcome Section
----------------------------------------------------- */
-.welcome-section {
+/* 🌸 Gradient Header */
+.header-gradient {
+  background: linear-gradient(135deg, #ffd6a5, #fff1e0);
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
   text-align: center;
-  margin: 20px 0 30px;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: var(--shadow-md);
-}
-.welcome-section h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--ion-color-primary);
-  margin-bottom: 6px;
-}
-.welcome-section span {
-  color: var(--ion-color-secondary);
-}
-.welcome-section p {
-  color: var(--text-medium);
+  padding: 2rem 1rem 3rem;
+  position: relative;
+  box-shadow: 0 6px 18px rgba(255, 180, 120, 0.2);
 }
 
-/* ----------------------------------------------------
-   Cards Grid
----------------------------------------------------- */
-.cards-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-ion-row {
-  align-items: stretch;
-}
-ion-col {
-  display: flex;
-}
-
-/* Base card style */
-.glass-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 14px;
-  border-radius: 20px;
-  border: 2px solid transparent;
-  background-clip: padding-box, border-box;
-  background-origin: border-box;
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-.glass-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Card Header */
-.glass-card h2 {
-  font-size: 1rem;
-  margin: 4px 0;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-.glass-card .card-icon {
+.header-text h2 {
   font-size: 1.6rem;
-  margin-bottom: 6px;
+  color: #59311f;
+  font-weight: 700;
 }
 
-/* Content text */
-.glass-card p {
-  font-size: 0.9rem;
-  color: var(--text-medium);
-  margin: 3px 0;
-}
-.glass-card .muted {
-  color: var(--text-light);
-  font-style: italic;
+.header-text span {
+  color: #ff8c42;
 }
 
-/* ----------------------------------------------------
-   Individual Card Color Themes
----------------------------------------------------- */
-.glass-card.pink {
-  background: var(--card-pink-light);
-  border-image: linear-gradient(45deg, #f5317f, #ff80ab) 1;
-}
-.glass-card.pink .card-icon {
-  color: #f5317f;
+.header-text p {
+  font-size: 0.95rem;
+  color: #6d4b3f;
+  margin-top: 0.3rem;
 }
 
-.glass-card.purple {
-  background: var(--card-purple-light);
-  border-image: linear-gradient(45deg, #5e35b1, #9575cd) 1;
-}
-.glass-card.purple .card-icon {
-  color: #5e35b1;
-}
-
-.glass-card.teal {
-  background: var(--card-teal-light);
-  border-image: linear-gradient(45deg, #00bcd4, #26c6da) 1;
-}
-.glass-card.teal .card-icon {
-  color: #00acc1;
+/* Floating icons */
+.floating-decor {
+  position: absolute;
+  font-size: 1.8rem;
+  opacity: 0.7;
+  animation: float 5s ease-in-out infinite;
 }
 
-.glass-card.orange {
-  background: var(--card-orange-light);
-  border-image: linear-gradient(45deg, #ffa726, #ffcc80) 1;
-}
-.glass-card.orange .card-icon {
-  color: #ff9800;
+.decor-1 {
+  top: 15%;
+  left: 10%;
 }
 
-/* Hover glow */
-.glass-card:hover.pink { box-shadow: 0 6px 16px rgba(245,49,127,0.3); }
-.glass-card:hover.purple { box-shadow: 0 6px 16px rgba(94,53,177,0.3); }
-.glass-card:hover.teal { box-shadow: 0 6px 16px rgba(0,188,212,0.3); }
-.glass-card:hover.orange { box-shadow: 0 6px 16px rgba(255,167,38,0.3); }
+.decor-2 {
+  top: 25%;
+  right: 15%;
+}
 
-/* ----------------------------------------------------
-   Educational Section
----------------------------------------------------- */
-.education-section {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-top: 30px;
-  box-shadow: var(--shadow-md);
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
-.education-section h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--ion-color-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+
+/* 🩷 Cards Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 1.5rem;
 }
-.education-section ion-item {
-  --background: transparent;
-  --border-color: #eee;
-  --inner-border-width: 0 0 1px 0;
-  padding: 10px 0;
+
+.mother-card {
+  border-radius: 18px;
+  text-align: center;
+  color: #3d1b4f;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
 }
-.education-section ion-item:hover {
-  --background: rgba(245,49,127,0.05);
+
+.mother-card:hover {
+  transform: scale(1.04);
 }
-.education-section ion-label h3 {
-  color: var(--text-dark);
-  font-weight: 600;
+
+.mother-card h3 {
   font-size: 1rem;
-}
-.education-section ion-label p {
-  color: var(--text-medium);
-  font-size: 0.85rem;
-}
-
-/* ----------------------------------------------------
-   Chatbot Floating Box
----------------------------------------------------- */
-.chat-box.small {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 300px;
-  height: 40vh;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 1000;
-}
-.chat-header {
-  background: linear-gradient(90deg, #f5317f, #ff80ab);
-  color: white;
-  padding: 10px 14px;
+  margin-top: 0.6rem;
   font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
-.chat-body {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-  font-size: 14px;
+
+.mother-card p {
+  font-size: 0.85rem;
+  color: #4a3f3f;
 }
-.msg {
-  margin: 6px 0;
-  padding: 8px 10px;
+
+.card-icon {
+  font-size: 1.6rem;
+  color: #6c4cff;
+}
+
+/* Card Colors */
+.pink {
+  background: #ffe1e9;
+}
+
+.lavender {
+  background: #ede4ff;
+}
+
+.peach {
+  background: #ffe7c8;
+}
+
+.blue {
+  background: #dff2ff;
+}
+
+.status {
+  display: inline-block;
+  background: #f4d7ff;
+  color: #7b3eff;
   border-radius: 10px;
-  max-width: 85%;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  margin-top: 6px;
 }
-.msg.user {
-  background: #d1f7c4;
-  align-self: flex-end;
+
+/* 🌼 Summary Section */
+.summary-section {
+  background: white;
+  border-radius: 20px;
+  margin: 1rem;
+  padding: 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
-.msg.bot {
-  background: #f3f3f3;
-  align-self: flex-start;
+
+.summary-section h4 {
+  text-align: center;
+  color: #5a3a2e;
+  margin-bottom: 1rem;
+  font-weight: 600;
 }
-.chat-floating-input {
+
+.summary-cards {
   display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-top: 1px solid #ddd;
-}
-.chat-floating-input ion-input {
-  flex: 1;
-  font-size: 0.9rem;
-}
-ion-fab-button {
-  --background: var(--ion-color-primary);
-  --background-hover: var(--ion-color-primary-tint);
-  box-shadow: var(--shadow-lg);
+  justify-content: space-around;
+  text-align: center;
 }
 
-/* ----------------------------------------------------
-   Footer
----------------------------------------------------- */
-.dashboard-footer ion-toolbar {
-  --background: #fff;
-  box-shadow: var(--shadow-sm);
-}
-.footer-segment ion-segment-button {
-  --color: var(--text-medium);
-}
-.footer-segment ion-segment-button[aria-checked="true"] {
-  --color: var(--ion-color-primary);
+.summary-item p {
+  font-size: 0.8rem;
+  color: #7b5f4d;
 }
 
-/* ----------------------------------------------------
-   Toasts
----------------------------------------------------- */
-ion-toast {
-  --background: var(--ion-color-primary);
-  --color: #fff;
-  --border-radius: 10px;
-  font-weight: 500;
-}
-
-/* ----------------------------------------------------
-   Responsive Tweaks
----------------------------------------------------- */
-@media (min-width: 768px) {
-  .dashboard-content { padding: 24px; }
-  .cards-grid { gap: 12px; }
-}
-@media (min-width: 1024px) {
-  .cards-grid { grid-template-columns: repeat(4, 1fr); }
+.summary-item span {
+  display: block;
+  font-weight: 600;
+  color: #ff7b00;
 }

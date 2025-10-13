@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
@@ -9,17 +8,27 @@ import {
   IonLabel,
   IonInput,
   IonButton,
-  IonTextarea,
   IonToast,
+  IonToggle,
 } from "@ionic/react";
 import { supabase } from "../utils/supabaseClient";
+import MotherMainLayout from "../layouts/MotherMainLayout";
 
 const MothersProfile: React.FC = () => {
-  const [profile, setProfile] = useState<any>({});
+  const [nickname, setNickname] = useState("");
+  const [profileImage, setProfileImage] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [notifications, setNotifications] = useState(
+    localStorage.getItem("notifications") === "true"
+  );
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true"
+  );
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const userId = localStorage.getItem("userId");
-  const fullName = (localStorage.getItem("fullName") || "Nanay").trim() || "Nanay";
+
+  const userId = localStorage.getItem("userId"); // auth user id
+  const fullName = localStorage.getItem("fullName") || "Nanay";
 
   useEffect(() => {
     if (!userId) {
@@ -27,100 +36,198 @@ const MothersProfile: React.FC = () => {
       return;
     }
     fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  // 🔹 Fetch profile data (nickname + image)
   const fetchProfile = async () => {
     try {
-      const { data, error: pErr } = await supabase
+      const { data: mother, error: motherError } = await supabase
         .from("mothers")
-        .select("*")
-        .eq("id", userId)
+        .select("id")
+        .eq("auth_user_id", userId)
         .single();
 
-      if (pErr && pErr.code !== "PGRST116") {
-        console.warn("fetchProfile warning:", pErr.message || pErr);
+      if (motherError || !mother) {
+        console.warn("No mother record found for this user");
+        return;
       }
-      if (data) setProfile(data);
+
+      const motherId = mother.id;
+
+      const { data, error } = await supabase
+        .from("mother_settings")
+        .select("nickname, profile_image_url")
+        .eq("mother_id", motherId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.warn("fetchProfile warning:", error.message);
+        return;
+      }
+
+      if (data) {
+        setNickname(data.nickname || "");
+        setProfileImage(data.profile_image_url || "");
+      }
     } catch (err) {
       console.error("fetchProfile error:", err);
     }
   };
 
+  // 🔹 Upload image to Supabase storage bucket (mother_profiles)
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return profileImage;
+
+    const fileExt = imageFile.name.split(".").pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`; // Each mother has a folder
+
+    const { error: uploadError } = await supabase.storage
+      .from("mother_profiles")
+      .upload(filePath, imageFile, { upsert: true });
+
+    if (uploadError) {
+      console.error("uploadImage error:", uploadError.message);
+      setToastMsg("Image upload failed.");
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from("mother_profiles")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  // 🔹 Get real mother_id from mothers table
+  const getMotherId = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("mothers")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("getMotherId error:", error.message);
+      return null;
+    }
+
+    return data?.id || null;
+  };
+
+  // 🔹 Save nickname + profile image only
   const saveProfile = async () => {
     try {
       if (!userId) {
-        setToastMsg("You must be logged in to save profile.");
+        setToastMsg("Not logged in.");
         return;
       }
+
+      const motherId = await getMotherId(userId);
+      if (!motherId) {
+        setToastMsg("Mother record not found.");
+        return;
+      }
+
+      const imageUrl = await uploadImage();
 
       const updates = {
-        id: userId,
-        full_name: profile.full_name ?? fullName,
-        address: profile.address ?? null,
-        contact_number: profile.contact_number ?? null,
-        expected_delivery: profile.expected_delivery ?? null,
-        notes: profile.notes ?? null,
+        mother_id: motherId,
+        nickname: nickname || null,
+        profile_image_url: imageUrl || null,
       };
 
-      const { error: upErr } = await supabase.from("mothers").upsert(updates);
+      const { error } = await supabase.from("mother_settings").upsert(updates);
 
-      if (upErr) {
-        console.error("saveProfile error:", upErr);
-        setToastMsg("Failed to save profile.");
+      if (error) {
+        console.error("saveProfile error:", error.message);
+        setToastMsg("Failed to update profile.");
         return;
       }
 
-      setToastMsg("Profile saved.");
-      if (updates.full_name) localStorage.setItem("fullName", updates.full_name);
+      // 🔹 Local-only settings
+      localStorage.setItem("darkMode", darkMode.toString());
+      localStorage.setItem("notifications", notifications.toString());
+
+      setToastMsg("Profile saved!");
     } catch (err) {
       console.error("saveProfile exception:", err);
       setToastMsg("Failed to save profile.");
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
   return (
-    <IonPage>
+    <MotherMainLayout>
       <IonHeader>
-        <IonToolbar className="header-toolbar">
-          <IonTitle>Profile</IonTitle>
+        <IonToolbar color="primary">
+          <IonTitle>Settings</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="dashboard-content">
-        {error && <p style={{ color: "var(--ion-color-danger)" }}>{error}</p>}
+      <IonContent className="ion-padding" fullscreen>
+        {error && <p style={{ color: "red" }}>{error}</p>}
 
-        <div style={{ marginBottom: 12 }}>
-          <h3>Hello, {profile.full_name ?? fullName}</h3>
-        </div>
-
-        <IonItem>
-          <IonLabel position="stacked">Full Name</IonLabel>
-          <IonInput value={profile.full_name ?? fullName} onIonChange={(e) => setProfile({ ...profile, full_name: e.detail.value })} />
+        <IonItem lines="full">
+          <IonLabel position="stacked">Nickname</IonLabel>
+          <IonInput
+            value={nickname}
+            placeholder="Enter nickname"
+            onIonChange={(e) => setNickname(e.detail.value!)}
+          />
         </IonItem>
 
-        <IonItem>
-          <IonLabel position="stacked">Address</IonLabel>
-          <IonInput value={profile.address ?? ""} onIonChange={(e) => setProfile({ ...profile, address: e.detail.value })} />
+        <IonItem lines="full">
+          <IonLabel position="stacked">Profile Photo</IonLabel>
+          {profileImage && (
+            <img
+              src={profileImage}
+              alt="Profile"
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: "50%",
+                margin: "10px auto",
+                display: "block",
+              }}
+            />
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+          />
         </IonItem>
 
-        <IonItem>
-          <IonLabel position="stacked">Contact Number</IonLabel>
-          <IonInput value={profile.contact_number ?? ""} onIonChange={(e) => setProfile({ ...profile, contact_number: e.detail.value })} />
+        <IonItem lines="full">
+          <IonLabel>Notifications</IonLabel>
+          <IonToggle
+            checked={notifications}
+            onIonChange={(e) => setNotifications(e.detail.checked)}
+          />
         </IonItem>
 
-        <IonItem>
-          <IonLabel position="stacked">Expected Delivery Date</IonLabel>
-          <IonInput type="date" value={profile.expected_delivery ?? ""} onIonChange={(e) => setProfile({ ...profile, expected_delivery: e.detail.value })} />
-        </IonItem>
-
-        <IonItem>
-          <IonLabel position="stacked">Notes</IonLabel>
-          <IonTextarea value={profile.notes ?? ""} onIonChange={(e) => setProfile({ ...profile, notes: e.detail.value })} />
+        <IonItem lines="full">
+          <IonLabel>Dark Mode</IonLabel>
+          <IonToggle
+            checked={darkMode}
+            onIonChange={(e) => setDarkMode(e.detail.checked)}
+          />
         </IonItem>
 
         <div style={{ padding: 16 }}>
-          <IonButton expand="block" color="success" onClick={saveProfile}>Save Profile</IonButton>
+          <IonButton expand="block" color="success" onClick={saveProfile}>
+            Save Changes
+          </IonButton>
+
+          <IonButton expand="block" color="medium" onClick={handleLogout}>
+            Logout
+          </IonButton>
         </div>
 
         <IonToast
@@ -131,7 +238,7 @@ const MothersProfile: React.FC = () => {
           onDidDismiss={() => setToastMsg(null)}
         />
       </IonContent>
-    </IonPage>
+    </MotherMainLayout>
   );
 };
 
