@@ -5,8 +5,8 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
-  IonButton,
   IonModal,
+  IonButton,
   IonBadge,
   IonSpinner,
 } from "@ionic/react";
@@ -24,7 +24,6 @@ interface Material {
   source?: string;
 }
 
-// ✅ BUILT-IN fallback materials (always available)
 const BUILT_IN_MATERIALS: Material[] = [
   {
     id: "m1",
@@ -119,21 +118,20 @@ const EducationalMaterials: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeMaterial, setActiveMaterial] = useState<Material | null>(null);
 
-  // ✅ Fetch materials from Supabase (append to built-in)
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from("educational_materials")
-          .select("id, title, category, content, image_url, created_at")
+          .select("id, title, category, content, image_url, created_at, source")
           .eq("is_published", true);
 
         if (!error && data && data.length > 0) {
           setMaterials([...BUILT_IN_MATERIALS, ...data]);
         }
-      } catch (e) {
-        console.warn("⚠️ Supabase fetch failed, showing built-ins only.");
+      } catch (err) {
+        console.warn("⚠️ Supabase fetch failed, using built-ins only.", err);
       } finally {
         setLoading(false);
       }
@@ -151,13 +149,11 @@ const EducationalMaterials: React.FC = () => {
       <IonPage>
         <IonHeader>
           <IonToolbar color="light">
-            <IonTitle className="text-pink-600 font-bold">
-              Educational Materials
-            </IonTitle>
+            <IonTitle className="text-pink-600 font-bold">Educational Materials</IonTitle>
           </IonToolbar>
         </IonHeader>
 
-        <IonContent fullscreen className="edu-wrapper">
+        <IonContent fullscreen className="edu-wrapper" scrollY={true}>
           <section className="edu-hero">
             <h2>Learn & Grow 💕</h2>
             <p>Trusted maternal and baby care tips from DOH & WHO.</p>
@@ -198,28 +194,17 @@ const EducationalMaterials: React.FC = () => {
                       {m.category}
                     </IonBadge>
                     <h3>{m.title}</h3>
-                    <p>
-                      {m.content.slice(0, 100)}
-                      {m.content.length > 100 && "..."}
-                    </p>
+                    <p>{m.content.slice(0, 100)}{m.content.length > 100 && "..."}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <IonModal
-            isOpen={modalOpen}
-            onDidDismiss={() => setModalOpen(false)}
-            className="edu-modal"
-          >
+          <IonModal isOpen={modalOpen} onDidDismiss={() => setModalOpen(false)} className="edu-modal">
             {activeMaterial && (
               <div className="modal-inner">
-                <img
-                  src={activeMaterial.image_url}
-                  alt={activeMaterial.title}
-                  className="modal-img"
-                />
+                <img src={activeMaterial.image_url} alt={activeMaterial.title} className="modal-img" />
                 <div className="modal-banner">
                   <h2>{activeMaterial.title}</h2>
                   <div className="mat-cat">{activeMaterial.category}</div>
@@ -228,15 +213,11 @@ const EducationalMaterials: React.FC = () => {
                 <div className="modal-scroll">
                   <div className="modal-content">{activeMaterial.content}</div>
                   {activeMaterial.source && (
-                    <p className="modal-source">
-                      📖 Source: {activeMaterial.source}
-                    </p>
+                    <p className="modal-source">📖 Source: {activeMaterial.source}</p>
                   )}
                 </div>
 
-                <IonButton expand="block" onClick={() => setModalOpen(false)}>
-                  Close
-                </IonButton>
+                <IonButton expand="block" onClick={() => setModalOpen(false)}>Close</IonButton>
               </div>
             )}
           </IonModal>

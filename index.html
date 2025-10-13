@@ -16,17 +16,29 @@
     
     <link rel="manifest" href="/eNanayCare/manifest.json" />
     
-    <link rel="shortcut icon" type="image/png" href="/eNanayCare/favicon.png" />
+    <link rel="shortcut icon" type="image/png" href="/src/assets/logo.svg" />
     
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans&display=swap" rel="stylesheet" />
 
     <!-- add to homescreen for ios -->
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Ionic App" />
+    <meta name="apple-mobile-web-app-title" content="eNanayCare"/>
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Handle redirect from GitHub Pages 404.html
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        if (redirect) {
+          window.history.replaceState(null, null, redirect);
+        }
+      })();
+    </script>
+    
     <script type="module" src="/src/main.tsx"></script>
+    
   </body>
 </html>

@@ -176,7 +176,6 @@ const MothersProfile: React.FC = () => {
           <IonTitle>Settings</IonTitle>
         </IonToolbar>
       </IonHeader>
-
       <IonContent className="ion-padding" fullscreen>
         {error && <p style={{ color: "red" }}>{error}</p>}
 
@@ -229,7 +228,7 @@ const MothersProfile: React.FC = () => {
 
         <div style={{ padding: 16 }}>
           <IonButton expand="block" color="success" onClick={saveProfile}>
-            Save Changes
+           Warning Ayaw sa Hilbti not working pa pls.
           </IonButton>
           <IonButton
                 className="logout-btn"

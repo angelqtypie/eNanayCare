@@ -23,7 +23,7 @@ const DashboardMother: React.FC = () => {
   const [dailyTip, setDailyTip] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 🌸 Fallback tips
+  // 🌸 Default fallback tips
   const fallbackTips = [
     "Stay hydrated — drink at least 8 glasses of water daily 💧",
     "Eat more fruits and vegetables for a balanced diet 🥦🍎",
@@ -42,81 +42,79 @@ const DashboardMother: React.FC = () => {
   ];
 
   // 🔹 Fetch nickname from mother_settings
-  useEffect(() => {
-    const fetchNickname = async () => {
-      try {
-        const userId = localStorage.getItem("userId");
-        if (!userId) return;
+  const fetchNickname = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
 
-        // Get the mother.id first using auth_user_id
-        const { data: mother, error: motherError } = await supabase
-          .from("mothers")
-          .select("id")
-          .eq("auth_user_id", userId)
-          .single();
+      // Get the mother.id first
+      const { data: mother, error: motherError } = await supabase
+        .from("mothers")
+        .select("id")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
 
-        if (motherError || !mother) {
-          console.warn("Mother record not found:", motherError?.message);
-          return;
-        }
-
-        // Now fetch nickname
-        const { data: settings, error: settingsError } = await supabase
-          .from("mother_settings")
-          .select("nickname")
-          .eq("mother_id", mother.id)
-          .single();
-
-        if (settingsError) {
-          console.warn("Settings fetch error:", settingsError.message);
-          return;
-        }
-
-        if (settings?.nickname) {
-          setMotherName(settings.nickname);
-        } else {
-          const fallback = localStorage.getItem("fullName") || "Mommy";
-          setMotherName(fallback);
-        }
-      } catch (err) {
-        console.error("fetchNickname error:", err);
+      if (motherError || !mother) {
+        console.warn("Mother not found:", motherError?.message);
+        return;
       }
-    };
 
-    fetchNickname();
-  }, []);
+      // Fetch nickname from mother_settings
+      const { data: settings, error: settingsError } = await supabase
+        .from("mother_settings")
+        .select("nickname")
+        .eq("mother_id", mother.id)
+        .maybeSingle();
 
-  // 🔹 Fetch educational tips
-  useEffect(() => {
+      if (settingsError) {
+        console.warn("Settings fetch error:", settingsError.message);
+        return;
+      }
+
+      if (settings?.nickname && settings.nickname.trim() !== "") {
+        setMotherName(settings.nickname);
+      } else {
+        const fallback = localStorage.getItem("fullName") || "Mommy";
+        setMotherName(fallback);
+      }
+    } catch (err) {
+      console.error("fetchNickname error:", err);
+    }
+  };
+
+  // 🔹 Fetch daily tips
+  const fetchTips = async () => {
     interface Tip {
       title?: string;
       content?: string;
     }
 
-    const fetchTips = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("educational_materials")
-          .select("title, content")
-          .eq("is_published", true)
-          .ilike("category", "%Maternal Health%");
+    try {
+      const { data, error } = await supabase
+        .from("educational_materials")
+        .select("title, content")
+        .eq("is_published", true)
+        .ilike("category", "%Maternal Health%");
 
-        if (error) throw error;
+      if (error) throw error;
 
-        const tipList =
-          data && data.length > 0
-            ? (data as Tip[]).map((t) => t.content || t.title || "")
-            : fallbackTips;
+      const tips =
+        data && data.length > 0
+          ? (data as Tip[]).map((t) => t.content || t.title || "")
+          : fallbackTips;
 
-        setDailyTip(tipList[Math.floor(Math.random() * tipList.length)]);
-      } catch (err) {
-        console.error("Error fetching tips:", err);
-        setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setDailyTip(tips[Math.floor(Math.random() * tips.length)]);
+    } catch (err) {
+      console.error("Error fetching tips:", err);
+      setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // 🔹 Run both fetches on mount
+  useEffect(() => {
+    fetchNickname();
     fetchTips();
   }, []);
 

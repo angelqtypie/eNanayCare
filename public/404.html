@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <title>Redirecting...</title>
     <script>
-      // 👇 Handle React Router refresh redirect on GitHub Pages
-      const redirect = window.location.pathname.replace("/eNanayCare", "");
-      window.location.replace("/eNanayCare/#" + redirect);
+      // Redirect 404s to index.html, preserving route
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      const redirect = window.location.protocol + "//" + window.location.host + "/eNanayCare/?redirect=" + pathname + search;
+      window.location.replace(redirect);
     </script>
   </head>
-  <body>
-    <p>Redirecting...</p>
-  </body>
+  <body></body>
 </html>
