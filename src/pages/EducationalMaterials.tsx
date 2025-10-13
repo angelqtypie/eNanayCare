@@ -24,14 +24,14 @@ interface Material {
   source?: string;
 }
 
-// 🌸 BUILT-IN fallback materials (non-editable)
+// ✅ BUILT-IN fallback materials (always available)
 const BUILT_IN_MATERIALS: Material[] = [
   {
     id: "m1",
     title: "Pregnancy Nutrition Essentials (DOH)",
     category: "Nutrition",
     image_url: "https://cdn-icons-png.flaticon.com/512/2966/2966487.png",
-    content: `A balanced diet keeps you and your baby healthy. Include fruits, vegetables, and protein daily. Avoid soft drinks, caffeine, and junk food. 
+    content: `A balanced diet keeps you and your baby healthy. Include fruits, vegetables, and protein daily. Avoid soft drinks, caffeine, and junk food.
 ✅ Eat small frequent meals
 ✅ Drink 8–10 glasses of water
 ✅ Take your prenatal vitamins regularly
@@ -113,58 +113,27 @@ Keep your baby’s immunization card updated!`,
 ];
 
 const EducationalMaterials: React.FC = () => {
-  const [materials, setMaterials] = useState<Material[]>([]);
+  const [materials, setMaterials] = useState<Material[]>(BUILT_IN_MATERIALS);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [nickname, setNickname] = useState("Nanay");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeMaterial, setActiveMaterial] = useState<Material | null>(null);
 
-  // Fetch nickname
+  // ✅ Fetch materials from Supabase (append to built-in)
   useEffect(() => {
     (async () => {
       try {
-        const authUserId = localStorage.getItem("userId");
-        if (!authUserId) return;
-
-        const { data: mother } = await supabase
-          .from("mothers")
-          .select("id")
-          .eq("auth_user_id", authUserId)
-          .single();
-
-        if (mother?.id) {
-          const { data: settings } = await supabase
-            .from("mother_settings")
-            .select("nickname")
-            .eq("mother_id", mother.id)
-            .single();
-
-          if (settings?.nickname) setNickname(settings.nickname);
-        }
-      } catch {
-        setNickname("Nanay");
-      }
-    })();
-  }, []);
-
-  // Fetch from Supabase or fallback to built-in
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
+        setLoading(true);
         const { data, error } = await supabase
           .from("educational_materials")
-          .select("*")
+          .select("id, title, category, content, image_url, created_at")
           .eq("is_published", true);
 
-        if (error || !data || data.length === 0) {
-          setMaterials(BUILT_IN_MATERIALS);
-        } else {
+        if (!error && data && data.length > 0) {
           setMaterials([...BUILT_IN_MATERIALS, ...data]);
         }
-      } catch {
-        setMaterials(BUILT_IN_MATERIALS);
+      } catch (e) {
+        console.warn("⚠️ Supabase fetch failed, showing built-ins only.");
       } finally {
         setLoading(false);
       }
@@ -172,26 +141,26 @@ const EducationalMaterials: React.FC = () => {
   }, []);
 
   const categories = ["All", ...Array.from(new Set(materials.map((m) => m.category)))];
-  const filtered = selectedCategory === "All"
-    ? materials
-    : materials.filter((m) => m.category === selectedCategory);
+  const filtered =
+    selectedCategory === "All"
+      ? materials
+      : materials.filter((m) => m.category === selectedCategory);
 
   return (
     <MotherMainLayout>
       <IonPage>
         <IonHeader>
-          <IonToolbar color="primary">
-            <IonTitle>Learn & Grow 🌸</IonTitle>
+          <IonToolbar color="light">
+            <IonTitle className="text-pink-600 font-bold">
+              Educational Materials
+            </IonTitle>
           </IonToolbar>
         </IonHeader>
 
         <IonContent fullscreen className="edu-wrapper">
           <section className="edu-hero">
-            <h2>Hi {nickname}! 👋</h2>
-            <p>
-              Explore trusted guides from DOH & WHO about pregnancy,
-              nutrition, and family health.
-            </p>
+            <h2>Learn & Grow 💕</h2>
+            <p>Trusted maternal and baby care tips from DOH & WHO.</p>
           </section>
 
           <section className="cat-row">
@@ -208,8 +177,10 @@ const EducationalMaterials: React.FC = () => {
 
           {loading ? (
             <div className="spinner-wrap">
-              <IonSpinner name="dots" />
+              <IonSpinner name="crescent" />
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="empty">No materials available 💖</div>
           ) : (
             <div className="materials-grid">
               {filtered.map((m) => (
@@ -228,41 +199,46 @@ const EducationalMaterials: React.FC = () => {
                     </IonBadge>
                     <h3>{m.title}</h3>
                     <p>
-                      {m.content.slice(0, 120)}
-                      {m.content.length > 120 && "..."}
+                      {m.content.slice(0, 100)}
+                      {m.content.length > 100 && "..."}
                     </p>
-                    <IonButton fill="clear" size="small">
-                      Read More
-                    </IonButton>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <IonModal isOpen={modalOpen} onDidDismiss={() => setModalOpen(false)}>
-            <div className="modal-inner">
-              {activeMaterial && (
-                <>
-                  <img
-                    src={activeMaterial.image_url}
-                    alt={activeMaterial.title}
-                    className="modal-img"
-                  />
+          <IonModal
+            isOpen={modalOpen}
+            onDidDismiss={() => setModalOpen(false)}
+            className="edu-modal"
+          >
+            {activeMaterial && (
+              <div className="modal-inner">
+                <img
+                  src={activeMaterial.image_url}
+                  alt={activeMaterial.title}
+                  className="modal-img"
+                />
+                <div className="modal-banner">
                   <h2>{activeMaterial.title}</h2>
-                  <IonBadge color="tertiary">{activeMaterial.category}</IonBadge>
-                  <p className="modal-content">{activeMaterial.content}</p>
+                  <div className="mat-cat">{activeMaterial.category}</div>
+                </div>
+
+                <div className="modal-scroll">
+                  <div className="modal-content">{activeMaterial.content}</div>
                   {activeMaterial.source && (
                     <p className="modal-source">
                       📖 Source: {activeMaterial.source}
                     </p>
                   )}
-                  <IonButton expand="block" onClick={() => setModalOpen(false)}>
-                    Close
-                  </IonButton>
-                </>
-              )}
-            </div>
+                </div>
+
+                <IonButton expand="block" onClick={() => setModalOpen(false)}>
+                  Close
+                </IonButton>
+              </div>
+            )}
           </IonModal>
         </IonContent>
       </IonPage>

@@ -8,15 +8,22 @@ import {
   IonLabel,
   IonInput,
   IonButton,
+  IonIcon,
   IonToast,
   IonToggle,
 } from "@ionic/react";
+import {
+  logOutOutline,
+} from "ionicons/icons";
+import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 import MotherMainLayout from "../layouts/MotherMainLayout";
 
 const MothersProfile: React.FC = () => {
+  const history = useHistory();
   const [nickname, setNickname] = useState("");
   const [profileImage, setProfileImage] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [notifications, setNotifications] = useState(
     localStorage.getItem("notifications") === "true"
@@ -156,10 +163,10 @@ const MothersProfile: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "/";
+    setSidebarOpen(false);
+    history.push("/landingpage");
   };
 
   return (
@@ -224,10 +231,15 @@ const MothersProfile: React.FC = () => {
           <IonButton expand="block" color="success" onClick={saveProfile}>
             Save Changes
           </IonButton>
-
-          <IonButton expand="block" color="medium" onClick={handleLogout}>
-            Logout
-          </IonButton>
+          <IonButton
+                className="logout-btn"
+                color="medium"
+                fill="clear"
+                onClick={handleLogout}
+              >
+                <IonIcon icon={logOutOutline} slot="start" />
+                Logout
+              </IonButton>
         </div>
 
         <IonToast
