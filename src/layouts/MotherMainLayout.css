@@ -1,128 +1,225 @@
-.header-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-}
+/* ==============================
+   MOTHER MAIN LAYOUT – FAIRY TALE BLUSH THEME
+   ============================== */
 
-.mother-logo {
-  height: 34px;
-  width: 34px;
-}
+   :root {
+    --wewak: #f1a7c2;
+    --illusion: #f6b1d5;
+    --azalea: #f4c3e1;
+    --kobi: #e8a6d4;
+    --lilac: #d19ed0;
+  }
+  
+  /* === Global Background === */
+  .mother-layout-page,
+  ion-page.mother-layout-page,
+  ion-content.mother-layout-content {
+    background: var(--azalea);
+    font-family: "Poppins", sans-serif;
+    color: #4a3b4e;
+  }
+  
+  /* === HEADER === */
+  .mother-header ion-toolbar {
+    --background: linear-gradient(90deg, var(--wewak), var(--illusion), var(--kobi));
+    --color: #fff;
+    box-shadow: 0 2px 8px rgba(241, 167, 194, 0.4);
+    height: 60px;
+  }
+  
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+  }
+  
+  .mother-logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 20px;
+  }
+  
+  .app-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+  }
+  
+  .app-title .highlight {
+    color: #ffe3f3;
+  }
+  
+  .profile-icon-btn {
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  
+  .profile-icon {
+    font-size: 40px;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  
+  /* === MAIN CONTENT === */
+  .mother-main {
+    padding-bottom: 80px;
+  }
+  
+  /* === CHATBOT === */
+  .chat-fab {
+    --background: var(--wewak);
+    --color: #fff;
+    box-shadow: 0 6px 14px rgba(241, 167, 194, 0.4);
+    transition: transform 0.2s ease;
+  }
+  
+  .chat-fab:hover {
+    transform: scale(1.08);
+  }
+  
+  .chat-box {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    background: #fff;
+    width: 310px;
+    max-height: 440px;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeUp 0.3s ease-in-out;
+    z-index: 500;
+  }
+  
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .chat-header {
+    background: linear-gradient(90deg, var(--illusion), var(--lilac));
+    color: #fff;
+    font-weight: 600;
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .close-icon {
+    float: right;
+    cursor: pointer;
+  }
+  
+  .chat-body {
+    flex: 1;
+    padding: 10px;
+    background: #fffafc;
+    overflow-y: auto;
+  }
+  
+  .msg {
+    padding: 8px 12px;
+    border-radius: 14px;
+    margin: 6px 0;
+    max-width: 85%;
+    font-size: 0.9rem;
+  }
+  
+ 
+  
+  /* === CHAT INPUT === */
+  .chat-floating-input {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #eee;
+    background: #fdf7fa;
+    padding: 6px;
+  }
+  
+  .chat-floating-input input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  
+  .chat-floating-input ion-button {
+    --color: var(--wewak);
+  }
+  
+  /* === FOOTER NAVIGATION === */
+  .mother-footer-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, var(--kobi), var(--lilac));
+    padding: 6px 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    z-index: 100;
+  }
+  
+  .mother-footer-nav ion-button {
+    --color: #fff;
+    font-size: 0.85rem;
+    flex-direction: column;
+    --ripple-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .mother-footer-nav ion-icon {
+    font-size: 22px;
+  }
+  
 
-.app-title {
-  font-weight: 800;
-  font-size: 1.25rem;
-  color: #ff5c8d;
-  text-shadow: 0 0 4px rgba(255, 150, 180, 0.4);
-  margin-left: 8px;
-}
-
-.highlight {
-  color: #ffa1c0;
-}
-
-/* Pink Profile Icon */
-.profile-icon {
-  font-size: 2rem;
-  color: #ff5c8d;
-  transition: 0.2s;
-}
-
-.profile-icon:hover {
-  transform: scale(1.1);
-  color: #ff3b74;
-}
-
-/* Footer Navigation */
-.mother-footer-nav {
-  display: flex;
-  justify-content: space-around;
-  background: #fff;
-  border-top: 1px solid #eee;
-  padding: 3px 0;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  z-index: 9;
-}
-
-.mother-footer-nav ion-button {
-  flex-direction: column;
-  color: #ff5c8d;
-}
-
-.mother-footer-nav ion-icon {
-  font-size: 1.3rem;
-}
-
-
-
-/* CHATBOT */
-.chat-box {
-  position: fixed;
-  bottom: 90px;
-  right: 15px;
-  width: 270px;
-  background: #fff;
-  border-radius: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-header {
-  background: #ff7fa2;
-  color: white;
-  padding: 8px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chat-body {
-  padding: 10px;
-  height: 220px;
-  overflow-y: auto;
-  background: #fffafc;
-}
-
-.msg {
-  margin: 4px 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-}
-
-.msg.user {
-  background: #ffe6ee;
-  align-self: flex-end;
-  text-align: right;
-}
-
-.msg.bot {
-  background: #f4f4f4;
-  align-self: flex-start;
-}
-
-.chat-floating-input {
-  display: flex;
-  align-items: center;
-  border-top: 1px solid #ddd;
-  background: white;
-  padding: 5px;
-}
-
-.chat-floating-input ion-input {
-  flex: 1;
-  font-size: 0.85rem;
-}
-
-.chat-fab {
-  --background: #ff5c8d;
-  --color: white;
-  bottom: 90px;
-  right: 15px;
-}
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 8px;
+  }
+  
+  .msg {
+    display: flex;
+    align-items: flex-end;
+  }
+  
+  .msg.user {
+    flex-direction: row-reverse;
+  }
+  
+  .msg.user .chat-avatar {
+    margin-right: 0;
+    margin-left: 8px;
+  }
+  
+  .chat-text {
+    background: #fbe4f2;
+    padding: 8px 12px;
+    border-radius: 12px;
+    max-width: 75%;
+    word-wrap: break-word;
+  }
+  
+  .msg.user .chat-text {
+    background: #e89bc1;
+    color: white;
+  }
+  

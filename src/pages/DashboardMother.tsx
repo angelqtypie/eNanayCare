@@ -23,96 +23,64 @@ const DashboardMother: React.FC = () => {
   const [dailyTip, setDailyTip] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 🌸 Default fallback tips
   const fallbackTips = [
-    "Stay hydrated — drink at least 8 glasses of water daily 💧",
-    "Eat more fruits and vegetables for a balanced diet 🥦🍎",
-    "Take short naps to fight fatigue 😴",
-    "Avoid skipping prenatal vitamins 💊",
-    "Walk for at least 20 minutes a day (if approved by your doctor) 🚶‍♀️",
-    "Always keep your prenatal check-up schedule 📅",
-    "Avoid stress — meditation and calm music help 🎵",
-    "Talk to your baby — it helps bonding early 🤰💬",
-    "Get enough sleep — your body needs rest 🌙",
-    "Eat iron-rich foods like spinach and red meat to prevent anemia 🥩",
-    "Don’t forget to smile — your journey is beautiful 💕",
-    "Monitor your baby’s movements daily 🍼",
-    "Avoid smoking and alcohol — your baby depends on you 🚫",
-    "Stay positive — healthy mom, healthy baby 💖",
+    "Stay hydrated — drink at least 8 glasses of water daily",
+    "Eat more fruits and vegetables for a balanced diet",
+    "Take short naps to fight fatigue",
+    "Avoid skipping prenatal vitamins",
+    "Walk for at least 20 minutes a day (if approved by your doctor)",
+    "Always keep your prenatal check-up schedule",
+    "Avoid stress — meditation and calm music help",
+    "Talk to your baby — it helps bonding early",
+    "Get enough sleep — your body needs rest",
+    "Eat iron-rich foods like spinach and red meat to prevent anemia",
   ];
 
-  // 🔹 Fetch nickname from mother_settings
   const fetchNickname = async () => {
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
 
-      // Get the mother.id first
-      const { data: mother, error: motherError } = await supabase
+      const { data: mother } = await supabase
         .from("mothers")
         .select("id")
         .eq("auth_user_id", userId)
         .maybeSingle();
 
-      if (motherError || !mother) {
-        console.warn("Mother not found:", motherError?.message);
-        return;
-      }
+      if (!mother) return;
 
-      // Fetch nickname from mother_settings
-      const { data: settings, error: settingsError } = await supabase
+      const { data: settings } = await supabase
         .from("mother_settings")
         .select("nickname")
         .eq("mother_id", mother.id)
         .maybeSingle();
 
-      if (settingsError) {
-        console.warn("Settings fetch error:", settingsError.message);
-        return;
-      }
-
-      if (settings?.nickname && settings.nickname.trim() !== "") {
-        setMotherName(settings.nickname);
-      } else {
-        const fallback = localStorage.getItem("fullName") || "Mommy";
-        setMotherName(fallback);
-      }
+      setMotherName(settings?.nickname || "Mommy");
     } catch (err) {
       console.error("fetchNickname error:", err);
     }
   };
 
-  // 🔹 Fetch daily tips
   const fetchTips = async () => {
-    interface Tip {
-      title?: string;
-      content?: string;
-    }
-
     try {
       const { data, error } = await supabase
         .from("educational_materials")
-        .select("title, content")
+        .select("content")
         .eq("is_published", true)
         .ilike("category", "%Maternal Health%");
 
-      if (error) throw error;
+      if (error || !data?.length)
+        return setDailyTip(
+          fallbackTips[Math.floor(Math.random() * fallbackTips.length)]
+        );
 
-      const tips =
-        data && data.length > 0
-          ? (data as Tip[]).map((t) => t.content || t.title || "")
-          : fallbackTips;
-
-      setDailyTip(tips[Math.floor(Math.random() * tips.length)]);
-    } catch (err) {
-      console.error("Error fetching tips:", err);
-      setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
+      const randomTip = data[Math.floor(Math.random() * data.length)].content;
+      setDailyTip(randomTip);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 Run both fetches on mount
   useEffect(() => {
     fetchNickname();
     fetchTips();
@@ -121,22 +89,23 @@ const DashboardMother: React.FC = () => {
   return (
     <MotherMainLayout>
       <IonContent className="dashboard-content" fullscreen scrollY={true}>
-        {/* 🌸 Header Section */}
         <div className="header-gradient">
+          <div className="floating-decor decor-1"></div>
+          <div className="floating-decor decor-2"></div>
+          <div className="floating-decor decor-3"></div>
+          <div className="floating-decor decor-4"></div>
+
           <div className="header-text">
             <h2>
               Hello, <span>{motherName}</span>
             </h2>
             <p>Your journey to motherhood is beautiful 🌼</p>
           </div>
-          <div className="floating-decor decor-1">🍼</div>
-          <div className="floating-decor decor-2">🌸</div>
         </div>
 
-        {/* 🩷 Cards Section */}
         <div className="cards-grid">
           <IonCard
-            className="mother-card pink"
+            className="mother-card soft-pink"
             button
             onClick={() => history.push("/motherscalendar")}
           >
@@ -149,7 +118,7 @@ const DashboardMother: React.FC = () => {
           </IonCard>
 
           <IonCard
-            className="mother-card lavender"
+            className="mother-card soft-lilac"
             button
             onClick={() => history.push("/motherhealthrecords")}
           >
@@ -160,7 +129,7 @@ const DashboardMother: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
-          <IonCard className="mother-card peach">
+          <IonCard className="mother-card clean-white">
             <IonCardContent>
               <IonIcon icon={bulbOutline} className="card-icon" />
               <h3>Tip for Today</h3>
@@ -169,7 +138,7 @@ const DashboardMother: React.FC = () => {
           </IonCard>
 
           <IonCard
-            className="mother-card blue"
+            className="mother-card soft-rose"
             button
             onClick={() => history.push("/motherimmunization")}
           >

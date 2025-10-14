@@ -1,3 +1,4 @@
+// File: src/layouts/MotherMainLayout.tsx
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
@@ -21,13 +22,19 @@ import {
   send,
 } from "ionicons/icons";
 import logo from "../assets/logo.svg";
-import "./MotherMainLayout.css";
+import botAvatar from "../assets/logo.svg"; // Add a cute Mamabot image
 import { supabase } from "../utils/supabaseClient";
+import "./MotherMainLayout.css";
+
+interface Message {
+  sender: "user" | "bot";
+  text: string;
+}
 
 const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();
   const [showChat, setShowChat] = useState(false);
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [nickname, setNickname] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -40,7 +47,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     const fetchMotherSettings = async () => {
       if (!userId) return;
 
-      // Get mother_id first
       const { data: mother, error: motherError } = await supabase
         .from("mothers")
         .select("id")
@@ -49,7 +55,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
       if (motherError || !mother) return;
 
-      // Fetch nickname + image
       const { data, error } = await supabase
         .from("mother_settings")
         .select("nickname, profile_image_url")
@@ -67,25 +72,26 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const goTo = (path: string) => history.push(path);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     const text = input.trim();
     setMessages((prev) => [...prev, { sender: "user", text }]);
     setInput("");
 
+    // Fetch random question/answer pair from DB
+    const { data, error } = await supabase
+      .from("chatbot_qa")
+      .select("question, answer")
+      .eq("is_active", true);
+
+    let reply = "I'm not sure about that yet. Try asking about pregnancy tips";
+
+    if (data && data.length > 0) {
+      const random = data[Math.floor(Math.random() * data.length)];
+      reply = random.answer;
+    }
+
     setTimeout(() => {
-      let reply = "Try asking about nutrition, exercise, or pregnancy danger signs 💬";
-      const q = text.toLowerCase();
-
-      if (q.includes("nutrition"))
-        reply = "Eat balanced meals rich in iron and folate like malunggay and fish.";
-      else if (q.includes("exercise"))
-        reply = "Light exercise like walking or prenatal yoga is safe if approved by your doctor.";
-      else if (q.includes("hello"))
-        reply = `Hello ${firstName}! I'm MAMABOT here to assist you 🤰`;
-      else if (q.includes("danger"))
-        reply = "Seek medical help if you experience bleeding, headache, or blurred vision.";
-
       setMessages((prev) => [...prev, { sender: "bot", text: reply }]);
     }, 600);
   };
@@ -96,7 +102,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       <IonHeader className="mother-header">
         <IonToolbar>
           <div className="header-container">
-            {/* LEFT: Logo + Name */}
             <div className="header-left" onClick={() => goTo("/dashboardmother")}>
               <img src={logo} alt="eNanayCare" className="mother-logo" />
               <span className="app-title">
@@ -104,13 +109,8 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               </span>
             </div>
 
-            {/* RIGHT: Profile Icon or Image */}
             <div className="header-right">
-              <IonButton
-                fill="clear"
-                className="profile-icon-btn"
-                onClick={() => goTo("/mothersprofile")}
-              >
+              <IonButton fill="clear" className="profile-icon-btn" onClick={() => goTo("/mothersprofile")}>
                 {profileImage ? (
                   <img
                     src={profileImage}
@@ -139,22 +139,30 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         {showChat && (
           <div className="chat-box">
             <div className="chat-header">
-              <b>MAMABOT 🤱</b>
+              <b>MAMABOT</b>
               <IonIcon icon={close} onClick={() => setShowChat(false)} className="close-icon" />
             </div>
             <div className="chat-body">
               {messages.length === 0 ? (
                 <div className="msg bot">
-                  Hi <b>{firstName}</b>! 👋 I'm MAMABOT, your pregnancy buddy 💕
+                  <img src={botAvatar} alt="Bot" className="chat-avatar" />
+                  <div className="chat-text">
+                    Hi <b>{firstName}</b>! I'm <b>MAMABOT</b>, your pregnancy buddy 
+                  </div>
                 </div>
               ) : (
                 messages.map((m, i) => (
                   <div key={i} className={`msg ${m.sender}`}>
-                    {m.text}
+                    {m.sender === "bot" && <img src={botAvatar} alt="Bot" className="chat-avatar" />}
+                    {m.sender === "user" && profileImage && (
+                      <img src={profileImage} alt="You" className="chat-avatar user-avatar" />
+                    )}
+                    <div className="chat-text">{m.text}</div>
                   </div>
                 ))
               )}
             </div>
+
             <div className="chat-floating-input">
               <input
                 placeholder="Ask something..."

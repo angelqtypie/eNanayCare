@@ -12,18 +12,16 @@ import {
   IonToast,
   IonToggle,
 } from "@ionic/react";
-import {
-  logOutOutline,
-} from "ionicons/icons";
+import { logOutOutline, personCircleOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 import MotherMainLayout from "../layouts/MotherMainLayout";
+import { motion } from "framer-motion";
 
 const MothersProfile: React.FC = () => {
   const history = useHistory();
   const [nickname, setNickname] = useState("");
   const [profileImage, setProfileImage] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [notifications, setNotifications] = useState(
     localStorage.getItem("notifications") === "true"
@@ -34,7 +32,7 @@ const MothersProfile: React.FC = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const userId = localStorage.getItem("userId"); // auth user id
+  const userId = localStorage.getItem("userId");
   const fullName = localStorage.getItem("fullName") || "Nanay";
 
   useEffect(() => {
@@ -45,7 +43,6 @@ const MothersProfile: React.FC = () => {
     fetchProfile();
   }, [userId]);
 
-  // 🔹 Fetch profile data (nickname + image)
   const fetchProfile = async () => {
     try {
       const { data: mother, error: motherError } = await supabase
@@ -54,11 +51,7 @@ const MothersProfile: React.FC = () => {
         .eq("auth_user_id", userId)
         .single();
 
-      if (motherError || !mother) {
-        console.warn("No mother record found for this user");
-        return;
-      }
-
+      if (motherError || !mother) return;
       const motherId = mother.id;
 
       const { data, error } = await supabase
@@ -67,11 +60,7 @@ const MothersProfile: React.FC = () => {
         .eq("mother_id", motherId)
         .single();
 
-      if (error && error.code !== "PGRST116") {
-        console.warn("fetchProfile warning:", error.message);
-        return;
-      }
-
+      if (error && error.code !== "PGRST116") return;
       if (data) {
         setNickname(data.nickname || "");
         setProfileImage(data.profile_image_url || "");
@@ -81,20 +70,16 @@ const MothersProfile: React.FC = () => {
     }
   };
 
-  // 🔹 Upload image to Supabase storage bucket (mother_profiles)
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return profileImage;
-
     const fileExt = imageFile.name.split(".").pop();
     const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `${userId}/${fileName}`; // Each mother has a folder
-
+    const filePath = `${userId}/${fileName}`;
     const { error: uploadError } = await supabase.storage
       .from("mother_profiles")
       .upload(filePath, imageFile, { upsert: true });
 
     if (uploadError) {
-      console.error("uploadImage error:", uploadError.message);
       setToastMsg("Image upload failed.");
       return null;
     }
@@ -106,148 +91,265 @@ const MothersProfile: React.FC = () => {
     return data.publicUrl;
   };
 
-  // 🔹 Get real mother_id from mothers table
   const getMotherId = async (userId: string) => {
     const { data, error } = await supabase
       .from("mothers")
       .select("id")
       .eq("auth_user_id", userId)
       .single();
-
-    if (error) {
-      console.error("getMotherId error:", error.message);
-      return null;
-    }
-
+    if (error) return null;
     return data?.id || null;
   };
 
-  // 🔹 Save nickname + profile image only
   const saveProfile = async () => {
     try {
       if (!userId) {
         setToastMsg("Not logged in.");
         return;
       }
-
       const motherId = await getMotherId(userId);
       if (!motherId) {
         setToastMsg("Mother record not found.");
         return;
       }
-
       const imageUrl = await uploadImage();
-
       const updates = {
         mother_id: motherId,
         nickname: nickname || null,
         profile_image_url: imageUrl || null,
       };
-
       const { error } = await supabase.from("mother_settings").upsert(updates);
-
       if (error) {
-        console.error("saveProfile error:", error.message);
         setToastMsg("Failed to update profile.");
         return;
       }
-
-      // 🔹 Local-only settings
       localStorage.setItem("darkMode", darkMode.toString());
       localStorage.setItem("notifications", notifications.toString());
-
       setToastMsg("Profile saved!");
     } catch (err) {
-      console.error("saveProfile exception:", err);
       setToastMsg("Failed to save profile.");
     }
   };
 
   const handleLogout = () => {
     localStorage.clear();
-    setSidebarOpen(false);
     history.push("/landingpage");
   };
 
   return (
     <MotherMainLayout>
       <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Settings</IonTitle>
+        <IonToolbar
+          style={{
+            "--background":
+            " linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
+          "--color": "#6a3a55",
+          }}
+        >
+          <IonTitle
+            style={{
+              fontWeight: "bold",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Profile Settings
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding" fullscreen>
-        {error && <p style={{ color: "red" }}>{error}</p>}
 
-        <IonItem lines="full">
-          <IonLabel position="stacked">Nickname</IonLabel>
-          <IonInput
-            value={nickname}
-            placeholder="Enter nickname"
-            onIonChange={(e) => setNickname(e.detail.value!)}
-          />
-        </IonItem>
+      <IonContent fullscreen>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="profile-container"
+        >
+          <div className="profile-card">
+            <div className="profile-header">
+              {profileImage ? (
+                <motion.img
+                  src={profileImage}
+                  alt="Profile"
+                  className="profile-img"
+                  whileHover={{ scale: 1.05 }}
+                />
+              ) : (
+                <IonIcon icon={personCircleOutline} className="profile-placeholder" />
+              )}
+              <p className="mother-name">{fullName}</p>
+              <p className="nickname">{nickname ? `"${nickname}"` : "No nickname set"}</p>
+            </div>
 
-        <IonItem lines="full">
-          <IonLabel position="stacked">Profile Photo</IonLabel>
-          {profileImage && (
-            <img
-              src={profileImage}
-              alt="Profile"
-              style={{
-                width: 100,
-                height: 100,
-                borderRadius: "50%",
-                margin: "10px auto",
-                display: "block",
-              }}
-            />
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-          />
-        </IonItem>
+            <IonItem lines="none" className="input-box">
+              <IonLabel position="stacked">Nickname</IonLabel>
+              <IonInput
+                value={nickname}
+                placeholder="Enter nickname"
+                onIonChange={(e) => setNickname(e.detail.value!)}
+              />
+            </IonItem>
 
-        <IonItem lines="full">
-          <IonLabel>Notifications</IonLabel>
-          <IonToggle
-            checked={notifications}
-            onIonChange={(e) => setNotifications(e.detail.checked)}
-          />
-        </IonItem>
+            <IonItem lines="none" className="input-box">
+              <IonLabel position="stacked">Profile Photo</IonLabel>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                className="file-input"
+              />
+            </IonItem>
 
-        <IonItem lines="full">
-          <IonLabel>Dark Mode</IonLabel>
-          <IonToggle
-            checked={darkMode}
-            onIonChange={(e) => setDarkMode(e.detail.checked)}
-          />
-        </IonItem>
+            <div className="toggles">
+              <IonItem lines="none">
+                <IonLabel>Notifications</IonLabel>
+                <IonToggle
+                  checked={notifications}
+                  onIonChange={(e) => setNotifications(e.detail.checked)}
+                />
+              </IonItem>
+              <IonItem lines="none">
+                <IonLabel>Dark Mode</IonLabel>
+                <IonToggle
+                  checked={darkMode}
+                  onIonChange={(e) => setDarkMode(e.detail.checked)}
+                />
+              </IonItem>
+            </div>
 
-        <div style={{ padding: 16 }}>
-          <IonButton expand="block" color="success" onClick={saveProfile}>
-           Warning Ayaw sa Hilbti not working pa pls.
-          </IonButton>
-          <IonButton
-                className="logout-btn"
+            <div className="button-group">
+              <IonButton expand="block" color="success" onClick={saveProfile}>
+                AYAW HILABTI WAPA NA FIX
+              </IonButton>
+              <IonButton
+                expand="block"
                 color="medium"
                 fill="clear"
+                className="logout-btn"
                 onClick={handleLogout}
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout
               </IonButton>
-        </div>
+            </div>
+          </div>
 
-        <IonToast
-          isOpen={!!toastMsg}
-          message={toastMsg ?? ""}
-          duration={2000}
-          color="success"
-          onDidDismiss={() => setToastMsg(null)}
-        />
+          <IonToast
+            isOpen={!!toastMsg}
+            message={toastMsg ?? ""}
+            duration={2000}
+            color="success"
+            onDidDismiss={() => setToastMsg(null)}
+          />
+        </motion.div>
+
+        <style>{`
+          .profile-container {
+            background: #fff8fb;
+            min-height: 100vh;
+            padding: 20px 15px 80px;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+          }
+
+          .profile-card {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 6px 18px rgba(241, 167, 194, 0.35);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            backdrop-filter: blur(8px);
+          }
+
+          .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+          }
+
+          .profile-img {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(241, 167, 194, 0.35);
+            border: 3px solid #f1a7c2;
+          }
+
+          .profile-placeholder {
+            font-size: 110px;
+            color: #f1a7c2;
+          }
+
+          .mother-name {
+            font-weight: 600;
+            color: #d5649f;
+            margin-top: 10px;
+          }
+
+          .nickname {
+            color: #999;
+            font-size: 0.9rem;
+          }
+
+          .input-box {
+            background: #fff;
+            margin: 10px 0;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(241, 167, 194, 0.25);
+            padding: 5px 10px;
+          }
+
+          .input-box ion-label {
+            color: #d5649f;
+            font-weight: 500;
+          }
+
+          .file-input {
+            width: 100%;
+            padding: 6px 0;
+            color: #555;
+          }
+
+          .toggles {
+            margin-top: 15px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(241, 167, 194, 0.25);
+            padding: 10px;
+          }
+
+          .toggles ion-item {
+            --inner-padding-end: 0;
+          }
+
+          .button-group {
+            margin-top: 20px;
+          }
+
+          .logout-btn {
+            color: #d5649f;
+            font-weight: 500;
+            margin-top: 10px;
+          }
+
+          .logout-btn ion-icon {
+            margin-right: 4px;
+          }
+
+          @media (max-width: 400px) {
+            .profile-card {
+              padding: 18px;
+            }
+            .profile-img {
+              width: 95px;
+              height: 95px;
+            }
+          }
+        `}</style>
       </IonContent>
     </MotherMainLayout>
   );

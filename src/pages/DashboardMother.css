@@ -1,53 +1,88 @@
 .dashboard-content {
-  --background: #fffaf6;
-  background: linear-gradient(180deg, #ffe8d6 0%, #fff9f3 100%);
+  background: linear-gradient(180deg, #fffafa 0%, #fff5f9 100%);
+  color: #463e45;
+  font-family: "Poppins", sans-serif;
   min-height: 100vh;
-  padding-bottom: 5rem;
+  padding-bottom: 70px;
 }
 
-/* 🌸 Gradient Header */
+/* HEADER */
 .header-gradient {
-  background: linear-gradient(135deg, #ffd6a5, #fff1e0);
-  border-bottom-left-radius: 40px;
-  border-bottom-right-radius: 40px;
-  text-align: center;
-  padding: 2rem 1rem 3rem;
   position: relative;
-  box-shadow: 0 6px 18px rgba(255, 180, 120, 0.2);
+  margin: 18px;
+  padding: 40px 20px 55px;
+  border-radius: 25px;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(135deg, #f8bfd6, #f5a6c4, #f7c6da);
+  box-shadow: 0 6px 16px rgba(250, 174, 205, 0.25);
+  overflow: hidden;
+}
+
+.header-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 30% 50%,
+    rgba(255, 255, 255, 0.4),
+    transparent 70%
+  );
+}
+
+.header-text {
+  position: relative;
+  z-index: 1;
 }
 
 .header-text h2 {
-  font-size: 1.6rem;
-  color: #59311f;
   font-weight: 700;
+  font-size: 1.9rem;
 }
 
 .header-text span {
-  color: #ff8c42;
+  background: linear-gradient(90deg, #fff, #fdebf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .header-text p {
   font-size: 0.95rem;
-  color: #6d4b3f;
-  margin-top: 0.3rem;
+  opacity: 0.95;
 }
 
-/* Floating icons */
+/* FLOATING DECOR */
 .floating-decor {
   position: absolute;
-  font-size: 1.8rem;
-  opacity: 0.7;
-  animation: float 5s ease-in-out infinite;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: float 7s ease-in-out infinite alternate;
 }
 
 .decor-1 {
-  top: 15%;
-  left: 10%;
+  background: #ffd9eb;
+  top: 10%;
+  left: 12%;
 }
 
 .decor-2 {
-  top: 25%;
-  right: 15%;
+  background: #f4c3e1;
+  bottom: 10%;
+  right: 10%;
+}
+
+.decor-3 {
+  background: #ffd9eb;
+  top: 30%;
+  left: 32%;
+}
+
+.decor-4 {
+  background: #f4c3e1;
+  bottom: 30%;
+  right: 30%;
 }
 
 @keyframes float {
@@ -59,98 +94,73 @@
   }
 }
 
-/* 🩷 Cards Grid */
+/* CARDS */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  padding: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 16px;
 }
 
 .mother-card {
-  border-radius: 18px;
+  border-radius: 20px;
   text-align: center;
-  color: #3d1b4f;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(240, 167, 194, 0.1);
 }
 
 .mother-card:hover {
-  transform: scale(1.04);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(240, 167, 194, 0.15);
+}
+
+.card-icon {
+  font-size: 2rem;
+  color: #fff;
+  background: linear-gradient(135deg, #f6b1d5, #f1a7c2);
+  padding: 10px;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+
+/* Variants */
+.soft-pink {
+  background: #fff;
+  border: 2px solid #f8bfd6;
+}
+
+.soft-lilac {
+  background: #fff;
+  border: 2px solid #e3c5eb;
+}
+
+.soft-rose {
+  background: #fff;
+  border: 2px solid #f9bcd1;
+}
+
+.clean-white {
+  background: #fff;
+  border: 1px solid #f0e0e9;
 }
 
 .mother-card h3 {
-  font-size: 1rem;
-  margin-top: 0.6rem;
+  color: #463e45;
   font-weight: 600;
 }
 
 .mother-card p {
-  font-size: 0.85rem;
-  color: #4a3f3f;
-}
-
-.card-icon {
-  font-size: 1.6rem;
-  color: #6c4cff;
-}
-
-/* Card Colors */
-.pink {
-  background: #ffe1e9;
-}
-
-.lavender {
-  background: #ede4ff;
-}
-
-.peach {
-  background: #ffe7c8;
-}
-
-.blue {
-  background: #dff2ff;
+  color: #5e5061;
+  font-size: 0.9rem;
 }
 
 .status {
   display: inline-block;
-  background: #f4d7ff;
-  color: #7b3eff;
-  border-radius: 10px;
+  margin-top: 6px;
+  background: #fde7ef;
+  color: #e0638d;
+  font-weight: 600;
+  border-radius: 8px;
   padding: 3px 8px;
   font-size: 0.75rem;
-  margin-top: 6px;
-}
-
-/* 🌼 Summary Section */
-.summary-section {
-  background: white;
-  border-radius: 20px;
-  margin: 1rem;
-  padding: 1rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-}
-
-.summary-section h4 {
-  text-align: center;
-  color: #5a3a2e;
-  margin-bottom: 1rem;
-  font-weight: 600;
-}
-
-.summary-cards {
-  display: flex;
-  justify-content: space-around;
-  text-align: center;
-}
-
-.summary-item p {
-  font-size: 0.8rem;
-  color: #7b5f4d;
-}
-
-.summary-item span {
-  display: block;
-  font-weight: 600;
-  color: #ff7b00;
 }

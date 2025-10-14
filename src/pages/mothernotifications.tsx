@@ -8,8 +8,10 @@ import {
   IonCardContent,
   IonSpinner,
   IonBadge,
+  useIonViewWillLeave,
+  useIonViewDidEnter,
 } from "@ionic/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
 import MotherMainLayout from "../layouts/MotherMainLayout";
 
@@ -34,17 +36,35 @@ interface HealthRecord {
   notes: string | null;
 }
 
+type NotificationType = "appointment" | "material" | "health" | "system";
+
 interface NotificationItem {
   id: string;
   title: string;
   message: string;
   time: string;
-  type: "appointment" | "material" | "health" | "system";
+  type: NotificationType;
 }
 
 const MotherNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useIonViewDidEnter(() => {
+    requestAnimationFrame(() => {
+      const hiddenPages = document.querySelectorAll('[aria-hidden="true"]');
+      hiddenPages.forEach((p) => {
+        p.removeAttribute("aria-hidden");
+        (p as HTMLElement).setAttribute("inert", "");
+      });
+    });
+  });
+
+  useIonViewWillLeave(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  });
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -55,20 +75,17 @@ const MotherNotifications: React.FC = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch mother info
         const { data: mother } = await supabase
           .from("mothers")
           .select("id")
           .eq("auth_user_id", user.id)
           .single();
-
         if (!mother) return;
 
         const today = new Date();
-        const next3Days = new Date();
+        const next3Days = new Date(today);
         next3Days.setDate(today.getDate() + 3);
 
-        // Appointments
         const { data: appointments } = await supabase
           .from("appointments")
           .select("id, date, time, location, status")
@@ -77,7 +94,6 @@ const MotherNotifications: React.FC = () => {
           .lte("date", next3Days.toISOString().split("T")[0])
           .order("date", { ascending: true });
 
-        // Materials
         const { data: materials } = await supabase
           .from("educational_materials")
           .select("id, title, category, created_at")
@@ -85,7 +101,6 @@ const MotherNotifications: React.FC = () => {
           .order("created_at", { ascending: false })
           .limit(3);
 
-        // Health records
         const { data: records } = await supabase
           .from("health_records")
           .select("id, encounter_date, notes")
@@ -95,7 +110,6 @@ const MotherNotifications: React.FC = () => {
 
         const notifList: NotificationItem[] = [];
 
-        // Appointments Notifications
         (appointments ?? []).forEach((a: Appointment) => {
           const daysLeft = Math.ceil(
             (new Date(a.date).getTime() - today.getTime()) /
@@ -115,7 +129,6 @@ const MotherNotifications: React.FC = () => {
           });
         });
 
-        // Educational Materials Notifications
         (materials ?? []).forEach((m: Material) => {
           notifList.push({
             id: m.id,
@@ -128,7 +141,6 @@ const MotherNotifications: React.FC = () => {
           });
         });
 
-        // Health Record Notifications
         (records ?? []).forEach((r: HealthRecord) => {
           notifList.push({
             id: r.id,
@@ -141,11 +153,10 @@ const MotherNotifications: React.FC = () => {
           });
         });
 
-        // Built-in Permanent System Notifications
         notifList.push(
           {
             id: "sys1",
-            title: "💡 Stay Hydrated",
+            title: "💧 Stay Hydrated",
             message:
               "Drink plenty of water throughout the day to stay healthy and support your baby’s development.",
             time: new Date().toLocaleDateString("en-PH"),
@@ -165,76 +176,143 @@ const MotherNotifications: React.FC = () => {
           (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
         );
         setNotifications(notifList);
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoading(false);
       }
     };
-
     loadNotifications();
   }, []);
 
-  const badgeColor = (type: string) => {
-    switch (type) {
-      case "appointment":
-        return "primary";
-      case "material":
-        return "success";
-      case "health":
-        return "warning";
-      default:
-        return "tertiary";
-    }
+  const badgeColor = (type: NotificationType): string => {
+    const map: Record<NotificationType, string> = {
+      appointment: "primary",
+      material: "success",
+      health: "warning",
+      system: "tertiary",
+    };
+    return map[type];
   };
 
   return (
     <MotherMainLayout>
       <IonHeader translucent>
-        <IonToolbar color="light">
-          <IonTitle className="text-center font-bold text-pink-600">
-            Notifications
-          </IonTitle>
+        <IonToolbar className="notif-toolbar">
+          <IonTitle>Notifications</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen className="ion-padding bg-gradient-to-b from-pink-50 to-white">
+      <IonContent fullscreen>
         {loading ? (
-          <div className="flex justify-center items-center h-full">
+          <div className="notif-loading">
             <IonSpinner name="crescent" color="danger" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center text-gray-500 mt-10">
-            You’re all caught up 💖
-          </div>
+          <div className="notif-empty">You’re all caught up 💖</div>
         ) : (
-          <div className="space-y-3">
-            {notifications.map((n: NotificationItem, i: number) => (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <IonCard className="rounded-2xl shadow-sm hover:shadow-md border border-pink-100 bg-white transition-all duration-300">
-                  <IonCardContent>
-                    <div className="flex justify-between items-start mb-2">
-                      <h2 className="font-semibold text-gray-800 text-base">
-                        {n.title}
-                      </h2>
-                      <IonBadge color={badgeColor(n.type)}>{n.type}</IonBadge>
-                    </div>
-                    <p className="text-sm text-gray-700 leading-snug mb-1">
-                      {n.message}
-                    </p>
-                    <p className="text-xs text-gray-400">{n.time}</p>
-                  </IonCardContent>
-                </IonCard>
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            className="notif-container"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <AnimatePresence>
+              {notifications.map((n, i) => (
+                <motion.div
+                  key={n.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                >
+                  <IonCard className={`notif-card notif-${n.type}`}>
+                    <IonCardContent>
+                      <div className="notif-header">
+                        <h2>{n.title}</h2>
+                        <IonBadge color={badgeColor(n.type)}>{n.type}</IonBadge>
+                      </div>
+                      <p className="notif-message">{n.message}</p>
+                      <p className="notif-time">{n.time}</p>
+                    </IonCardContent>
+                  </IonCard>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </IonContent>
+
+      <style>{`
+        .notif-toolbar {
+          linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7);
+          color: #6b0f47;
+          text-align: center;
+          font-weight: 700;
+          border-radius: 0 0 18px 18px;
+        }
+
+        .notif-loading, .notif-empty {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 80vh;
+          color: #d5649f;
+          font-size: 1rem;
+          font-weight: 500;
+        }
+
+        .notif-container {
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          background: linear-gradient(to bottom, #fff6fb, #fff);
+          min-height: 100%;
+        }
+
+        .notif-card {
+          border-radius: 18px;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+          border: 1px solid #fbe2ec;
+          transition: all 0.25s ease;
+          background: #fff;
+        }
+        .notif-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 5px 18px rgba(213,100,159,0.15);
+        }
+
+        .notif-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+        .notif-header h2 {
+          font-size: 1rem;
+          color: #a33b77;
+          font-weight: 600;
+        }
+        .notif-message {
+          font-size: 0.9rem;
+          color: #444;
+          line-height: 1.5;
+          margin-bottom: 5px;
+        }
+        .notif-time {
+          font-size: 0.75rem;
+          color: #999;
+          text-align: right;
+        }
+
+        .notif-appointment { border-left: 4px solid #3b82f6; }
+        .notif-material { border-left: 4px solid #16a34a; }
+        .notif-health { border-left: 4px solid #eab308; }
+        .notif-system { border-left: 4px solid #a855f7; }
+
+        @media (max-width: 460px) {
+          .notif-header h2 { font-size: 0.95rem; }
+          .notif-message { font-size: 0.85rem; }
+        }
+      `}</style>
     </MotherMainLayout>
   );
 };
