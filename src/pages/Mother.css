@@ -1,61 +1,88 @@
-.mothers-page {
-  padding: 20px;
+.full-modal {
+  width: 95%;
+  max-width: 850px;
+  margin: auto;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.header-container {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
 }
 
-.page-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #333;
+.modal-body {
+  margin-top: 1rem;
 }
 
-.add-btn {
-  --background: #3e8ef7;
-  --border-radius: 8px;
+.form-grid ion-item {
+  margin-bottom: 12px;
 }
 
 .table-wrapper {
   overflow-x: auto;
+  margin-top: 1rem;
 }
 
 .mothers-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
 }
 
 .mothers-table th,
 .mothers-table td {
-  padding: 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid #ddd;
-  text-align: left;
 }
 
-.mothers-cards {
-  display: grid;
-  gap: 12px;
+.add-btn {
+  --background: #0077ff;
+  color: white;
 }
 
-.mother-card {
-  background: #f8f9ff;
+.empty-text {
+  text-align: center;
+  color: gray;
+  margin-top: 1rem;
+}
+
+.wide-modal {
+  --width: 90%;
+  --height: 90%;
+  --max-width: 1000px;
+}
+
+.modal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+  padding: 20px;
   border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.status {
-  display: inline-block;
-  background: #ffe2e2;
-  color: #b80000;
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: bold;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.full-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 10px;
+}
+
+.form-grid ion-item {
+  margin-bottom: 10px;
+}
+
+.modal-footer {
+  margin-top: 15px;
 }

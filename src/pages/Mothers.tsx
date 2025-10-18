@@ -1,356 +1,707 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import bcrypt from "bcryptjs";
 import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
   IonButton,
-  IonIcon,
   IonModal,
-  IonInput,
   IonItem,
   IonLabel,
+  IonInput,
   IonList,
-  IonAlert,
+  IonSpinner,
+  IonToast,
+  IonSearchbar,
+  IonIcon,
 } from "@ionic/react";
-import { addOutline, closeOutline, createOutline, trashOutline } from "ionicons/icons";
-import MainLayout from "../layouts/MainLayouts";
-import "./Mother.css";
+import { addCircleOutline, closeOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
+import MainLayout from "../layouts/MainLayouts";
+
+interface Mother {
+  mother_id?: string;
+  user_id?: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  birthdate: string;
+  age: number;
+  civil_status: string;
+  address: string;
+  contact_number: string;
+  husband_name: string;
+  education: string;
+  religion: string;
+  lmp_date?: string;
+  edc?: string;
+  gpa?: string;
+  aog?: string;
+  email: string;
+  password: string;
+  users?: { email: string };
+}
 
 const Mothers: React.FC = () => {
+  const [mothers, setMothers] = useState<Mother[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [mothers, setMothers] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    name: "",
-    birthday: "",
+  const [toastMsg, setToastMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const [formData, setFormData] = useState<Mother>({
+    first_name: "",
+    middle_name: "",
+    last_name: "",
+    birthdate: "",
+    age: 0,
+    civil_status: "",
     address: "",
-    contact: "",
+    contact_number: "",
+    husband_name: "",
+    education: "",
+    religion: "",
+    lmp_date: "",
+    edc: "",
+    gpa: "",
+    aog: "",
     email: "",
     password: "",
-    status: "Pregnant",
-    dueDate: "",
-    lmp_date: "",
   });
 
-  // 🧠 Fetch all mothers
   const fetchMothers = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("mothers")
-      .select("id, name, email, contact, status, birthday, address, due_date, lmp_date")
-      .order("created_at", { ascending: false });
+      .select("*, users(email)")
+      .order("last_name", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching mothers:", error);
+    if (!error && data) {
+      setMothers(data as Mother[]);
     } else {
-      setMothers(data || []);
+      console.error("Fetch mothers error:", error);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchMothers();
   }, []);
 
-  // 📝 Handle input changes + auto-calculate due date
-  const handleInputChange = (e: CustomEvent) => {
-    const target = e.target as HTMLInputElement;
-    const name = target.name;
-    const value = (e as any).detail.value;
+  const calculateAge = (birthdate: string): number => {
+    const birth = new Date(birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
 
-    if (name === "lmp_date" && value) {
-      const lmpDate = new Date(value);
-      const dueDate = new Date(lmpDate);
-      dueDate.setDate(lmpDate.getDate() + 280); // +40 weeks
-      setForm((prev) => ({
+  const calculateEDC = (lmp: string): string => {
+    const date = new Date(lmp);
+    date.setDate(date.getDate() + 280);
+    return date.toISOString().split("T")[0];
+  };
+
+  const calculateAOG = (lmp: string): string => {
+    const lmpDate = new Date(lmp);
+    const today = new Date();
+    const diffTime = today.getTime() - lmpDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+    const weeks = Math.floor(diffDays / 7);
+    const days = diffDays % 7;
+    return `${weeks} weeks ${days} days`;
+  };
+
+  const handleChange = (field: keyof Mother, value: any) => {
+    if (field === "birthdate" && value) {
+      const age = calculateAge(value);
+      setFormData((prev) => ({ ...prev, birthdate: value, age }));
+    } else if (field === "lmp_date" && value) {
+      const edc = calculateEDC(value);
+      const aog = calculateAOG(value);
+      setFormData((prev) => ({
         ...prev,
         lmp_date: value,
-        dueDate: dueDate.toISOString().split("T")[0],
+        edc,
+        aog,
       }));
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [field]: value }));
     }
   };
 
-  // 🧩 Register or Update Mother
   const saveMother = async () => {
-    if (!form.name || !form.email || (!editId && !form.password)) {
-      alert("Please fill out all required fields (Name, Email, Password)");
+    if (
+      !formData.first_name ||
+      !formData.last_name ||
+      !formData.birthdate ||
+      !formData.email ||
+      !formData.password
+    ) {
+      setToastMsg("Please fill out all required fields.");
       return;
     }
-
+  
+    setSaving(true);
+  
     try {
-      let authUserId = null;
-
-      // 🆕 New Mother Registration
-      if (!editId) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/login`,
-          },
-        });
-
-        if (authError) {
-          console.error("Auth error:", authError);
-          if (authError.message.includes("already registered")) {
-            alert("This email is already registered.");
-          } else {
-            alert("Auth sign-up failed: " + authError.message);
-          }
-          return;
-        }
-
-        authUserId = authData?.user?.id || null;
-
-        // 🧠 UPSERT user (avoids duplicate email errors)
-        const { error: userUpsertError } = await supabase.from("users").upsert([
-          {
-            id: authUserId,
-            email: form.email,
-            full_name: form.name,
-            role: "mother",
-            created_at: new Date().toISOString(),
-            password: null,
-          },
-        ]);
-
-        if (userUpsertError) {
-          console.error("Error upserting into users:", userUpsertError);
-          alert("User insert/upsert failed: " + userUpsertError.message);
-          return;
-        }
+      // ✅ 1. Sign up user
+      const { data: authUser, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+  
+      if (signUpError || !authUser?.user) {
+        console.error("Supabase Auth SignUp Error:", signUpError);
+        setToastMsg("Failed to register user.");
+        return;
       }
-
-      // 🧾 Insert or Update mother record
-      if (editId) {
-        const { error } = await supabase
-          .from("mothers")
-          .update({
-            name: form.name,
-            birthday: form.birthday || null,
-            address: form.address || null,
-            contact: form.contact || null,
-            email: form.email,
-            status: form.status,
-            due_date: form.dueDate || null,
-            lmp_date: form.lmp_date || null,
-          })
-          .eq("id", editId);
-
-        if (error) throw error;
-        alert("Mother updated successfully!");
+  
+      const userId = authUser.user.id;
+  
+      // ✅ 2. Insert to 'users' table (custom)
+      const { error: insertUserError } = await supabase.from("users").insert([
+        {
+          id: userId,
+          email: formData.email,
+          full_name: `${formData.first_name} ${formData.last_name}`,
+          role: "mother",
+        },
+      ]);
+  
+      if (insertUserError) {
+        console.error("Insert to users table failed:", insertUserError);
+        setToastMsg("Failed to save user profile.");
+        return;
+      }
+  
+      // ✅ 3. Insert to 'mothers' table
+      const { error: motherError } = await supabase.from("mothers").insert([
+        {
+          user_id: userId,
+          first_name: formData.first_name,
+          middle_name: formData.middle_name,
+          last_name: formData.last_name,
+          birthdate: formData.birthdate,
+          age: formData.age,
+          civil_status: formData.civil_status,
+          address: formData.address,
+          contact_number: formData.contact_number,
+          husband_name: formData.husband_name,
+          education: formData.education,
+          religion: formData.religion,
+          lmp_date: formData.lmp_date,
+          edc: formData.edc,
+          gpa: formData.gpa,
+          aog: formData.aog,
+        },
+      ]);
+  
+      if (motherError) {
+        console.error("Insert to mothers table failed:", motherError);
+        setToastMsg("Failed to save mother info.");
+        return;
+      }
+  
+      // ✅ 4. Check if confirmation email is required
+      if (!authUser.session) {
+        setToastMsg(
+          "Registration successful! A confirmation link has been sent to the email. Please verify before logging in."
+        );
       } else {
-        const { error } = await supabase.from("mothers").insert([
-          {
-            auth_user_id: authUserId,
-            name: form.name,
-            birthday: form.birthday || null,
-            address: form.address || null,
-            contact: form.contact || null,
-            email: form.email,
-            status: form.status,
-            due_date: form.dueDate || null,
-            lmp_date: form.lmp_date || null,
-          },
-        ]);
-
-        if (error) throw error;
-        alert("Mother registered successfully!");
+        setToastMsg("Mother successfully registered and authenticated!");
       }
-
-      resetForm();
-      await fetchMothers();
+  
+      // ✅ Close modal and reset form
       setShowModal(false);
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Unexpected error occurred.");
-    }
-  };
-
-  // 🗑️ Delete mother
-  const deleteMother = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("mothers").delete().eq("id", deleteId);
-    if (error) {
-      console.error("Delete error:", error);
-      alert("Failed to delete record.");
-    } else {
-      alert("Mother deleted successfully!");
       fetchMothers();
+      setFormData({
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        birthdate: "",
+        age: 0,
+        civil_status: "",
+        address: "",
+        contact_number: "",
+        husband_name: "",
+        education: "",
+        religion: "",
+        lmp_date: "",
+        edc: "",
+        gpa: "",
+        aog: "",
+        email: "",
+        password: "",
+      });
+    } catch (err) {
+      console.error("Unexpected Error:", err);
+      setToastMsg("Unexpected error occurred.");
+    } finally {
+      setSaving(false);
     }
-    setShowDeleteAlert(false);
-    setDeleteId(null);
   };
+  
+  
+  const filteredMothers = mothers.filter((m) =>
+    `${m.first_name} ${m.middle_name || ""} ${m.last_name}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
-  // 🧼 Reset form
-  const resetForm = () => {
-    setForm({
-      name: "",
-      birthday: "",
-      address: "",
-      contact: "",
-      email: "",
-      password: "",
-      status: "Pregnant",
-      dueDate: "",
-      lmp_date: "",
-    });
-    setEditId(null);
-  };
-
-  // ✏️ Edit
-  const handleEdit = (mother: any) => {
-    setEditId(mother.id);
-    setForm({
-      name: mother.name,
-      birthday: mother.birthday || "",
-      address: mother.address || "",
-      contact: mother.contact || "",
-      email: mother.email,
-      password: "",
-      status: mother.status,
-      dueDate: mother.due_date || "",
-      lmp_date: mother.lmp_date || "",
-    });
-    setShowModal(true);
-  };
+  useEffect(() => {
+    if (showModal) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+  }, [showModal]);
 
   return (
     <MainLayout>
-      <div className="mothers-page">
-        <div className="header-container">
-          <h1 className="page-title">Mothers Management</h1>
-          <IonButton className="add-btn" onClick={() => { resetForm(); setShowModal(true); }}>
-            <IonIcon icon={addOutline} slot="start" />
+      <IonHeader>
+        <IonToolbar color="primary">
+          <IonTitle>Mother Records</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="page-content">
+        <div className="toolbar">
+          <IonSearchbar
+            placeholder="Search mother..."
+            value={search}
+            onIonChange={(e) => setSearch(e.detail.value!)}
+          />
+          <IonButton className="btn-register" onClick={() => setShowModal(true)}>
+            <IonIcon slot="start" icon={addCircleOutline} />
             Register Mother
           </IonButton>
         </div>
 
-        <div className="mothers-layout">
-          {mothers.length === 0 ? (
-            <p className="empty-text">No mothers registered yet.</p>
-          ) : (
-            <div className="table-wrapper">
-              <table className="mothers-table desktop-only">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Contact</th>
-                    <th>Status</th>
-                    <th>LMP Date</th>
-                    <th>Due Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mothers.map((m, i) => (
-                    <tr key={i}>
-                      <td>{m.name}</td>
-                      <td>{m.email}</td>
-                      <td>{m.contact || "N/A"}</td>
-                      <td>{m.status}</td>
-                      <td>{m.lmp_date ? new Date(m.lmp_date).toLocaleDateString() : "N/A"}</td>
-                      <td>{m.due_date ? new Date(m.due_date).toLocaleDateString() : "N/A"}</td>
-                      <td>
-                        <IonButton fill="clear" onClick={() => handleEdit(m)}>
-                          <IonIcon icon={createOutline} />
-                        </IonButton>
-                        <IonButton
-                          fill="clear"
-                          color="danger"
-                          onClick={() => {
-                            setDeleteId(m.id);
-                            setShowDeleteAlert(true);
-                          }}
-                        >
-                          <IonIcon icon={trashOutline} />
-                        </IonButton>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="centered">
+            <IonSpinner name="dots" />
+          </div>
+        ) : (
+          <div className="mother-list">
+            {filteredMothers.map((m) => (
+              <div key={m.mother_id} className="mother-card">
+                <h3>
+                  {m.first_name} {m.middle_name?.charAt(0)}. {m.last_name}
+                </h3>
+                <p>
+                  <strong>Age:</strong> {m.age} | <strong>Status:</strong>{" "}
+                  {m.civil_status}
+                </p>
+                <p>
+                  <strong>Address:</strong> {m.address}
+                </p>
+                <p>
+                  <strong>Contact:</strong> {m.contact_number}
+                </p>
+                <p>
+                  <strong>Email:</strong> {m.users?.email || ""}
+                </p>
+                <p>
+                  <strong>LMP:</strong> {m.lmp_date || ""}
+                </p>
+                <p>
+                  <strong>EDC:</strong> {m.edc || ""}
+                </p>
+                <p>
+                  <strong>GPA:</strong> {m.gpa || ""}
+                </p>
+                <p>
+                  <strong>AOG:</strong> {m.aog || ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Modal for add/edit */}
-        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)} className="mother-modal">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2>{editId ? "Edit Mother" : "Register Mother"}</h2>
-              <IonButton fill="clear" onClick={() => setShowModal(false)}>
-                <IonIcon icon={closeOutline} />
-              </IonButton>
-            </div>
+        <IonModal
+          isOpen={showModal}
+          onDidDismiss={() => setShowModal(false)}
+          backdropDismiss={false}
+        >
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <div className="modal-header">
+                <h2>Register Mother</h2>
+                <IonButton fill="clear" onClick={() => setShowModal(false)}>
+                  <IonIcon icon={closeOutline} />
+                </IonButton>
+              </div>
 
-            <div className="modal-body">
-              <IonList className="form-list">
-                <IonItem>
-                  <IonLabel position="stacked">Full Name</IonLabel>
-                  <IonInput name="name" value={form.name} onIonChange={handleInputChange} />
-                </IonItem>
+              <div className="modal-body">
+                <IonList>
+                  <section>
+                    <h3>Personal Information</h3>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">First Name</IonLabel>
+                        <IonInput
+                          value={formData.first_name}
+                          onIonChange={(e) =>
+                            handleChange("first_name", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">Middle Name</IonLabel>
+                        <IonInput
+                          value={formData.middle_name}
+                          onIonChange={(e) =>
+                            handleChange("middle_name", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                    </div>
 
-                <IonItem>
-                  <IonLabel position="stacked">Birthday</IonLabel>
-                  <IonInput type="date" name="birthday" value={form.birthday} onIonChange={handleInputChange} />
-                </IonItem>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">Last Name</IonLabel>
+                        <IonInput
+                          value={formData.last_name}
+                          onIonChange={(e) =>
+                            handleChange("last_name", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">Birthdate</IonLabel>
+                        <IonInput
+                          type="date"
+                          value={formData.birthdate}
+                          onIonChange={(e) =>
+                            handleChange("birthdate", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                    </div>
 
-                <IonItem>
-                  <IonLabel position="stacked">Address</IonLabel>
-                  <IonInput name="address" value={form.address} onIonChange={handleInputChange} />
-                </IonItem>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">Age</IonLabel>
+                        <IonInput type="number" value={formData.age} readonly />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">Civil Status</IonLabel>
+                        <IonInput
+                          value={formData.civil_status}
+                          onIonChange={(e) =>
+                            handleChange("civil_status", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                    </div>
 
-                <IonItem>
-                  <IonLabel position="stacked">Contact Number</IonLabel>
-                  <IonInput type="tel" name="contact" value={form.contact} onIonChange={handleInputChange} />
-                </IonItem>
+                    <IonItem>
+                      <IonLabel position="stacked">Husband's Name</IonLabel>
+                      <IonInput
+                        value={formData.husband_name}
+                        onIonChange={(e) =>
+                          handleChange("husband_name", e.detail.value!)
+                        }
+                      />
+                    </IonItem>
 
-                <IonItem>
-                  <IonLabel position="stacked">Email</IonLabel>
-                  <IonInput type="email" name="email" value={form.email} onIonChange={handleInputChange} />
-                </IonItem>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">Education</IonLabel>
+                        <IonInput
+                          value={formData.education}
+                          onIonChange={(e) =>
+                            handleChange("education", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">Religion</IonLabel>
+                        <IonInput
+                          value={formData.religion}
+                          onIonChange={(e) =>
+                            handleChange("religion", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                    </div>
+                  </section>
 
-                {!editId && (
-                  <IonItem>
-                    <IonLabel position="stacked">Password</IonLabel>
-                    <IonInput type="password" name="password" value={form.password} onIonChange={handleInputChange} />
-                  </IonItem>
-                )}
+                  <section>
+                    <h3>Pregnancy / LMP Info</h3>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">LMP Date</IonLabel>
+                        <IonInput
+                          type="date"
+                          value={formData.lmp_date}
+                          onIonChange={(e) =>
+                            handleChange("lmp_date", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">EDC</IonLabel>
+                        <IonInput type="date" value={formData.edc} readonly />
+                      </IonItem>
+                    </div>
 
-                {/* ✅ LMP first */}
-                <IonItem>
-                  <IonLabel position="stacked">Last Menstrual Period (LMP Date)</IonLabel>
-                  <IonInput type="date" name="lmp_date" value={form.lmp_date} onIonChange={handleInputChange} />
-                </IonItem>
+                    <div className="grid-2">
+                      <IonItem>
+                        <IonLabel position="stacked">GPA</IonLabel>
+                        <IonInput
+                          value={formData.gpa}
+                          onIonChange={(e) =>
+                            handleChange("gpa", e.detail.value!)
+                          }
+                        />
+                      </IonItem>
+                      <IonItem>
+                        <IonLabel position="stacked">AOG</IonLabel>
+                        <IonInput value={formData.aog} readonly />
+                      </IonItem>
+                    </div>
+                  </section>
 
-                <IonItem>
-                  <IonLabel position="stacked">Expected Due Date</IonLabel>
-                  <IonInput type="date" name="dueDate" value={form.dueDate} onIonChange={handleInputChange} />
-                </IonItem>
-              </IonList>
-            </div>
+                  <section>
+                    <h3>Contact & Account</h3>
+                    <IonItem>
+                      <IonLabel position="stacked">Address</IonLabel>
+                      <IonInput
+                        value={formData.address}
+                        onIonChange={(e) =>
+                          handleChange("address", e.detail.value!)
+                        }
+                      />
+                    </IonItem>
 
-            <div className="modal-footer">
-              <IonButton expand="block" onClick={saveMother}>
-                {editId ? "Update" : "Save"}
-              </IonButton>
+                    <IonItem>
+                      <IonLabel position="stacked">Contact Number</IonLabel>
+                      <IonInput
+                        type="tel"
+                        value={formData.contact_number}
+                        onIonChange={(e) =>
+                          handleChange("contact_number", e.detail.value!)
+                        }
+                      />
+                    </IonItem>
+
+                    <IonItem>
+                      <IonLabel position="stacked">Email</IonLabel>
+                      <IonInput
+                        type="email"
+                        value={formData.email}
+                        onIonChange={(e) =>
+                          handleChange("email", e.detail.value!)
+                        }
+                      />
+                    </IonItem>
+
+                    <IonItem>
+                      <IonLabel position="stacked">Password</IonLabel>
+                      <IonInput
+                        type="password"
+                        value={formData.password}
+                        onIonChange={(e) =>
+                          handleChange("password", e.detail.value!)
+                        }
+                      />
+                    </IonItem>
+                  </section>
+                </IonList>
+              </div>
+
+              <div className="modal-footer">
+                <IonButton
+                  className="btn-cancel"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </IonButton>
+                <IonButton className="btn-save" onClick={saveMother}>
+                  {saving ? <IonSpinner name="dots" /> : "Save"}
+                </IonButton>
+              </div>
             </div>
           </div>
         </IonModal>
 
-        {/* Delete Confirmation */}
-        <IonAlert
-          isOpen={showDeleteAlert}
-          header="Confirm Delete"
-          message="Are you sure you want to delete this mother?"
-          buttons={[
-            { text: "Cancel", role: "cancel", handler: () => setShowDeleteAlert(false) },
-            { text: "Delete", role: "confirm", handler: deleteMother },
-          ]}
+        <IonToast
+          isOpen={!!toastMsg}
+          message={toastMsg}
+          duration={2500}
+          onDidDismiss={() => setToastMsg("")}
         />
-      </div>
+      </IonContent>
+
+      <style>{`/* ---------- PAGE CONTENT ---------- */
+.page-content { 
+  padding: 16px; 
+  background: #f8f9fb; 
+}
+
+.toolbar { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 10px; 
+}
+
+.btn-register { 
+  background: #2bbf6d; 
+  border-radius: 12px; 
+  color: #fff; 
+  font-weight: 600; 
+}
+
+.mother-list { 
+  display: grid; 
+  gap: 12px; 
+}
+
+.mother-card {
+  background: #fff; 
+  padding: 14px 16px; 
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ---------- BODY SCROLL LOCK (disable main scroll) ---------- */
+body.modal-open {
+  overflow: hidden !important; /* ✅ disables background scroll completely */
+}
+
+
+/* ---------- MODAL CONTAINER ---------- */
+.modal-container {
+  background: #fff; 
+  width: 95%; 
+  max-width: 900px;
+  max-height: 90vh;
+  border-radius: 20px; 
+  display: flex; 
+  flex-direction: column;
+  overflow: hidden; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  animation: popIn 0.25s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.97); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- HEADER ---------- */
+.modal-header {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  background: #f3f5f7; 
+  padding: 20px 22px; 
+  border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+/* ---------- BODY ---------- */
+.modal-body { 
+  flex: 1; 
+  overflow-y: auto; 
+  padding: 20px 26px 120px; /* ✅ enough space for footer */
+  background: #fff;
+  scroll-behavior: smooth;
+}
+
+
+section { 
+  margin-bottom: 28px; 
+  background: #fafbfc;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+section h3 { 
+  font-size: 1.05rem; 
+  color: #2a2a2a; 
+  margin-bottom: 16px; 
+  font-weight: 600; 
+  border-left: 4px solid #2bbf6d;
+  padding-left: 8px;
+}
+
+.grid-2 { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 14px; 
+}
+
+/* ---------- FOOTER ---------- */
+.modal-footer {
+  position: absolute;       /* ✅ stays at bottom inside modal */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 26px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+}
+
+
+.btn-cancel { 
+  --background: #999; 
+  --color: #fff; 
+  border-radius: 10px; 
+  font-weight: 600; 
+  min-width: 90px;
+}
+
+.btn-save { 
+  --background: #2bbf6d; 
+  --color: white; 
+  border-radius: 10px; 
+  font-weight: 600; 
+  min-width: 90px;
+}
+
+ion-item {
+  --background: #fff;
+  --border-color: #ddd;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+ion-label {
+  font-weight: 500;
+  color: #444;
+}
+
+/* ---------- SCROLLBAR ---------- */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+  `}</style>
     </MainLayout>
   );
 };

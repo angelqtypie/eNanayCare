@@ -6,198 +6,209 @@ import {
   IonCardContent,
   IonIcon,
   IonSpinner,
+  IonButton,
+  IonRouterLink,
 } from "@ionic/react";
 import {
   peopleOutline,
   calendarOutline,
   alertCircleOutline,
+  checkmarkCircleOutline,
   eyeOutline,
-  trashOutline,
 } from "ionicons/icons";
-
+import { useHistory } from "react-router-dom";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
+import { motion } from "framer-motion";
 import "./DashboardBHW.css";
 
 const DashboardBHW: React.FC = () => {
-  const [motherCount, setMotherCount] = useState<number | null>(null);
+  const [motherCount, setMotherCount] = useState(0);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [highRiskCount, setHighRiskCount] = useState(0);
+  const [todayVisitCount, setTodayVisitCount] = useState(0);
   const [mothers, setMothers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const fullName = localStorage.getItem("full_name") || "BHW";
 
-  // Fetch mother count + list
-  useEffect(() => {
-    const fetchMothers = async () => {
-      const { count, data, error } = await supabase
-        .from("mothers")
-        .select("*", { count: "exact" });
-      if (error) console.error(error);
-      setMotherCount(count ?? 0);
-      setMothers(data ?? []);
-    };
-    fetchMothers();
-  }, []);
+  const fullName = localStorage.getItem("full_name") || "Barangay Health Worker";
+  const history = useHistory();
 
-  // Fetch appointments (upcoming only)
   useEffect(() => {
-    const fetchAppointments = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      const today = new Date().toISOString().split("T")[0];
+
       try {
-        const today = new Date().toISOString().split("T")[0];
-        const { data, error } = await supabase
+        // Mothers
+        const { count: mCount, data: mData } = await supabase
+          .from("mothers")
+          .select("*", { count: "exact" });
+        setMotherCount(mCount ?? 0);
+        setMothers(mData ?? []);
+
+        // Appointments
+        const { data: apptData } = await supabase
           .from("appointments")
-          .select(
-            `id, mother_id, date, time, location, notes, status, mothers(name)`
-          ) // join mother name
+          .select(`id, mother_id, date, time, location, notes, status, mothers(name)`)
           .gte("date", today)
-          .eq("status", "Scheduled")
           .order("date", { ascending: true });
-        if (error) throw error;
-        setAppointments(data ?? []);
+        setAppointments(apptData ?? []);
+
+        // High Risk
+        const { count: riskCount } = await supabase
+          .from("risk_monitoring")
+          .select("*", { count: "exact" })
+          .eq("risk_level", "High");
+        setHighRiskCount(riskCount ?? 0);
+
+        // Visits today — count from health_records
+        const { count: todayVisits } = await supabase
+          .from("health_records")
+          .select("*", { count: "exact" })
+          .eq("encounter_date", today);
+        setTodayVisitCount(todayVisits ?? 0);
       } catch (err) {
-        console.error("Error fetching appointments:", err);
+        console.error("Error fetching dashboard data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAppointments();
+
+    fetchData();
   }, []);
 
-  // Helper: find next appointment for a mother
   const getNextAppointment = (motherId: string) => {
+    const today = new Date().toISOString().split("T")[0];
     const next = appointments
-      .filter((a) => a.mother_id === motherId)
-      .sort(
-        (a, b) =>
-          new Date(a.date).getTime() - new Date(b.date).getTime()
-      )[0];
+      .filter((a) => a.mother_id === motherId && a.date >= today)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
     return next ? `${next.date} ${next.time || ""}` : "None";
   };
 
+  const goToPage = (path: string) => history.push(path);
+
   return (
     <MainLayout>
-      <div className="dashboard-header">
-        <h1>Good morning, {fullName}! 👋</h1>
-        <p>
-          Here’s an overview of maternal health activities in your barangay
-          today.
-        </p>
-      </div>
+      <motion.div
+        className="dashboard-container"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="dashboard-header">
+          <h1>Hi, {fullName}! 👋</h1>
+          <p>Here’s your updated maternal health overview.</p>
+        </div>
 
-      {/* Summary Cards */}
-      <div className="dashboard-grid">
-        {/* Registered Mothers */}
-        <IonCard className="stat-card success">
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={peopleOutline} /> Registered Mothers
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            {loading ? (
-              <IonSpinner name="dots" />
-            ) : (
-              <div className="stat-value">
-                <strong>{motherCount}</strong>
-              </div>
-            )}
-          </IonCardContent>
-        </IonCard>
+        {/* Stats Cards */}
+        <div className="dashboard-grid">
+          <IonCard className="stat-card success" onClick={() => goToPage("/mothers")}>
+            <IonCardHeader>
+              <IonCardTitle>
+                <IonIcon icon={peopleOutline} /> Registered Mothers
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              {loading ? <IonSpinner name="dots" /> : <strong>{motherCount}</strong>}
+            </IonCardContent>
+          </IonCard>
 
-        {/* Upcoming Appointments */}
-        <IonCard className="stat-card info">
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={calendarOutline} /> Upcoming Appointments
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <div className="stat-value">
+          <IonCard className="stat-card info" onClick={() => goToPage("/appointments")}>
+            <IonCardHeader>
+              <IonCardTitle>
+                <IonIcon icon={calendarOutline} /> Upcoming Appointments
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
               <strong>{appointments.length}</strong>
-              <span className="stat-change">
-                Next: {appointments[0]?.date || "None"}
-              </span>
-            </div>
-          </IonCardContent>
-        </IonCard>
+            </IonCardContent>
+          </IonCard>
 
-        {/* High-Risk Cases */}
-        <IonCard className="stat-card danger">
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={alertCircleOutline} /> High-Risk Cases
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <div className="stat-value">
-              <strong>3</strong>
-            </div>
-          </IonCardContent>
-        </IonCard>
-      </div>
+          <IonCard className="stat-card primary" onClick={() => goToPage("/visitrecords")}>
+            <IonCardHeader>
+              <IonCardTitle>
+                <IonIcon icon={checkmarkCircleOutline} /> Visits Today
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <strong>{todayVisitCount}</strong>
+            </IonCardContent>
+          </IonCard>
 
-      {/* Content Split */}
-      <div className="dashboard-content-split">
-        {/* LEFT TABLE */}
-        <div className="dashboard-left">
-          <h2>Recent Mothers Registry</h2>
-          <table className="dashboard-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Next Appointment</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mothers.length === 0 ? (
+          <IonCard className="stat-card danger" onClick={() => goToPage("/riskmonitoring")}>
+            <IonCardHeader>
+              <IonCardTitle>
+                <IonIcon icon={alertCircleOutline} /> High-Risk Cases
+              </IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <strong>{highRiskCount}</strong>
+            </IonCardContent>
+          </IonCard>
+        </div>
+
+        {/* Recent Mothers */}
+        <div className="dashboard-content-split">
+          <div className="dashboard-left">
+            <h2>Recent Mothers</h2>
+            <table className="dashboard-table">
+              <thead>
                 <tr>
-                  <td colSpan={3} className="empty-data">
-                    No mothers registered yet.
-                  </td>
+                  <th>Name</th>
+                  <th>Next Appointment</th>
+                  <th>Action</th>
                 </tr>
-              ) : (
-                mothers.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.name}</td>
-                    <td>{getNextAppointment(m.id)}</td>
-                    <td>
-                      <IonIcon
-                        icon={eyeOutline}
-                        className="action-icon view"
-                      />
-                      <IonIcon
-                        icon={trashOutline}
-                        className="action-icon delete"
-                      />
-                    </td>
+              </thead>
+              <tbody>
+                {mothers.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>No data</td>
                   </tr>
+                ) : (
+                  mothers.slice(0, 5).map((m) => (
+                    <tr key={m.id}>
+                      <td>{m.name}</td>
+                      <td>{getNextAppointment(m.id)}</td>
+                      <td>
+                        <IonIcon
+                          icon={eyeOutline}
+                          className="action-icon view"
+                          onClick={() => goToPage(`/mothers/${m.id}`)}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Appointments */}
+          <div className="dashboard-right">
+            <h2>Upcoming Appointments</h2>
+            <ul className="appointments-list">
+              {appointments.length === 0 ? (
+                <li>No upcoming appointments</li>
+              ) : (
+                appointments.slice(0, 6).map((a) => (
+                  <motion.li key={a.id} whileHover={{ scale: 1.02 }}>
+                    <strong>{a.mothers?.name || "Unknown"}</strong>
+                    <br />
+                    {a.date} {a.time && `• ${a.time}`}
+                    <br />
+                    <small>{a.location}</small>
+                  </motion.li>
                 ))
               )}
-            </tbody>
-          </table>
+            </ul>
+            <IonRouterLink routerLink="/appointments">
+              <IonButton expand="block" fill="clear">
+                View All →
+              </IonButton>
+            </IonRouterLink>
+          </div>
         </div>
-
-        {/* RIGHT LIST */}
-        <div className="dashboard-right">
-          <h2>Upcoming Appointments</h2>
-          <ul className="appointments-list">
-            {appointments.length === 0 ? (
-              <li className="empty-data">No upcoming appointments.</li>
-            ) : (
-              appointments.map((appt) => (
-                <li key={appt.id}>
-                  <strong>{appt.mothers?.name || "Unknown"}</strong>
-                  <br />
-                  {appt.date} {appt.time && `• ${appt.time}`}
-                  <br />
-                  <small>{appt.location}</small>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      </div>
+      </motion.div>
     </MainLayout>
   );
 };

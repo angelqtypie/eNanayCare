@@ -27,43 +27,64 @@ const Login: React.FC = () => {
     setLoading(true);
 
     if (!email || !password) {
-      setError("Please enter email and password.");
+      setError("Please enter both email and password.");
       setLoading(false);
       return;
     }
 
     try {
-      // ✅ Log in using Supabase Auth
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      // Step 1: Authenticate
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (loginError || !data.user) {
-        setError("Invalid email or password.");
+      if (authError) {
+        console.error("Auth error:", authError.message);
+        setError("Invalid login credentials.");
+        setLoading(false);
         return;
       }
 
-      const userId = data.user.id;
+      if (!authData.user) {
+        console.warn("Auth succeeded but no user returned");
+        setError("Unable to login.");
+        setLoading(false);
+        return;
+      }
 
-      // ✅ Fetch additional user data from 'users' table (role, name, etc.)
+      const userId = authData.user.id;
+      console.log("✅ Authenticated user ID:", userId);
+
+      // Step 2: Fetch profile from users table
       const { data: profile, error: profileError } = await supabase
         .from("users")
         .select("role, full_name")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !profile) {
-        setError("Could not fetch user profile.");
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        setError("Error fetching profile.");
+        setLoading(false);
         return;
       }
 
-      // ✅ Save session data locally (optional)
+      if (!profile) {
+        console.warn("No profile found for user ID:", userId);
+        setError("Profile not found.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Profile:", profile);
+
+      // Step 3: Store info
       localStorage.setItem("userId", userId);
       localStorage.setItem("role", profile.role);
       localStorage.setItem("fullName", profile.full_name);
 
-      // ✅ Redirect based on role
+      // Step 4: Redirect based on role
       switch (profile.role) {
         case "admin":
           history.push("/dashboardadmin");
@@ -75,7 +96,8 @@ const Login: React.FC = () => {
           history.push("/dashboardmother");
           break;
         default:
-          setError("This account has no valid role.");
+          setError("Invalid user role.");
+          break;
       }
 
     } catch (err) {
@@ -89,7 +111,7 @@ const Login: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
+        <IonToolbar color="primary">
           <IonTitle>Login</IonTitle>
         </IonToolbar>
       </IonHeader>
@@ -116,12 +138,17 @@ const Login: React.FC = () => {
         </IonItem>
 
         {error && (
-          <IonText color="danger" className="ion-padding-top">
-            <p>{error}</p>
+          <IonText color="danger">
+            <p className="ion-padding-start ion-padding-top">{error}</p>
           </IonText>
         )}
 
-        <IonButton expand="block" onClick={handleLogin} disabled={loading}>
+        <IonButton
+          expand="block"
+          onClick={handleLogin}
+          disabled={loading}
+          className="ion-margin-top"
+        >
           Login
         </IonButton>
 

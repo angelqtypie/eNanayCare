@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import AdminMainLayout from "../layouts/AdminLayout";
+import React, { useState, useEffect } from "react";
 import { IonIcon } from "@ionic/react";
+import { supabase } from "../utils/supabaseClient";
+import AdminMainLayout from "../layouts/AdminLayout";
 import {
   addCircleOutline,
   createOutline,
@@ -9,41 +10,27 @@ import {
   imageOutline,
   eyeOutline,
   closeOutline,
-  linkOutline,
-  alertCircleOutline,
-  checkmarkCircleOutline,
-  cloudDownloadOutline,
-  sparklesOutline,
 } from "ionicons/icons";
-import "../styles/AdminMaterials.css";
 
 interface Material {
-  id: number;
+  id?: string;
   title: string;
   category: string;
   content: string;
-  image?: string;
-  source?: string;
+  image_url?: string;
+  created_at?: string;
 }
 
 const AdminEducationalMaterials: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [newMaterial, setNewMaterial] = useState<Material>({
-    id: 0,
     title: "",
     category: "",
     content: "",
-    image: "",
-    source: "",
+    image_url: "",
   });
-
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
-    null
-  );
-
-  const [importUrl, setImportUrl] = useState("");
-  const [loadingImport, setLoadingImport] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
   const categories = [
     "Nutrition",
@@ -57,100 +44,145 @@ const AdminEducationalMaterials: React.FC = () => {
     "Others",
   ];
 
-  // 🔍 Simulate fetching & summarizing a DOH/WHO article
-  const handleImport = async () => {
-    if (!importUrl) return alert("Please paste a valid link first.");
-    setLoadingImport(true);
+  const fetchMaterials = async () => {
+    const { data, error } = await supabase
+      .from("educational_materials")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    // Simulated AI summary fetch
-    await new Promise((res) => setTimeout(res, 1500)); // pretend loading
-    const mockSummaries: Record<string, Material> = {
-      "doh.gov.ph": {
-        id: Date.now(),
-        title: "Safe Pregnancy: DOH Maternal Care Tips",
-        category: "Prenatal Care",
-        content:
-          "The Department of Health (DOH) advises all expectant mothers to visit health centers at least 4 times during pregnancy. Maintain a healthy diet rich in vegetables, and avoid smoking or alcohol. Early prenatal visits can detect risks early.",
-        image: "https://cdn-icons-png.flaticon.com/512/4149/4149946.png",
-        source: importUrl,
-      },
-      "who.int": {
-        id: Date.now(),
-        title: "WHO: Maternal Nutrition for a Healthy Baby",
-        category: "Nutrition",
-        content:
-          "The World Health Organization emphasizes the importance of folate, iron, and clean drinking water during pregnancy. Proper nutrition supports healthy baby growth and prevents complications like anemia.",
-        image: "https://cdn-icons-png.flaticon.com/512/2966/2966486.png",
-        source: importUrl,
-      },
-      "unicef.org": {
-        id: Date.now(),
-        title: "UNICEF: Care for Mothers and Newborns",
-        category: "Postpartum Care",
-        content:
-          "UNICEF encourages postnatal check-ups within 24 hours after birth. Mothers should rest, breastfeed exclusively, and seek care if they experience heavy bleeding or infection symptoms.",
-        image: "https://cdn-icons-png.flaticon.com/512/3063/3063858.png",
-        source: importUrl,
-      },
-    };
-
-    const matched = Object.keys(mockSummaries).find((key) =>
-      importUrl.includes(key)
-    );
-
-    const fetchedMaterial =
-      mockSummaries[matched || "doh.gov.ph"] ||
-      mockSummaries["doh.gov.ph"];
-
-    setMaterials([...materials, fetchedMaterial]);
-    setImportUrl("");
-    setLoadingImport(false);
+    if (error) {
+      console.error("Error loading materials:", error);
+    } else {
+      setMaterials(data || []);
+    }
   };
 
-  // Add new material manually
-  const handleAdd = () => {
-    if (!newMaterial.title || !newMaterial.category || !newMaterial.content)
-      return alert("Please complete all fields.");
-    const newItem = { ...newMaterial, id: Date.now() };
-    setMaterials([...materials, newItem]);
-    setNewMaterial({
-      id: 0,
-      title: "",
-      category: "",
-      content: "",
-      image: "",
-      source: "",
-    });
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const handleAdd = async () => {
+    if (!newMaterial.title || !newMaterial.category || !newMaterial.content) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    // Validate category against allowed list
+    if (!categories.includes(newMaterial.category)) {
+      alert("Please select a valid category.");
+      return;
+    }
+
+    const fallbackImages = [
+      "https://images.unsplash.com/photo-1606851092832-622a8cbfe8a4?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1576765607924-3f7b09f6c1a2?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1573497019627-3b9d6c6a1210?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1615474025703-4fa0c49eae50?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1620741991156-3a216e1bdb2a?auto=format&fit=crop&w=800&q=80",
+    ];
+
+    const autoImage =
+      newMaterial.image_url && newMaterial.image_url.trim() !== ""
+        ? newMaterial.image_url
+        : fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
+
+    const { data, error } = await supabase
+      .from("educational_materials")
+      .insert([
+        {
+          title: newMaterial.title,
+          category: newMaterial.category,
+          content: newMaterial.content,
+          image_url: autoImage,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error("Error adding material:", error);
+      alert("Failed to add material.");
+    } else {
+      setMaterials([...(data || []), ...materials]);
+      setNewMaterial({
+        title: "",
+        category: "",
+        content: "",
+        image_url: "",
+      });
+      alert("Material added successfully!");
+    }
   };
 
-  // Edit material
   const handleEdit = (item: Material) => {
     setIsEditing(true);
     setNewMaterial(item);
   };
 
-  const handleUpdate = () => {
-    setMaterials(
-      materials.map((m) => (m.id === newMaterial.id ? newMaterial : m))
-    );
-    setNewMaterial({
-      id: 0,
-      title: "",
-      category: "",
-      content: "",
-      image: "",
-      source: "",
-    });
-    setIsEditing(false);
+  const handleUpdate = async () => {
+    if (!newMaterial.id) {
+      alert("Invalid material selected for update.");
+      return;
+    }
+
+    if (!newMaterial.title || !newMaterial.category || !newMaterial.content) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    if (!categories.includes(newMaterial.category)) {
+      alert("Please select a valid category.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("educational_materials")
+      .update({
+        title: newMaterial.title,
+        category: newMaterial.category,
+        content: newMaterial.content,
+        image_url: newMaterial.image_url,
+      })
+      .eq("id", newMaterial.id);
+
+    if (error) {
+      console.error("Error updating material:", error);
+      alert("Failed to update.");
+    } else {
+      alert("Material updated!");
+      setIsEditing(false);
+      setNewMaterial({
+        title: "",
+        category: "",
+        content: "",
+        image_url: "",
+      });
+      fetchMaterials();
+    }
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("Delete this material?"))
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this material?")) return;
+
+    const { error } = await supabase
+      .from("educational_materials")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting material:", error);
+      alert("Failed to delete.");
+    } else {
+      alert("Deleted successfully.");
       setMaterials(materials.filter((m) => m.id !== id));
+    }
   };
 
-  const handleView = (material: Material) => setSelectedMaterial(material);
-  const closeView = () => setSelectedMaterial(null);
+  const handleView = (material: Material) => {
+    setSelectedMaterial(material);
+  };
+  const closeView = () => {
+    setSelectedMaterial(null);
+  };
 
   return (
     <AdminMainLayout>
@@ -159,145 +191,77 @@ const AdminEducationalMaterials: React.FC = () => {
           <IonIcon icon={bookOutline} /> Maternal Health Educational Materials
         </h1>
         <p>
-          Admins can add or import verified health learning content for mothers
-          based on official sources like DOH, WHO, or UNICEF Philippines.
+          Manage and upload verified educational resources for maternal and child
+          health awareness.
         </p>
 
-
-        {/* 🌐 Trusted Health Sites */}
-        <div className="sources-box">
-          <h3>
-            <IonIcon icon={linkOutline} /> Official Maternal Health Sites
-          </h3>
-          <ul>
-            <li>
-              <a href="https://doh.gov.ph" target="_blank">
-                Department of Health (DOH)
-              </a>
-            </li>
-            <li>
-              <a href="https://www.who.int/philippines" target="_blank">
-                World Health Organization (WHO) Philippines
-              </a>
-            </li>
-            <li>
-              <a href="https://www.unicef.org/philippines" target="_blank">
-                UNICEF Philippines
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        {/* 🌍 Import Official Article */}
-        <div className="import-box">
-          <h3>
-            <IonIcon icon={cloudDownloadOutline} /> Auto Import from DOH / WHO /
-            UNICEF
-          </h3>
-          <p>Paste a link to automatically fetch & summarize maternal info.</p>
-          <div className="import-input">
-            <input
-              type="text"
-              placeholder="Paste official article link..."
-              value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
-            />
-            <button className="btn import" onClick={handleImport} disabled={loadingImport}>
-              <IonIcon icon={sparklesOutline} />{" "}
-              {loadingImport ? "Fetching..." : "Auto Import"}
-            </button>
-          </div>
-        </div>
-
-        {/* 🖋 Add / Edit Material */}
+        {/* Form Section */}
         <div className="materials-form">
           <input
             type="text"
-            placeholder="Material Title"
+            placeholder="Title"
             value={newMaterial.title}
-            onChange={(e) =>
-              setNewMaterial({ ...newMaterial, title: e.target.value })
-            }
+            onChange={(e) => setNewMaterial({ ...newMaterial, title: e.target.value })}
           />
-
           <select
             value={newMaterial.category}
-            onChange={(e) =>
-              setNewMaterial({ ...newMaterial, category: e.target.value })
-            }
+            onChange={(e) => setNewMaterial({ ...newMaterial, category: e.target.value })}
           >
             <option value="">Select Category</option>
             {categories.map((cat) => (
-              <option key={cat}>{cat}</option>
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
             ))}
           </select>
-
           <textarea
-            placeholder="Educational content summary"
+            placeholder="Content / Summary"
             value={newMaterial.content}
-            onChange={(e) =>
-              setNewMaterial({ ...newMaterial, content: e.target.value })
-            }
-          ></textarea>
-
+            onChange={(e) => setNewMaterial({ ...newMaterial, content: e.target.value })}
+          />
           <input
             type="text"
             placeholder="Image URL (optional)"
-            value={newMaterial.image}
-            onChange={(e) =>
-              setNewMaterial({ ...newMaterial, image: e.target.value })
-            }
-          />
-          <input
-            type="text"
-            placeholder="Source link (optional)"
-            value={newMaterial.source}
-            onChange={(e) =>
-              setNewMaterial({ ...newMaterial, source: e.target.value })
-            }
+            value={newMaterial.image_url}
+            onChange={(e) => setNewMaterial({ ...newMaterial, image_url: e.target.value })}
           />
 
           {isEditing ? (
-            <button className="btn update" onClick={handleUpdate}>
-              <IonIcon icon={createOutline} /> Update Material
+            <button className="update" onClick={handleUpdate}>
+              <IonIcon icon={createOutline} /> Update
             </button>
           ) : (
-            <button className="btn add" onClick={handleAdd}>
-              <IonIcon icon={addCircleOutline} /> Add Material
+            <button className="add" onClick={handleAdd}>
+              <IonIcon icon={addCircleOutline} /> Add
             </button>
           )}
         </div>
 
-        {/* 🧾 Display Materials */}
+        {/* Materials Grid */}
         <div className="materials-grid">
           {materials.length === 0 ? (
-            <p className="empty">No materials yet. Add or import one!</p>
+            <p className="empty">No materials yet. Add one!</p>
           ) : (
             materials.map((m) => (
               <div key={m.id} className="material-card">
-                {m.image ? (
-                  <img src={m.image} alt={m.title} className="material-image" />
+                {m.image_url ? (
+                  <img src={m.image_url} alt={m.title} />
                 ) : (
-                  <IonIcon icon={imageOutline} className="material-placeholder" />
+                  <IonIcon icon={imageOutline} className="placeholder" />
                 )}
-                <div className="material-details">
+                <div className="info">
                   <h3>{m.title}</h3>
-                  <span className="category">{m.category}</span>
+                  <span className="cat">{m.category}</span>
                   <p>{m.content.substring(0, 100)}...</p>
-                  {m.source && (
-                    <a href={m.source} target="_blank" className="source-link">
-                      <IonIcon icon={linkOutline} /> Source
-                    </a>
-                  )}
                 </div>
-                <div className="material-actions">
-                  <button className="view" onClick={() => handleView(m)}>
+                <div className="actions">
+                  <button onClick={() => handleView(m)}>
                     <IonIcon icon={eyeOutline} />
                   </button>
-                  <button className="edit" onClick={() => handleEdit(m)}>
+                  <button onClick={() => handleEdit(m)}>
                     <IonIcon icon={createOutline} />
                   </button>
-                  <button className="delete" onClick={() => handleDelete(m.id)}>
+                  <button onClick={() => handleDelete(m.id!)}>
                     <IonIcon icon={trashOutline} />
                   </button>
                 </div>
@@ -307,33 +271,174 @@ const AdminEducationalMaterials: React.FC = () => {
         </div>
       </div>
 
-      {/* 📖 View Modal */}
+      {/* Modal View */}
       {selectedMaterial && (
-        <div className="view-modal">
-          <div className="view-content">
-            <button className="close-btn" onClick={closeView}>
+        <div className="modal">
+          <div className="modal-content">
+            <button className="close" onClick={closeView}>
               <IonIcon icon={closeOutline} />
             </button>
             <h2>{selectedMaterial.title}</h2>
-            {selectedMaterial.image && (
-              <img
-                src={selectedMaterial.image}
-                alt={selectedMaterial.title}
-                className="modal-image"
-              />
+            {selectedMaterial.image_url && (
+              <img src={selectedMaterial.image_url} alt={selectedMaterial.title} />
             )}
             <p>{selectedMaterial.content}</p>
-            {selectedMaterial.source && (
-              <p className="source">
-                <IonIcon icon={linkOutline} />{" "}
-                <a href={selectedMaterial.source} target="_blank">
-                  {selectedMaterial.source}
-                </a>
-              </p>
-            )}
           </div>
         </div>
       )}
+
+      <style>{`
+        .materials-container {
+          padding: 30px;
+          background: linear-gradient(180deg, #f8e9ef 0%, #fdf5f8 100%);
+          min-height: 100vh;
+        }
+
+        h1 {
+          color: #6d214f;
+          font-weight: 800;
+          margin-bottom: 6px;
+        }
+
+        .materials-form {
+          background: #fff;
+          border: 1px solid #f4d1e0;
+          border-radius: 18px;
+          padding: 20px;
+          margin-bottom: 28px;
+          box-shadow: 0 2px 8px rgba(217, 82, 140, 0.15);
+        }
+
+        input, select, textarea {
+          width: 100%;
+          padding: 9px 12px;
+          margin-bottom: 12px;
+          border: 1px solid #e3b7cb;
+          border-radius: 12px;
+          font-size: 0.95rem;
+        }
+
+        button {
+          background: linear-gradient(135deg, #d6639c, #f197ba);
+          color: #fff;
+          border: none;
+          padding: 10px 18px;
+          border-radius: 12px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: transform 0.2s ease, background 0.3s ease;
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+          background: linear-gradient(135deg, #a43c6b, #d45b94);
+        }
+
+        .materials-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
+        }
+
+        .material-card {
+          background: #fff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+          position: relative;
+        }
+
+        .material-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 18px rgba(167, 61, 104, 0.2);
+        }
+
+        .material-card img {
+          width: 100%;
+          height: 140px;
+          object-fit: cover;
+        }
+
+        .info {
+          padding: 14px;
+        }
+
+        .info h3 {
+          color: #6b214e;
+          font-weight: 700;
+        }
+
+        .cat {
+          color: #b05d8b;
+          font-weight: 600;
+          font-size: 0.85rem;
+        }
+
+        .actions {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          display: flex;
+          gap: 8px;
+        }
+
+        .actions button {
+          background: #fff;
+          color: #a24a75;
+          border-radius: 8px;
+          padding: 5px 7px;
+        }
+
+        .modal {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          overflow-y: auto;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: #fff;
+          border-radius: 18px;
+          padding: 24px 28px;
+          max-width: 600px;
+          width: 90%;
+          position: relative;
+        }
+
+        .modal-content img {
+          width: 100%;
+          max-height: 260px;
+          object-fit: contain;
+          border-radius: 12px;
+          margin-bottom: 16px;
+        }
+
+        .close {
+          position: absolute;
+          top: 10px;
+          right: 14px;
+          background: #f8d7e0;
+          color: #8a2957;
+          border: none;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          font-size: 1.2rem;
+          cursor: pointer;
+        }
+
+        .empty {
+          text-align: center;
+          color: #999;
+          font-style: italic;
+        }
+      `}</style>
     </AdminMainLayout>
   );
 };

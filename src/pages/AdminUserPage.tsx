@@ -22,6 +22,7 @@ import {
 import { logOutOutline, addOutline, trashOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
+import AdminMainLayout from "../layouts/AdminLayout";
 
 interface User {
   id: string;
@@ -130,8 +131,8 @@ const ManageUsers: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
+    <AdminMainLayout>
+            <IonHeader>
         <IonToolbar color="primary">
           <IonTitle>Manage Users</IonTitle>
           <IonButton slot="end" color="light" fill="clear" onClick={handleLogout}>
@@ -254,7 +255,7 @@ const ManageUsers: React.FC = () => {
           </IonContent>
         </IonModal>
       </IonContent>
-    </IonPage>
+      </AdminMainLayout>
   );
 };
 

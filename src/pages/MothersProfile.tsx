@@ -31,6 +31,7 @@ const MothersProfile: React.FC = () => {
   );
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const userId = localStorage.getItem("userId");
   const fullName = localStorage.getItem("fullName") || "Nanay";
@@ -45,28 +46,39 @@ const MothersProfile: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
+      if (!userId) return;
+
+      // Fetch mother_id using user_id (not auth_user_id)
       const { data: mother, error: motherError } = await supabase
         .from("mothers")
-        .select("id")
-        .eq("auth_user_id", userId)
+        .select("mother_id")
+        .eq("user_id", userId)
         .single();
 
-      if (motherError || !mother) return;
-      const motherId = mother.id;
+      if (motherError || !mother) {
+        setError("Mother record not found");
+        return;
+      }
+      const motherId = mother.mother_id;
 
+      // Fetch nickname and profile image using mother_id
       const { data, error } = await supabase
         .from("mother_settings")
         .select("nickname, profile_image_url")
         .eq("mother_id", motherId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") return;
+      if (error) {
+        console.error(error);
+        return;
+      }
       if (data) {
         setNickname(data.nickname || "");
         setProfileImage(data.profile_image_url || "");
       }
     } catch (err) {
       console.error("fetchProfile error:", err);
+      setError("Failed to fetch profile.");
     }
   };
 
@@ -80,6 +92,8 @@ const MothersProfile: React.FC = () => {
       .upload(filePath, imageFile, { upsert: true });
 
     if (uploadError) {
+      console.error("Upload Error:", uploadError);
+      setError("Image upload failed.");
       setToastMsg("Image upload failed.");
       return null;
     }
@@ -94,44 +108,67 @@ const MothersProfile: React.FC = () => {
   const getMotherId = async (userId: string) => {
     const { data, error } = await supabase
       .from("mothers")
-      .select("id")
-      .eq("auth_user_id", userId)
+      .select("mother_id")
+      .eq("user_id", userId)
       .single();
     if (error) return null;
-    return data?.id || null;
+    return data?.mother_id || null;
   };
 
   const saveProfile = async () => {
+    setLoading(true);
+    setError(null);
+    setToastMsg(null);
+
     try {
       if (!userId) {
+        setError("Not logged in.");
         setToastMsg("Not logged in.");
+        setLoading(false);
         return;
       }
       const motherId = await getMotherId(userId);
       if (!motherId) {
+        setError("Mother record not found.");
         setToastMsg("Mother record not found.");
+        setLoading(false);
         return;
       }
       const imageUrl = await uploadImage();
+
       const updates = {
         mother_id: motherId,
         nickname: nickname || null,
         profile_image_url: imageUrl || null,
       };
+
       const { error } = await supabase.from("mother_settings").upsert(updates);
       if (error) {
+        console.error("Upsert Error:", error);
+        setError("Failed to update profile.");
         setToastMsg("Failed to update profile.");
+        setLoading(false);
         return;
       }
+
       localStorage.setItem("darkMode", darkMode.toString());
       localStorage.setItem("notifications", notifications.toString());
       setToastMsg("Profile saved!");
     } catch (err) {
+      console.error(err);
+      setError("Failed to save profile.");
       setToastMsg("Failed to save profile.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     localStorage.clear();
     history.push("/landingpage");
   };
@@ -142,8 +179,8 @@ const MothersProfile: React.FC = () => {
         <IonToolbar
           style={{
             "--background":
-            " linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
-          "--color": "#6a3a55",
+              "linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
+            "--color": "#6a3a55",
           }}
         >
           <IonTitle
@@ -174,10 +211,15 @@ const MothersProfile: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                 />
               ) : (
-                <IonIcon icon={personCircleOutline} className="profile-placeholder" />
+                <IonIcon
+                  icon={personCircleOutline}
+                  className="profile-placeholder"
+                />
               )}
               <p className="mother-name">{fullName}</p>
-              <p className="nickname">{nickname ? `"${nickname}"` : "No nickname set"}</p>
+              <p className="nickname">
+                {nickname ? `"${nickname}"` : "No nickname set"}
+              </p>
             </div>
 
             <IonItem lines="none" className="input-box">
@@ -198,27 +240,14 @@ const MothersProfile: React.FC = () => {
                 className="file-input"
               />
             </IonItem>
-
-            <div className="toggles">
-              <IonItem lines="none">
-                <IonLabel>Notifications</IonLabel>
-                <IonToggle
-                  checked={notifications}
-                  onIonChange={(e) => setNotifications(e.detail.checked)}
-                />
-              </IonItem>
-              <IonItem lines="none">
-                <IonLabel>Dark Mode</IonLabel>
-                <IonToggle
-                  checked={darkMode}
-                  onIonChange={(e) => setDarkMode(e.detail.checked)}
-                />
-              </IonItem>
-            </div>
-
             <div className="button-group">
-              <IonButton expand="block" color="success" onClick={saveProfile}>
-                AYAW HILABTI WAPA NA FIX
+              <IonButton
+                expand="block"
+                color="success"
+                onClick={saveProfile}
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save Profile"}
               </IonButton>
               <IonButton
                 expand="block"
@@ -237,8 +266,11 @@ const MothersProfile: React.FC = () => {
             isOpen={!!toastMsg}
             message={toastMsg ?? ""}
             duration={2000}
-            color="success"
-            onDidDismiss={() => setToastMsg(null)}
+            color={error ? "danger" : "success"}
+            onDidDismiss={() => {
+              setToastMsg(null);
+              setError(null);
+            }}
           />
         </motion.div>
 

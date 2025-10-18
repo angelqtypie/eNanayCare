@@ -25,6 +25,10 @@ import AdminMaterials from './pages/AdminMaterials';
 import motherappoinments from './pages/motherappoinments';
 import motherhealthrecords from './pages/motherhealthrecords';
 import mothernotifications from './pages/mothernotifications';
+import BhwProfile from "./pages/bhwprofile";
+import VisitRecords from "./pages/VisitRecords";
+import PrenatalRecords from "./pages/PrenatalRecords";
+import AdminChatbotQA from "./pages/AdminChatbotQA";
 
 
 /* Ionic Core CSS */
@@ -42,6 +46,8 @@ import "@ionic/react/css/display.css";
 /* Theme */
 import "@ionic/react/css/palettes/dark.system.css";
 import "./theme/variables.css";
+
+
 
 
 
@@ -63,7 +69,11 @@ const App: React.FC = () => (
         <Route exact path="/mothernotifications" component={mothernotifications} />
         <Route exact path="/educationalmaterials" component={EducationalMaterials} />
         <Route exact path="/motherappoinments" component={motherappoinments} />
-        <Route exact path="/healthrecords" component={HealthRecords} />        
+        <Route exact path="/healthrecords" component={HealthRecords} />   
+        <Route exact path="/visitrecords" component={VisitRecords} />  
+        <Route exact path="/bhwprofile" component={BhwProfile} />
+        <Route exact path="/adminchatbotqa" component={AdminChatbotQA} />   
+        <Route exact path="/prenatal-records" component={PrenatalRecords} />  
         <Route exact path="/mothersProfile" component={MothersProfile} />
         <Route exact path="/adminmaterials" component={AdminMaterials} />
         <Route exact path="/mothersCalendar" component={MothersCalendar} />      

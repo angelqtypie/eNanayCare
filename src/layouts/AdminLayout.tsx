@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
   IonPage,
@@ -7,41 +7,66 @@ import {
   IonContent,
   IonButton,
   IonIcon,
+  IonLabel,
 } from "@ionic/react";
 import {
   menuOutline,
   gridOutline,
   libraryOutline,
-  documentTextOutline,
-  peopleOutline,
   alertCircleOutline,
+  chatbubblesOutline,
+  peopleOutline,
   logOutOutline,
   personCircleOutline,
 } from "ionicons/icons";
+import { supabase } from "../utils/supabaseClient";
 import logo from "../assets/logo.svg";
-import "./MainLayout.css";
 
 const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const fullName = localStorage.getItem("full_name") || "Admin";
+  const [role, setRole] = useState<string>("admin");
+  const [fullName, setFullName] = useState<string>("Admin");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    const fetchUser = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name, role, profile_image")
+        .eq("id", userId)
+        .single();
+
+      if (!error && data) {
+        setFullName(data.full_name || "Admin");
+        setRole(data.role || "admin");
+        setProfileImage(data.profile_image || null);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const goTo = (path: string) => {
     setSidebarOpen(false);
     history.push(path);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.clear();
     setSidebarOpen(false);
     history.push("/landingpage");
   };
 
   return (
-    <IonPage className="layout-page">
+    <IonPage className="admin-layout">
       {/* HEADER */}
-      <IonHeader className="layout-header">
-        <IonToolbar className="toolbar no-padding">
+      <IonHeader>
+        <IonToolbar>
           <div className="header-container">
             <div className="header-left">
               <button
@@ -51,21 +76,24 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <IonIcon icon={menuOutline} />
               </button>
 
-              <img
-                src={logo}
-                alt="eNanayCare"
-                className="dashboard-logo"
-                onClick={() => goTo("/dashboardadmin")}
-              />
-              <span className="app-title">eNanayCare Admin</span>
+              <div className="logo-section" onClick={() => goTo("/dashboardadmin")}>
+                <img src={logo} alt="eNanayCare" className="logo" />
+                <span className="app-title">eNanayCare</span>
+              </div>
             </div>
 
             <div className="header-right desktop-only">
               <div className="user-profile">
-                <IonIcon icon={personCircleOutline} className="profile-icon" />
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="profile-photo" />
+                ) : (
+                  <IonIcon icon={personCircleOutline} className="profile-icon" />
+                )}
                 <div>
                   <p className="profile-name">{fullName}</p>
-                  <p className="profile-role">System Administrator</p>
+                  <p className="profile-role">
+                    {role === "bhw" ? "Barangay Health Worker" : "System Administrator"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -74,31 +102,46 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       </IonHeader>
 
       {/* CONTENT */}
-      <IonContent className="layout-content" fullscreen>
-        <div className="dashboard-layout">
+      <IonContent fullscreen>
+        <div className="layout-wrapper">
           {/* SIDEBAR */}
           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
             <nav className="sidebar-nav">
               <button className="side-item" onClick={() => goTo("/dashboardadmin")}>
-                <IonIcon icon={gridOutline} /> Dashboard
-              </button>
-              <button className="side-item" onClick={() => goTo("/adminmaterials")}>
-                <IonIcon icon={libraryOutline} /> Educational Materials
-              </button>
-              <button className="side-item" onClick={() => goTo("/adminreports")}>
-                <IonIcon icon={documentTextOutline} /> Reports
-              </button>
-              <button className="side-item" onClick={() => goTo("/adminuserpage")}>
-                <IonIcon icon={peopleOutline} /> User Management
-              </button>
-              <button className="side-item" onClick={() => goTo("/adminriskoverview")}>
-                <IonIcon icon={alertCircleOutline} /> Risk Overview
+                <IonIcon icon={gridOutline} />
+                <IonLabel>Dashboard</IonLabel>
               </button>
 
+              <button className="side-item" onClick={() => goTo("/adminmaterials")}>
+                <IonIcon icon={libraryOutline} />
+                <IonLabel>Educational Materials</IonLabel>
+              </button>
+
+              {/* Shared Risk Reports */}
+              <button className="side-item" onClick={() => goTo("/adminrisks")}>
+                <IonIcon icon={alertCircleOutline} />
+                <IonLabel>Risk Reports</IonLabel>
+              </button>
+
+              {/* Admin-only sections */}
+              {role === "admin" && (
+                <>
+                  <button className="side-item" onClick={() => goTo("/adminchatbotqa")}>
+                    <IonIcon icon={chatbubblesOutline} />
+                    <IonLabel>Chatbot Q&A</IonLabel>
+                  </button>
+
+                  <button className="side-item" onClick={() => goTo("/adminuserpage")}>
+                    <IonIcon icon={peopleOutline} />
+                    <IonLabel>User Management</IonLabel>
+                  </button>
+                </>
+              )}
+
               <IonButton
-                className="logout-btn"
-                color="medium"
                 fill="clear"
+                color="medium"
+                className="logout-btn"
                 onClick={handleLogout}
               >
                 <IonIcon icon={logOutOutline} slot="start" />
@@ -107,9 +150,120 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </nav>
           </aside>
 
-          <main className="main-dashboard">{children}</main>
+          {/* MAIN */}
+          <main className="main-content">{children}</main>
         </div>
       </IonContent>
+
+      {/* INLINE STYLE */}
+      <style>{`
+        .admin-layout {
+          --ion-background-color: #fff7fa;
+          font-family: 'Poppins', sans-serif;
+        }
+        .header-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 16px;
+        }
+        .logo-section {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        }
+        .logo {
+          width: 38px;
+          height: 38px;
+          margin-right: 8px;
+        }
+        .app-title {
+          font-weight: 600;
+          font-size: 1.1rem;
+          color: #d5649f;
+        }
+        .user-profile {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .profile-photo {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+        .profile-name {
+          margin: 0;
+          font-weight: 600;
+          color: #6a3a55;
+        }
+        .profile-role {
+          font-size: 0.8rem;
+          color: #999;
+          margin: 0;
+        }
+        .layout-wrapper {
+          display: flex;
+        }
+        .sidebar {
+          width: 240px;
+          background: #fff;
+          border-right: 1px solid #f2d9e5;
+          padding: 20px 10px;
+          transition: transform 0.3s ease-in-out;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .side-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          background: transparent;
+          border: none;
+          padding: 10px 15px;
+          font-size: 15px;
+          color: #444;
+          border-radius: 10px;
+          transition: all 0.2s ease;
+        }
+        .side-item:hover {
+          background: #f8e5f0;
+          color: #d5649f;
+        }
+        .logout-btn {
+          margin-top: 20px;
+          width: 100%;
+        }
+        .main-content {
+          flex: 1;
+          padding: 25px;
+        }
+        .mobile-only {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .sidebar {
+            position: fixed;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform: translateX(-100%);
+            z-index: 1000;
+          }
+          .sidebar.open {
+            transform: translateX(0);
+          }
+          .mobile-only {
+            display: block;
+          }
+          .desktop-only {
+            display: none;
+          }
+        }
+      `}</style>
     </IonPage>
   );
 };

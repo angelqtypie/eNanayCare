@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// File: src/layouts/MainLayout.tsx
+import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
   IonPage,
@@ -18,14 +19,33 @@ import {
   pulseOutline,
   personCircleOutline,
   heartOutline,
+  settingsOutline,
 } from "ionicons/icons";
 import logo from "../assets/logo.svg";
 import "./MainLayout.css";
+import { supabase } from "../utils/supabaseClient";
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const fullName = localStorage.getItem("full_name") || "BHW";
+  const [fullName, setFullName] = useState("Barangay Health Worker");
+
+  useEffect(() => {
+    const fetchBHW = async () => {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name")
+        .eq("id", userId)
+        .single();
+      if (!error && data) {
+        setFullName(data.full_name);
+        localStorage.setItem("full_name", data.full_name);
+      }
+    };
+    fetchBHW();
+  }, []);
 
   const goTo = (path: string) => {
     setSidebarOpen(false);
@@ -61,7 +81,11 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
 
             <div className="header-right desktop-only">
-              <div className="user-profile">
+              <div
+                className="user-profile"
+                onClick={() => goTo("/bhwprofile")}
+                style={{ cursor: "pointer" }}
+              >
                 <IonIcon icon={personCircleOutline} className="profile-icon" />
                 <div>
                   <p className="profile-name">{fullName}</p>
@@ -100,6 +124,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <button className="side-item" onClick={() => goTo("/riskmonitoring")}>
                 <IonIcon icon={pulseOutline} /> Risk Monitoring
               </button>
+              <button className="side-item" onClick={() => goTo("/bhwprofile")}>
+                <IonIcon icon={settingsOutline} /> Settings
+              </button>
 
               <IonButton
                 className="logout-btn"
@@ -113,6 +140,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </nav>
           </aside>
 
+          {/* MAIN DASHBOARD CONTENT */}
           <main className="main-dashboard">{children}</main>
         </div>
       </IonContent>

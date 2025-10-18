@@ -153,6 +153,11 @@
   color: #5e5061;
   font-size: 0.9rem;
 }
+.mother-card:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease-in-out;
+}
+
 
 .status {
   display: inline-block;
@@ -163,4 +168,37 @@
   border-radius: 8px;
   padding: 3px 8px;
   font-size: 0.75rem;
+}
+
+.summary-section {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.summary-card {
+  width: 90%;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffdde1, #ee9ca7);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.3);
+  padding: 1rem;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.summary-stats h4 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.summary-stats p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
 }

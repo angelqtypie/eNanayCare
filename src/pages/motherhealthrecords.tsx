@@ -44,28 +44,37 @@ const HealthRecord: React.FC = () => {
 
   const fetchRecords = async () => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user ?? null;
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
       if (!user) return;
 
-      const { data: mother } = await supabase
+      const { data: mother, error: motherError } = await supabase
         .from("mothers")
-        .select("id")
-        .eq("auth_user_id", user.id)
+        .select("mother_id")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!mother?.id) return;
+      if (motherError) throw motherError;
+      if (!mother?.mother_id) {
+        setError("Mother profile not found.");
+        return;
+      }
 
-      const { data, error } = await supabase
+      const { data: recordsData, error: recordError } = await supabase
         .from("health_records")
         .select("*")
-        .eq("mother_id", mother.id)
+        .eq("mother_id", mother.mother_id)
         .order("encounter_date", { ascending: false });
 
-      if (error) throw error;
-      setRecords(data || []);
+      if (recordError) throw recordError;
+
+      setRecords(recordsData || []);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching records:", err);
       setError("Failed to load health records.");
     }
   };
@@ -96,9 +105,8 @@ const HealthRecord: React.FC = () => {
         >
           <IonToolbar
             style={{
-              "--background":
-              " linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
-            "--color": "#6a3a55",
+              "--background": "linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
+              "--color": "#6a3a55",
             }}
           >
             <IonButton
@@ -122,7 +130,6 @@ const HealthRecord: React.FC = () => {
       <IonContent fullscreen scrollY={true} className="health-container">
         {error && <IonText color="danger">{error}</IonText>}
 
-        {/* PAGE HEADER */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -135,7 +142,7 @@ const HealthRecord: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* FILTER DROPDOWN */}
+        {/* FILTER */}
         <div className="filter-wrapper">
           <IonSelect
             interface="popover"
@@ -150,14 +157,17 @@ const HealthRecord: React.FC = () => {
           </IonSelect>
         </div>
 
-        {/* RECORDS LIST */}
+        {/* RECORDS */}
         {filteredRecords.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="empty-state"
           >
-            <IonIcon icon={heartOutline} style={{ fontSize: "38px", color: "#f47ba7" }} />
+            <IonIcon
+              icon={heartOutline}
+              style={{ fontSize: "38px", color: "#f47ba7" }}
+            />
             <p>No health records found.</p>
           </motion.div>
         ) : (
@@ -171,7 +181,10 @@ const HealthRecord: React.FC = () => {
               <IonCard className="record-card">
                 <IonCardHeader>
                   <IonCardTitle>
-                    <IonIcon icon={calendarOutline} style={{ marginRight: "6px", color: "#f47ba7" }} />
+                    <IonIcon
+                      icon={calendarOutline}
+                      style={{ marginRight: "6px", color: "#f47ba7" }}
+                    />
                     {new Date(r.encounter_date).toDateString()}
                   </IonCardTitle>
                 </IonCardHeader>
@@ -182,15 +195,15 @@ const HealthRecord: React.FC = () => {
                   </div>
                   <div className="record-row">
                     <IonIcon icon={pulseOutline} />
-                    <span><b>Blood Pressure:</b> {r.blood_pressure ?? "-"}</span>
+                    <span><b>Blood Pressure:</b> {r.bp ?? "-"}</span>
                   </div>
                   <div className="record-row">
                     <IonIcon icon={waterOutline} />
-                    <span><b>Hemoglobin:</b> {r.hemoglobin_level ?? "-"}</span>
+                    <span><b>Temperature:</b> {r.temp ?? "-"} °C</span>
                   </div>
                   <div className="record-row">
                     <IonIcon icon={heartOutline} />
-                    <span><b>Weeks of Gestation:</b> {r.weeks_of_gestation ?? "-"}</span>
+                    <span><b>Heart Rate:</b> {r.hr ?? "-"} bpm</span>
                   </div>
                   {r.notes && (
                     <div className="notes-box">
@@ -203,36 +216,31 @@ const HealthRecord: React.FC = () => {
           ))
         )}
 
-        {/* INLINE STYLES */}
+        {/* STYLES */}
         <style>{`
           .health-container {
             background: #fff8fb;
             font-family: "Poppins", sans-serif;
             padding-bottom: 70px;
           }
-
           .page-header {
             text-align: center;
             margin-top: 20px;
             margin-bottom: 10px;
           }
-
           .header-title {
             color: #e76fae;
             font-weight: 700;
             font-size: 1.4rem;
           }
-
           .header-subtitle {
             color: #999;
             font-size: 0.9rem;
           }
-
           .filter-wrapper {
             text-align: center;
             margin: 15px 0;
           }
-
           .filter-select {
             width: 60%;
             max-width: 240px;
@@ -242,14 +250,12 @@ const HealthRecord: React.FC = () => {
             padding: 4px 8px;
             font-size: 0.9rem;
           }
-
           .empty-state {
             text-align: center;
             margin-top: 70px;
             color: #999;
             font-size: 0.95rem;
           }
-
           .record-card {
             background: rgba(255, 255, 255, 0.92);
             border-radius: 20px;
@@ -257,18 +263,15 @@ const HealthRecord: React.FC = () => {
             box-shadow: 0 4px 14px rgba(241, 167, 194, 0.25);
             transition: all 0.3s ease;
           }
-
           .record-card:hover {
             transform: scale(1.02);
             box-shadow: 0 6px 18px rgba(241, 167, 194, 0.35);
           }
-
           .record-card ion-card-title {
             color: #d764a0;
             font-weight: 600;
             font-size: 1rem;
           }
-
           .record-row {
             display: flex;
             align-items: center;
@@ -276,11 +279,9 @@ const HealthRecord: React.FC = () => {
             margin-bottom: 6px;
             font-size: 0.95rem;
           }
-
           .record-row ion-icon {
             color: #f47ba7;
           }
-
           .notes-box {
             background: #fff2f7;
             border-left: 4px solid #f47ba7;
