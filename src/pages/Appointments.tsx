@@ -1,151 +1,130 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonHeader,
   IonToolbar,
   IonContent,
   IonButton,
   IonIcon,
-  IonSpinner,
-  IonToast,
+  IonModal,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonSelect,
+  IonSelectOption,
+  IonInput,
 } from "@ionic/react";
-import {
-  closeOutline,
-  medicalOutline,
-  addOutline,
-  chevronBackOutline,
-  chevronForwardOutline,
-} from "ionicons/icons";
+import { closeOutline, trashOutline } from "ionicons/icons";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 
-type Mother = {
-  mother_id: string;
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
-  address?: string;
-};
-
-type Appointment = {
-  id: string;
-  mother_id: string;
-  date: string;
-  time?: string;
-  location?: string;
-  notes?: string;
-  status?: string;
-  mother?: Mother;
-};
-
 const Appointments: React.FC = () => {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewDate, setViewDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d;
+  const [showModal, setShowModal] = useState(false);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [mothers, setMothers] = useState<any[]>([]);
+  const [calendarDate, setCalendarDate] = useState<Date | null>(new Date());
+
+  const [form, setForm] = useState({
+    motherIds: [] as string[],
+    date: "",
+    time: "",
+    location: "",
+    notes: "",
   });
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
-  const [toastMsg, setToastMsg] = useState("");
+
+  const handleChange = (name: string, value: any) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const formatDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const fetchMothers = async () => {
+    const { data, error } = await supabase
+      .from("mothers")
+      .select("mother_id, first_name, last_name")
+      .order("last_name", { ascending: true });
+
+    if (error) console.error(error);
+    setMothers(data || []);
+  };
+
+  const fetchAppointments = async () => {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`
+        id, date, time, location, notes, status,
+        mother:mothers(first_name, last_name, mother_id)
+      `)
+      .order("date", { ascending: true });
+
+    if (error) console.error(error);
+    setAppointments(data || []);
+  };
+
+  const addAppointment = async () => {
+    if (
+      form.motherIds.length === 0 ||
+      !form.date ||
+      !form.time ||
+      !form.location
+    ) {
+      alert("Please fill all required fields.");
+      return;
+    }
+
+    const { error } = await supabase.from("appointments").insert(
+      form.motherIds.map((motherId) => ({
+        mother_id: motherId,
+        date: form.date,
+        time: form.time,
+        location: form.location,
+        notes: form.notes,
+        status: "Scheduled",
+      }))
+    );
+
+    if (error) console.error(error);
+    else {
+      setShowModal(false);
+      setForm({ motherIds: [], date: "", time: "", location: "", notes: "" });
+      fetchAppointments();
+    }
+  };
+
+  const deleteAppointment = async (id: number) => {
+    const confirmed = window.confirm("Are you sure you want to delete this appointment?");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert("Failed to delete appointment.");
+    } else {
+      fetchAppointments();
+      alert("Appointment deleted.");
+    }
+  };
 
   useEffect(() => {
+    fetchMothers();
     fetchAppointments();
   }, []);
 
-  // 🔹 Fetch all appointments
-  const fetchAppointments = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(
-          `id, mother_id, date, time, location, notes, status, mother:mothers(first_name, last_name, mother_id)`
-        )
-        .order("date", { ascending: true })
-        .order("time", { ascending: true });
-      if (error) throw error;
-      setAppointments((data as Appointment[]) || []);
-    } catch (err) {
-      console.error(err);
-      setToastMsg("Error fetching appointments.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 Delete appointment
-  const deleteAppointment = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this appointment?")) return;
-
-    try {
-      const { error } = await supabase.from("appointments").delete().eq("id", id);
-      if (error) throw error;
-      setToastMsg("Appointment deleted successfully.");
-      fetchAppointments();
-    } catch (err) {
-      console.error(err);
-      setToastMsg("Error deleting appointment.");
-    }
-  };
-
-  // 🔹 Format display time
-  const formatDisplayTime = (time?: string) => {
-    if (!time) return "";
-    try {
-      const t = time.length === 5 ? `${time}:00` : time;
-      const dt = new Date(`1970-01-01T${t}`);
-      return dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return time;
-    }
-  };
-
-  // 🔹 Calendar helpers
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-  const firstDayOfMonth = useMemo(() => new Date(year, month, 1), [year, month]);
-  const lastDayOfMonth = useMemo(() => new Date(year, month + 1, 0), [year, month]);
-  const daysInMonth = lastDayOfMonth.getDate();
-  const startWeekday = firstDayOfMonth.getDay();
-
-  const appointmentsByDate = useMemo(() => {
-    const map = new Map<string, Appointment[]>();
-    for (const a of appointments) {
-      const d = a.date;
-      if (!map.has(d)) map.set(d, []);
-      map.get(d)!.push(a);
-    }
-    return map;
-  }, [appointments]);
-
-  const getAppointmentsForDate = (date: Date) => {
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}-${String(date.getDate()).padStart(2, "0")}`;
-    return appointmentsByDate.get(key) || [];
-  };
-
-  const goPrevMonth = () => setViewDate(new Date(year, month - 1, 1));
-  const goNextMonth = () => setViewDate(new Date(year, month + 1, 1));
-
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const buildMonthGrid = () => {
-    const grid: Date[] = [];
-    const prevDays = startWeekday;
-    const prevMonthLast = new Date(year, month, 0).getDate();
-    for (let i = prevDays - 1; i >= 0; i--) grid.push(new Date(year, month - 1, prevMonthLast - i));
-    for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(year, month, d));
-    while (grid.length % 7 !== 0)
-      grid.push(new Date(year, month + 1, grid.length - prevDays - daysInMonth + 1));
-    return grid;
-  };
-
-  const monthGrid = buildMonthGrid();
+  const filtered = appointments.filter(
+    (a) =>
+      new Date(a.date).toDateString() ===
+      (calendarDate as Date).toDateString()
+  );
 
   return (
     <MainLayout>
@@ -156,161 +135,201 @@ const Appointments: React.FC = () => {
       </IonHeader>
 
       <IonContent className="appointments-content">
-        <div className="top-row">
-          {/* 🔹 Calendar Section */}
-          <div className="calendar-card">
-            <div className="calendar-header">
-              <IonButton fill="clear" onClick={goPrevMonth}>
-                <IonIcon icon={chevronBackOutline} />
-              </IonButton>
-              <div className="month-label">
-                {viewDate.toLocaleString(undefined, { month: "long", year: "numeric" })}
-              </div>
-              <IonButton fill="clear" onClick={goNextMonth}>
-                <IonIcon icon={chevronForwardOutline} />
-              </IonButton>
-            </div>
-
-            <div className="weekdays">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((w) => (
-                <div key={w} className="weekday">
-                  {w}
-                </div>
-              ))}
-            </div>
-
-            <div className="month-grid">
-              {monthGrid.map((d, idx) => {
-                const inCurrentMonth = d.getMonth() === month;
-                const dayAppointments = getAppointmentsForDate(d);
-                const missed = dayAppointments.filter((a) => a.status === "Missed").length;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`day-cell ${inCurrentMonth ? "" : "muted"} ${
-                      isSameDay(d, selectedDate) ? "selected" : ""
-                    }`}
-                    onClick={() => setSelectedDate(d)}
-                  >
-                    <div className="day-number">{d.getDate()}</div>
-                    {dayAppointments.length > 0 && (
-                      <div className="count-text">
-                        Appointments: {dayAppointments.length}
-                        {missed > 0 && <div>Missed: {missed}</div>}
-                      </div>
-                    )}
-                  </div>
+        <div className="appointments-layout">
+          <div className="calendar-section">
+            <Calendar
+              value={calendarDate}
+              onClickDay={(date) => {
+                setCalendarDate(date);
+                setForm((prev) => ({ ...prev, date: formatDate(date) }));
+              }}
+              tileContent={({ date }) => {
+                const has = appointments.some(
+                  (a) =>
+                    new Date(a.date).toDateString() === date.toDateString()
                 );
-              })}
-            </div>
-
-            <div className="calendar-footer">
-              <IonButton
-                size="small"
-                onClick={() => {
-                  const today = new Date();
-                  setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
-                  setSelectedDate(today);
-                }}
-              >
-                Today
-              </IonButton>
-
-              <IonButton size="small" onClick={() => setToastMsg("Add appointment modal here")}>
-                <IonIcon icon={addOutline} /> &nbsp; New Appointment
-              </IonButton>
-            </div>
+                return has ? <div className="dot"></div> : null;
+              }}
+              tileClassName={({ date }) => {
+                const isToday = date.toDateString() === new Date().toDateString();
+                return isToday ? "today-highlight" : null;
+              }}
+            />
+            <IonButton
+              expand="block"
+              className="add-btn"
+              onClick={() => setShowModal(true)}
+            >
+              + New Appointment
+            </IonButton>
           </div>
 
-          {/* 🔹 Appointment List Section */}
-          <div className="list-card">
-            <h3 className="section-title">
-              Appointments for{" "}
-              {selectedDate.toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </h3>
-
-            {loading ? (
-              <div className="centered">
-                <IonSpinner name="dots" />
-              </div>
+          <div className="table-wrapper">
+            {filtered.length === 0 ? (
+              <p className="empty-text">No appointments today.</p>
             ) : (
-              <>
-                {getAppointmentsForDate(selectedDate).length === 0 ? (
-                  <p className="no-appointments">No appointments for this date.</p>
-                ) : (
-                  <table className="appointments-table">
-                    <thead>
-                      <tr>
-                        <th>Mother</th>
-                        <th>Time</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getAppointmentsForDate(selectedDate).map((a) => (
-                        <tr key={a.id}>
-                          <td>
-                            {a.mother ? `${a.mother.first_name} ${a.mother.last_name}` : "N/A"}
-                          </td>
-                          <td>{formatDisplayTime(a.time)}</td>
-                          <td>{a.location}</td>
-                          <td>{a.status}</td>
-                          <td>
-                            <IonButton
-                              color="danger"
-                              size="small"
-                              onClick={() => deleteAppointment(a.id)}
-                            >
-                              <IonIcon icon={closeOutline} />
-                            </IonButton>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </>
+              <table className="appointments-table">
+                <thead>
+                  <tr>
+                    <th>Mother</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        {a.mother
+                          ? `${a.mother.first_name} ${a.mother.last_name}`
+                          : "N/A"}
+                      </td>
+                      <td>{a.date}</td>
+                      <td>{a.time}</td>
+                      <td>{a.location}</td>
+                      <td>{a.status}</td>
+                      <td>
+                        <IonButton
+                          color="danger"
+                          size="small"
+                          onClick={() => deleteAppointment(a.id)}
+                        >
+                          <IonIcon icon={trashOutline} />
+                          &nbsp;Delete
+                        </IonButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
-
-        <IonToast
-          isOpen={!!toastMsg}
-          message={toastMsg}
-          duration={2000}
-          onDidDismiss={() => setToastMsg("")}
-        />
-
-        <style>{`
-          .page-title { padding: 15px 20px; font-weight: 600; color: #222; }
-          .top-row { display: flex; gap: 16px; padding: 20px; align-items: flex-start; }
-          .calendar-card { width: 390px; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
-          .calendar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-          .month-label { font-weight: 700; font-size: 15px; }
-          .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 6px; color: #666; font-weight: 600; font-size: 12px; }
-          .weekday { text-align: center; padding: 4px 0; }
-          .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 6px; }
-          .day-cell { background: #fff; border-radius: 8px; min-height: 60px; padding: 6px; border: 1px solid #ddd; cursor: pointer; }
-          .day-cell.muted { opacity: 0.45; background: #fafafa; }
-          .day-cell.selected { border: 2px solid #007bff; }
-          .day-number { font-weight: 700; font-size: 13px; }
-          .count-text { margin-top: 4px; font-size: 11px; line-height: 1.2; color: #444; }
-          .calendar-footer { display: flex; justify-content: space-between; margin-top: 8px; }
-          .list-card { flex: 1; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
-          .appointments-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
-          .appointments-table th { text-align: left; padding: 6px; background: #f8f8f8; font-weight: 700; }
-          .appointments-table td { padding: 6px; border-bottom: 1px solid #eee; }
-          .no-appointments { color: #777; padding: 10px; }
-        `}</style>
       </IonContent>
+
+      {/* Add Appointment Modal */}
+      <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+        <div className="modal-container">
+          <div className="modal-header">
+            <h2>New Appointment</h2>
+            <IonButton
+              fill="clear"
+              color="medium"
+              onClick={() => setShowModal(false)}
+            >
+              <IonIcon icon={closeOutline} />
+            </IonButton>
+          </div>
+
+          <IonList className="form-scroll">
+            <IonItem>
+              <IonLabel position="stacked">Select Mother(s)</IonLabel>
+              <IonSelect
+                multiple
+                value={form.motherIds}
+                placeholder="Search or select mothers"
+                onIonChange={(e) => handleChange("motherIds", e.detail.value!)}
+              >
+                {mothers.map((m) => (
+                  <IonSelectOption key={m.mother_id} value={m.mother_id}>
+                    {m.first_name} {m.last_name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Date</IonLabel>
+              <IonInput
+                type="date"
+                value={form.date}
+                onIonChange={(e) => handleChange("date", e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Time</IonLabel>
+              <IonInput
+                type="time"
+                value={form.time}
+                onIonChange={(e) => handleChange("time", e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Location</IonLabel>
+              <IonInput
+                placeholder="Enter location"
+                value={form.location}
+                onIonChange={(e) => handleChange("location", e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonLabel position="stacked">Notes</IonLabel>
+              <IonInput
+                placeholder="Optional notes"
+                value={form.notes}
+                onIonChange={(e) => handleChange("notes", e.detail.value!)}
+              />
+            </IonItem>
+          </IonList>
+
+          <IonButton expand="block" onClick={addAppointment}>
+            Save Appointment
+          </IonButton>
+        </div>
+      </IonModal>
+
+      {/* Styles */}
+      <style>
+        {`
+          .page-title { padding: 10px 20px; font-weight: 600; }
+          .appointments-layout { display: flex; gap: 20px; padding: 20px; }
+          .calendar-section { width: 350px; }
+          .table-wrapper { flex: 1; }
+          .appointments-table {
+            width: 100%; border-collapse: collapse; background: white;
+            border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          }
+          .appointments-table th, .appointments-table td {
+            padding: 10px; border-bottom: 1px solid #ddd; text-align: left;
+          }
+          .appointments-table tr:hover { background-color: #f5f9ff; }
+
+          .modal-container {
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fefefe;
+          }
+          .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+          }
+          .form-scroll {
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 10px;
+          }
+          .dot {
+            background-color: #3b82f6;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin: auto;
+            margin-top: 2px;
+          }
+          .today-highlight {
+            background: #ffe599 !important;
+            border-radius: 50%;
+          }
+        `}
+      </style>
     </MainLayout>
   );
 };
