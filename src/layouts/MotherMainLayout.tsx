@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useHistory } from "react-router-dom";
 import {
   IonPage,
@@ -21,7 +21,7 @@ import {
   send,
 } from "ionicons/icons";
 import logo from "../assets/logo.svg";
-import botAvatar from "../assets/logo.svg"; // Default bot image
+import botAvatar from "../assets/logo.svg"; // default bot
 import { supabase } from "../utils/supabaseClient";
 import "./MotherMainLayout.css";
 
@@ -30,82 +30,103 @@ interface Message {
   text: string;
 }
 
+interface QA {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [questions, setQuestions] = useState<QA[]>([]);
   const [nickname, setNickname] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
+  const chatBodyRef = useRef<HTMLDivElement>(null);
   const userId = localStorage.getItem("userId");
   const fullName = localStorage.getItem("fullName") || "Nanay";
   const firstName = (nickname || fullName).split(" ")[0];
 
-  /** ✅ FIXED: Use correct column and show uploaded image */
+  // Fetch mother settings
   useEffect(() => {
     const fetchMotherSettings = async () => {
       if (!userId) return;
-
-      // Find mother_id using the correct column (user_id)
-      const { data: mother, error: motherError } = await supabase
+      const { data: mother } = await supabase
         .from("mothers")
         .select("mother_id")
         .eq("user_id", userId)
         .maybeSingle();
+      if (!mother?.mother_id) return;
 
-      if (motherError || !mother?.mother_id) {
-        console.warn("Mother record not found");
-        return;
-      }
-
-      // Fetch profile settings for this mother
       const { data, error } = await supabase
         .from("mother_settings")
         .select("nickname, profile_image_url")
         .eq("mother_id", mother.mother_id)
         .maybeSingle();
-
       if (!error && data) {
         setNickname(data.nickname || null);
         setProfileImage(data.profile_image_url || null);
       }
     };
-
     fetchMotherSettings();
-
-    // Optional: refresh every 20 seconds to reflect changes from profile page
-    const interval = setInterval(fetchMotherSettings, 20000);
-    return () => clearInterval(interval);
   }, [userId]);
 
-  /** Routing helper */
+  // Fetch all questions
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      const { data } = await supabase
+        .from("chatbot_qa")
+        .select("id, question, answer")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      if (data) setQuestions(data as QA[]);
+    };
+    fetchQuestions();
+  }, []);
+
   const goTo = (path: string) => history.push(path);
 
-  /** Chatbot logic */
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
+    }, 100);
+  };
+
+  const sendMessage = (text: string, sender: "user" | "bot") => {
+    setMessages((prev) => [...prev, { sender, text }]);
+    scrollToBottom();
+  };
+
+  // Free-text input handler with simple word detection
   const handleSend = async () => {
     if (!input.trim()) return;
-    const text = input.trim();
-    setMessages((prev) => [...prev, { sender: "user", text }]);
+    const userMessage = input.trim();
+    sendMessage(userMessage, "user");
     setInput("");
 
-    // Fetch random active Q&A from DB
-    const { data } = await supabase
-      .from("chatbot_qa")
-      .select("answer")
-      .eq("is_active", true);
+    const words = userMessage.toLowerCase().split(" ");
+    let reply = "I’m still learning! Try selecting a question or ask me about prenatal care.";
 
-    let reply =
-      "I’m still learning! Try asking about healthy meals or prenatal care 💕";
-
+    const { data } = await supabase.from("chatbot_qa").select("question, answer").eq("is_active", true);
     if (data && data.length > 0) {
-      const random = data[Math.floor(Math.random() * data.length)];
-      reply = random.answer;
+      for (let word of words) {
+        const match = (data as QA[]).find((q) => q.question.toLowerCase().includes(word));
+        if (match) {
+          reply = match.answer;
+          break;
+        }
+      }
     }
+    setTimeout(() => sendMessage(reply, "bot"), 500);
+  };
 
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { sender: "bot", text: reply }]);
-    }, 500);
+  // Question button click
+  const handleQuestionClick = (qa: QA) => {
+    sendMessage(qa.question, "user");
+    setTimeout(() => sendMessage(qa.answer, "bot"), 500);
   };
 
   return (
@@ -114,38 +135,22 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       <IonHeader className="mother-header">
         <IonToolbar>
           <div className="header-container">
-            {/* Left: Logo */}
             <div className="header-left" onClick={() => goTo("/dashboardmother")}>
               <img src={logo} alt="eNanayCare" className="mother-logo" />
               <span className="app-title">
                 eNanay<span className="highlight">Care</span>
               </span>
             </div>
-
-            {/* Right: Profile */}
             <div className="header-right">
-              <IonButton
-                fill="clear"
-                className="profile-icon-btn"
-                onClick={() => goTo("/mothersprofile")}
-              >
+              <IonButton fill="clear" className="profile-icon-btn" onClick={() => goTo("/mothersprofile")}>
                 {profileImage ? (
                   <img
                     src={profileImage}
                     alt="Profile"
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: "2px solid #f3b0c3",
-                    }}
+                    style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "2px solid #f3b0c3" }}
                   />
                 ) : (
-                  <IonIcon
-                    icon={personCircleOutline}
-                    className="profile-icon"
-                  />
+                  <IonIcon icon={personCircleOutline} className="profile-icon" />
                 )}
               </IonButton>
             </div>
@@ -153,55 +158,55 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </IonToolbar>
       </IonHeader>
 
-      {/* MAIN CONTENT */}
+      {/* CONTENT */}
       <IonContent className="mother-layout-content" fullscreen>
         <main className="mother-main">{children}</main>
 
-        {/* CHATBOT */}
         {showChat && (
           <div className="chat-box">
             <div className="chat-header">
               <b>MAMABOT</b>
-              <IonIcon
-                icon={close}
-                onClick={() => setShowChat(false)}
-                className="close-icon"
-              />
-            </div>
-            <div className="chat-body">
-              {messages.length === 0 ? (
-                <div className="msg bot">
-                  <img src={botAvatar} alt="Bot" className="chat-avatar" />
-                  <div className="chat-text">
-                    Hi <b>{firstName}</b>! I'm <b>MAMABOT</b>, your pregnancy
-                    buddy. Ask me anything about prenatal care!
-                  </div>
-                </div>
-              ) : (
-                messages.map((m, i) => (
-                  <div key={i} className={`msg ${m.sender}`}>
-                    {m.sender === "bot" && (
-                      <img src={botAvatar} alt="Bot" className="chat-avatar" />
-                    )}
-                    {m.sender === "user" && (
-                      <img
-                        src={
-                          profileImage ||
-                          "https://cdn-icons-png.flaticon.com/512/921/921071.png"
-                        }
-                        alt="You"
-                        className="chat-avatar user-avatar"
-                      />
-                    )}
-                    <div className="chat-text">{m.text}</div>
-                  </div>
-                ))
-              )}
+              <IonIcon icon={close} onClick={() => setShowChat(false)} className="close-icon" />
             </div>
 
-            <div className="chat-floating-input">
+            <div className="chat-body" ref={chatBodyRef}>
+              {messages.length === 0 && (
+                <div className="msg bot">
+                  <img src={botAvatar} alt="Bot" className="chat-avatar" />
+                  <div className="chat-text bot-bubble">
+                    Hi <b>{firstName}</b>! I'm <b>MAMABOT</b>, your pregnancy buddy. Tap a question below or type your own!
+                  </div>
+                </div>
+              )}
+
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.sender}`}>
+                  {m.sender === "bot" && <img src={botAvatar} alt="Bot" className="chat-avatar" />}
+                  {m.sender === "user" && (
+                    <img
+                      src={profileImage || "https://cdn-icons-png.flaticon.com/512/921/921071.png"}
+                      alt="You"
+                      className="chat-avatar user-avatar"
+                    />
+                  )}
+                  <div className={`chat-text ${m.sender === "bot" ? "bot-bubble" : "user-bubble"}`}>{m.text}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Scrollable list of all questions */}
+            <div className="chat-questions">
+              {questions.map((q) => (
+                <button key={q.id} className="question-btn" onClick={() => handleQuestionClick(q)}>
+                  {q.question}
+                </button>
+              ))}
+            </div>
+
+            {/* Free-text input */}
+            <div className="chat-input-wrapper">
               <input
-                placeholder="Ask something..."
+                placeholder="Type your question..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -215,14 +220,14 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
         {!showChat && (
           <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton onClick={() => setShowChat(true)} className="chat-fab">
+            <IonFabButton onClick={() => setShowChat(true)}>
               <IonIcon icon={chatbubbleOutline} />
             </IonFabButton>
           </IonFab>
         )}
       </IonContent>
 
-      {/* FOOTER NAVIGATION */}
+      {/* FOOTER */}
       <footer className="mother-footer-nav">
         <IonButton fill="clear" onClick={() => goTo("/dashboardmother")}>
           <IonIcon icon={homeOutline} />
@@ -239,6 +244,22 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           <IonLabel>Alerts</IonLabel>
         </IonButton>
       </footer>
+
+      <style>{`
+        .chat-body { padding: 12px; overflow-y: auto; max-height: 50vh; }
+        .chat-avatar { width: 36px; height: 36px; border-radius: 50%; margin-right: 6px; }
+        .msg { display: flex; margin-bottom: 8px; align-items: flex-end; }
+        .msg.user { justify-content: flex-end; }
+        .msg.bot { justify-content: flex-start; }
+        .chat-text { padding: 10px 14px; max-width: 75%; border-radius: 18px; }
+        .bot-bubble { background: #f8d1e0; color: #6d214f; border-top-left-radius: 0; }
+        .user-bubble { background: #f197ba; color: #fff; border-top-right-radius: 0; }
+        .chat-questions { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; overflow-y: auto; max-height: 120px; }
+        .question-btn { background: #f8d1e0; color: #6d214f; border: none; border-radius: 16px; padding: 6px 12px; cursor: pointer; font-size: 0.9rem; }
+        .question-btn:hover { background: #f4b8cd; }
+        .chat-input-wrapper { display: flex; padding: 6px; border-top: 1px solid #e3b7cb; }
+        .chat-input-wrapper input { flex: 1; padding: 8px; border-radius: 12px; border:1px solid #f3b0c3; font-size: 0.95rem; }
+      `}</style>
     </IonPage>
   );
 };

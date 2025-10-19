@@ -1,86 +1,179 @@
-/* Reset + base */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body, ion-content { font-family: 'Segoe UI', sans-serif; background: #f9fafb; }
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
 
 /* Header */
-.glass-header {
-  backdrop-filter: blur(12px);
-  background: rgba(255,255,255,0.8);
+.header {
+  background: #ffffffcc;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .header-container {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: .5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
 }
-.logo-img { height: 40px; margin-right: .6rem; }
-.app-name { font-size: 1.4rem; font-weight: 700; color: #1d3557; }
-.header-right { display: flex; gap: 1rem; align-items: center; }
-.header-right button {
-  background: none; border: none; font-size: 1rem;
-  cursor: pointer; color: #444; transition: color .3s;
+.logo {
+  height: 36px;
 }
-.header-right button:hover { color: #0d6efd; }
-.menu-btn { display: none; }
-@media (max-width:768px){
-  .header-right button{ display:none; }
-  .menu-btn{ display:block; }
+.app-title {
+  font-weight: 700;
+  color: #1d3557;
+  font-size: 1.5rem;
+  flex-grow: 1;
+  margin-left: 0.5rem;
+}
+.nav-links button {
+  background: none;
+  border: none;
+  color: #0d6efd;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.nav-links button:hover {
+  text-decoration: underline;
 }
 
-/* Hero */
-.hero {
+/* Hero Section */
+.hero-section {
   height: 90vh;
   background: url("../assets/mother-care.jpg") center/cover no-repeat;
-  position: relative; display:flex; align-items:center; justify-content:center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 .hero-overlay {
-  background: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6));
-  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  background: rgba(0, 0, 0, 0.65);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1rem;
 }
-.hero-content { text-align:center; color:#fff; padding: 0 1rem; max-width: 750px; }
-.hero-content h1 { font-size:2.5rem; margin-bottom:1rem; }
-.hero-content p { font-size:1.2rem; margin-bottom:1.5rem; }
-.cta-btn { border-radius:30px; font-weight:600; padding: 0.9rem 2rem; }
-.pulse { animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.07);} 100%{transform:scale(1);} }
+.hero-content {
+  max-width: 700px;
+  text-align: center;
+}
+.hero-content h1 {
+  font-size: 2.7rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.75);
+}
+.hero-content p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+}
+.btn-get-started {
+  --background: #007bff;
+  --box-shadow: 0 4px 15px rgba(0, 123, 255, 0.5);
+  border-radius: 25px;
+  font-weight: 600;
+  padding: 0.8rem 2.5rem;
+  text-transform: uppercase;
+}
+.btn-get-started:hover {
+  --background: #0056b3;
+  --box-shadow: 0 6px 20px rgba(0, 86, 179, 0.7);
+}
 
-/* Sections */
-.section-title {
-  text-align:center; font-size:2rem; margin-bottom:2rem; color:#1d3557; font-weight:700;
+/* About Section */
+.about-section {
+  padding: 3rem 1rem;
+  background: #f9fafb;
 }
-.about-img {
-  width:100%; border-radius:14px; box-shadow:0 6px 20px rgba(0,0,0,.15);
+.about-image {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
-.about h2 { font-size:1.7rem; margin-bottom:1rem; }
+.about-text h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #1d3557;
+}
+.about-text p {
+  font-size: 1.1rem;
+  color: #444;
+  line-height: 1.6;
+}
 
-/* Features */
-.features { background:#f1f5f9; }
+/* Features Section */
+.features-section {
+  padding: 3rem 1rem;
+  background: white;
+  text-align: center;
+}
+.features-section h2 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #1d3557;
+  font-weight: 700;
+}
 .feature-card {
-  text-align:center; padding:1rem; border-radius:18px;
-  transition: transform .25s, box-shadow .25s;
-  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .feature-card:hover {
-  transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0,0,0,.1);
+  transform: translateY(-6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
-.feature-card ion-icon { color:#0d6efd; margin-bottom:.5rem; }
-
-/* Login */
-.login-card {
-  text-align:center; border-radius:18px; padding:.5rem;
-  box-shadow:0 8px 20px rgba(0,0,0,.08);
+.feature-icon {
+  font-size: 3rem;
+  color: #0d6efd;
+  margin-bottom: 0.7rem;
 }
-.login-card ion-card-title { font-size:1.3rem; font-weight:600; color:#1d3557; }
-.login-card ion-button { margin-top:.6rem; border-radius:12px; font-weight:600; }
 
 /* Footer */
-.footer-container { text-align:center; padding:.6rem; }
-.footer-text { font-size:.9rem; color:#666; margin-bottom:.3rem; }
-.footer-links { font-size:.85rem; color:#888; }
-.footer-links a { color:#555; text-decoration:none; margin:0 5px; transition: color .2s; }
-.footer-links a:hover { color:#0d6efd; text-decoration:underline; }
+.footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+.footer-btn {
+  background: none;
+  border: none;
+  color: #0d6efd;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin: 0 0.3rem;
+}
+.footer-btn:hover {
+  text-decoration: underline;
+}
 
-/* Animations */
-.animate-fade-in { animation: fadeInUp 1s ease; }
-@keyframes fadeInUp {
-  from{opacity:0; transform:translateY(20px);}
-  to{opacity:1; transform:translateY(0);}
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  .hero-content p {
+    font-size: 1rem;
+  }
+  .about-text h2 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 425px) {
+  .hero-content h1 {
+    font-size: 1.5rem;
+  }
+  .hero-content p {
+    font-size: 0.9rem;
+  }
 }

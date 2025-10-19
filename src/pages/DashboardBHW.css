@@ -9,15 +9,14 @@
   color: #2e3a8c;
   font-weight: 700;
   margin-bottom: 4px;
+  font-size: 1.6rem;
 }
 
-.dashboard-header p {
-  color: #707b9a;
-  font-size: 0.95rem;
-  margin-bottom: 20px;
+.dashboard-header span {
+  color: #4b5563;
 }
 
-/* GRID STATS */
+/* GRID CARDS */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -29,36 +28,29 @@
   border-radius: 16px;
   color: #fff;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
+
 .stat-card:hover {
   transform: scale(1.03);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
-.stat-card.success {
-  background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+.stat-card.mothers {
+  background: linear-gradient(135deg, #4ade80, #16a34a);
 }
-.stat-card.info {
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+.stat-card.appointments {
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
 }
-.stat-card.neutral {
-  background: linear-gradient(135deg, #a7f3d0, #10b981);
-}
-.stat-card.danger {
-  background: linear-gradient(135deg, #f87171, #dc2626);
+.stat-card.visits {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
-.stat-value {
-  font-size: 1.8rem;
+.stat-card strong {
+  font-size: 2rem;
   font-weight: 700;
-  padding-top: 8px;
-}
-.stat-change {
-  display: block;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.9);
 }
 
 /* CONTENT SPLIT */
@@ -73,25 +65,38 @@
   background: #fff;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.07);
+}
+
+.dashboard-left h2,
+.dashboard-right h2 {
+  color: #1e293b;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
 
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .dashboard-table th,
 .dashboard-table td {
   padding: 10px 8px;
   text-align: left;
-  border-bottom: 1px solid #e3e7f3;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .dashboard-table th {
-  color: #2e3a8c;
+  color: #334155;
   font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dashboard-table td {
+  color: #475569;
 }
 
 .action-icon {
@@ -100,11 +105,9 @@
   cursor: pointer;
   transition: 0.2s ease;
 }
+
 .action-icon.view:hover {
   color: #3b82f6;
-}
-.action-icon.delete:hover {
-  color: #ef4444;
 }
 
 .appointments-list {
@@ -114,27 +117,33 @@
 }
 
 .appointments-list li {
-  background: #f3f6ff;
+  background: #f9fafb;
   padding: 12px 14px;
   border-radius: 12px;
   margin-bottom: 10px;
-  box-shadow: 0 2px 6px rgba(52, 81, 178, 0.1);
+  box-shadow: 0 2px 6px rgba(52, 81, 178, 0.08);
+  color: #1f2937;
+  transition: 0.2s ease;
+}
+
+.appointments-list li:hover {
+  background: #eef2ff;
 }
 
 .empty-data {
   text-align: center;
-  color: #999;
+  color: #9ca3af;
   font-style: italic;
   padding: 20px;
 }
 
 .view-all-btn {
-  margin-top: 10px;
-  color: #3451b2;
+  margin-top: 8px;
+  color: #2563eb;
   font-weight: 500;
 }
 
-/* Mobile */
+/* MOBILE */
 @media (max-width: 768px) {
   .dashboard-content-split {
     grid-template-columns: 1fr;

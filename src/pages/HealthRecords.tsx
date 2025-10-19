@@ -18,7 +18,7 @@ import {
   IonToggle,
   IonNote,
 } from "@ionic/react";
-import { closeOutline } from "ionicons/icons";
+import { closeOutline, chevronDownOutline, chevronUpOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import MainLayout from "../layouts/MainLayouts";
 
@@ -30,26 +30,37 @@ interface Mother {
   address: string;
 }
 
-interface HealthRecord {
+interface Appointment {
   id: string;
   mother_id: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+}
+
+interface HealthRecord {
+  id?: string;
+  mother_id: string;
   encounter_date: string;
-  weight: number;
-  height: number;
-  bp: string;
-  temp: number;
-  pr: number;
-  rr: number;
-  hr: number;
-  bmi: number;
-  dm: boolean;
-  hpn: boolean;
-  tt_status: string;
-  notes: string;
+  weight?: number;
+  ht?: number;
+  bp?: string;
+  temp?: number;
+  pr?: number;
+  rr?: number;
+  hr?: number;
+  dm?: boolean;
+  hpn?: boolean;
+  tt_status?: string;
+  notes?: string;
 }
 
 const HealthRecords: React.FC = () => {
   const [mothers, setMothers] = useState<Mother[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [records, setRecords] = useState<{ [key: string]: HealthRecord[] }>({});
+  const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -57,6 +68,16 @@ const HealthRecords: React.FC = () => {
   const [form, setForm] = useState<Partial<HealthRecord>>({});
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+  const [bmi, setBmi] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await fetchMothers();
+      await fetchAppointments();
+      setLoading(false);
+    })();
+  }, []);
 
   const fetchMothers = async () => {
     const { data, error } = await supabase
@@ -66,20 +87,35 @@ const HealthRecords: React.FC = () => {
     if (!error && data) setMothers(data);
   };
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await fetchMothers();
-      setLoading(false);
-    })();
-  }, []);
+  const fetchAppointments = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("id, mother_id, date, time, location, status")
+      .eq("status", "Scheduled");
+    if (!error && data) setAppointments(data);
+  };
+
+  const fetchHealthRecords = async (motherId: string) => {
+    const { data, error } = await supabase
+      .from("health_records")
+      .select("*")
+      .eq("mother_id", motherId)
+      .order("encounter_date", { ascending: false });
+    if (!error && data) {
+      setRecords((prev) => ({ ...prev, [motherId]: data }));
+    }
+  };
 
   const handleChange = (field: keyof HealthRecord, value: any) => {
     setForm((prev) => {
       const updated = { ...prev, [field]: value };
       const w = Number(updated.weight);
-      const h = Number(updated.height);
-      if (w > 0 && h > 0) updated.bmi = parseFloat((w / ((h / 100) ** 2)).toFixed(2));
+      const h = Number(updated.ht);
+      if (w > 0 && h > 0) {
+        const computedBmi = w / ((h / 100) * (h / 100));
+        setBmi(computedBmi.toFixed(2));
+      } else setBmi("");
       return updated;
     });
   };
@@ -99,15 +135,33 @@ const HealthRecords: React.FC = () => {
     }
     setSaving(true);
     try {
-      const payload = { ...form, mother_id: currentMother.mother_id };
+      const payload = {
+        mother_id: currentMother.mother_id,
+        encounter_date: form.encounter_date,
+        weight: form.weight ? Number(form.weight) : null,
+        ht: form.ht ? Number(form.ht) : null,
+        bp: form.bp,
+        temp: form.temp ? Number(form.temp) : null,
+        pr: form.pr ? Number(form.pr) : null,
+        rr: form.rr ? Number(form.rr) : null,
+        hr: form.hr ? Number(form.hr) : null,
+        dm: form.dm || false,
+        hpn: form.hpn || false,
+        tt_status: form.tt_status || "",
+        notes: form.notes || "",
+      };
+
       const { error } = await supabase.from("health_records").insert([payload]);
       if (error) throw error;
-      setToastMsg("Record added successfully!");
+
+      setToastMsg("✅ Health record added successfully!");
       setShowModal(false);
       setForm({});
+      setBmi("");
+      await fetchHealthRecords(currentMother.mother_id);
     } catch (err) {
       console.error(err);
-      setToastMsg("Error saving record.");
+      setToastMsg("❌ Error saving record.");
     } finally {
       setSaving(false);
     }
@@ -120,7 +174,7 @@ const HealthRecords: React.FC = () => {
   return (
     <MainLayout>
       <IonHeader>
-        <IonToolbar color="primary">
+        <IonToolbar color="light">
           <IonTitle>Health Records</IonTitle>
         </IonToolbar>
       </IonHeader>
@@ -147,23 +201,76 @@ const HealthRecords: React.FC = () => {
                     </h3>
                     <p>{m.address}</p>
                   </div>
-                  <IonButton
-                    size="small"
-                    color="primary"
-                    onClick={() => {
-                      setCurrentMother(m);
-                      setShowModal(true);
-                    }}
-                  >
-                    Add Health Record
-                  </IonButton>
+                  <div className="actions">
+                    <IonButton
+                      size="small"
+                      color="primary"
+                      onClick={() => {
+                        setCurrentMother(m);
+                        setShowModal(true);
+                      }}
+                    >
+                      Add Health Record
+                    </IonButton>
+                    <IonButton
+                      size="small"
+                      fill="outline"
+                      onClick={() => {
+                        const isExpanded = expanded[m.mother_id];
+                        setExpanded((prev) => ({
+                          ...prev,
+                          [m.mother_id]: !isExpanded,
+                        }));
+                        if (!isExpanded) fetchHealthRecords(m.mother_id);
+                      }}
+                    >
+                      {expanded[m.mother_id] ? (
+                        <IonIcon icon={chevronUpOutline} />
+                      ) : (
+                        <IonIcon icon={chevronDownOutline} />
+                      )}
+                    </IonButton>
+                  </div>
                 </div>
+
+                {expanded[m.mother_id] && (
+                  <div className="record-list">
+                    {records[m.mother_id]?.length ? (
+                      <table className="records-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Weight</th>
+                            <th>Height</th>
+                            <th>BP</th>
+                            <th>Temp</th>
+                            <th>Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {records[m.mother_id].map((r) => (
+                            <tr key={r.id}>
+                              <td>{r.encounter_date}</td>
+                              <td>{r.weight} kg</td>
+                              <td>{r.ht} cm</td>
+                              <td>{r.bp}</td>
+                              <td>{r.temp}°C</td>
+                              <td>{r.notes}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="no-records">No records yet.</p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* === MODAL FORM === */}
+        {/* === ADD RECORD MODAL === */}
         <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
           <div className="modal">
             <div className="modal-header">
@@ -182,6 +289,7 @@ const HealthRecords: React.FC = () => {
                   <IonLabel position="stacked">Date of Visit</IonLabel>
                   <IonInput
                     type="date"
+                    value={form.encounter_date}
                     onIonChange={(e) =>
                       handleChange("encounter_date", e.detail.value!)
                     }
@@ -203,9 +311,7 @@ const HealthRecords: React.FC = () => {
                     <IonLabel position="stacked">Height (cm)</IonLabel>
                     <IonInput
                       type="number"
-                      onIonChange={(e) =>
-                        handleChange("height", e.detail.value!)
-                      }
+                      onIonChange={(e) => handleChange("ht", e.detail.value!)}
                     />
                   </IonItem>
                   <IonItem>
@@ -222,32 +328,11 @@ const HealthRecords: React.FC = () => {
                       onIonChange={(e) => handleChange("temp", e.detail.value!)}
                     />
                   </IonItem>
-                  <IonItem>
-                    <IonLabel position="stacked">PR (Pulse Rate)</IonLabel>
-                    <IonInput
-                      type="number"
-                      onIonChange={(e) => handleChange("pr", e.detail.value!)}
-                    />
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel position="stacked">RR (Respiratory Rate)</IonLabel>
-                    <IonInput
-                      type="number"
-                      onIonChange={(e) => handleChange("rr", e.detail.value!)}
-                    />
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel position="stacked">HR (Heart Rate)</IonLabel>
-                    <IonInput
-                      type="number"
-                      onIonChange={(e) => handleChange("hr", e.detail.value!)}
-                    />
-                  </IonItem>
                 </div>
 
-                {form.bmi && (
+                {bmi && (
                   <IonNote className="bmi-note">
-                    BMI: <strong>{form.bmi}</strong> ({bmiLabel(form.bmi)})
+                    BMI: <strong>{bmi}</strong> ({bmiLabel(Number(bmi))})
                   </IonNote>
                 )}
 
@@ -308,13 +393,15 @@ const HealthRecords: React.FC = () => {
 
       <style>{`
         .page-content { padding: 16px; background: #f9fafc; }
-        .mother-card { background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .mother-card { background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 12px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .actions { display: flex; gap: 6px; }
+        .records-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        .records-table th, .records-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        .records-table th { background: #f3f3f3; }
+        .no-records { text-align: center; padding: 8px; color: gray; }
         .modal { background: #fff; border-radius: 12px; padding: 18px; width: 95%; max-width: 720px; margin: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 10px; }
-        .modal-body { padding: 0 6px; }
-        .form { background: #fff; padding: 4px; }
-        .section-title { font-weight: 600; margin: 16px 0 8px; color: #222; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
         .bmi-note { text-align: center; display: block; color: #0077b6; font-weight: 600; margin-top: 10px; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; }

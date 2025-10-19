@@ -65,7 +65,7 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <IonPage className="admin-layout">
       {/* HEADER */}
-      <IonHeader>
+      <IonHeader className="fixed-header">
         <IonToolbar>
           <div className="header-container">
             <div className="header-left">
@@ -101,8 +101,8 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </IonToolbar>
       </IonHeader>
 
-      {/* CONTENT */}
-      <IonContent fullscreen>
+      {/* MAIN CONTENT LAYOUT */}
+      <IonContent fullscreen scrollY={false}>
         <div className="layout-wrapper">
           {/* SIDEBAR */}
           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
@@ -112,31 +112,27 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <IonLabel>Dashboard</IonLabel>
               </button>
 
+              <button className="side-item" onClick={() => goTo("/adminuserpage")}>
+                <IonIcon icon={peopleOutline} />
+                <IonLabel>User Management</IonLabel>
+              </button>
+
               <button className="side-item" onClick={() => goTo("/adminmaterials")}>
                 <IonIcon icon={libraryOutline} />
                 <IonLabel>Educational Materials</IonLabel>
               </button>
 
-              {/* Shared Risk Reports */}
+              {role === "admin" && (
+                <button className="side-item" onClick={() => goTo("/adminchatbotqa")}>
+                  <IonIcon icon={chatbubblesOutline} />
+                  <IonLabel>Chatbot Q&A</IonLabel>
+                </button>
+              )}
+
               <button className="side-item" onClick={() => goTo("/adminrisks")}>
                 <IonIcon icon={alertCircleOutline} />
                 <IonLabel>Risk Reports</IonLabel>
               </button>
-
-              {/* Admin-only sections */}
-              {role === "admin" && (
-                <>
-                  <button className="side-item" onClick={() => goTo("/adminchatbotqa")}>
-                    <IonIcon icon={chatbubblesOutline} />
-                    <IonLabel>Chatbot Q&A</IonLabel>
-                  </button>
-
-                  <button className="side-item" onClick={() => goTo("/adminuserpage")}>
-                    <IonIcon icon={peopleOutline} />
-                    <IonLabel>User Management</IonLabel>
-                  </button>
-                </>
-              )}
 
               <IonButton
                 fill="clear"
@@ -150,72 +146,112 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </nav>
           </aside>
 
-          {/* MAIN */}
-          <main className="main-content">{children}</main>
+          {/* SCROLLABLE MAIN CONTENT */}
+          <main className="main-content">
+            <div className="main-scroll">{children}</div>
+          </main>
         </div>
       </IonContent>
 
-      {/* INLINE STYLE */}
+      {/* STYLES */}
       <style>{`
         .admin-layout {
           --ion-background-color: #fff7fa;
           font-family: 'Poppins', sans-serif;
         }
+
+        /* ===== HEADER ===== */
+        .fixed-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 1100;
+          background-color: #fff;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
         .header-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 0 16px;
+          height: 60px;
         }
+
         .logo-section {
           display: flex;
           align-items: center;
           cursor: pointer;
         }
+
         .logo {
           width: 38px;
           height: 38px;
           margin-right: 8px;
         }
+
         .app-title {
           font-weight: 600;
           font-size: 1.1rem;
           color: #d5649f;
         }
+
         .user-profile {
           display: flex;
           align-items: center;
           gap: 10px;
         }
+
         .profile-photo {
           width: 38px;
           height: 38px;
           border-radius: 50%;
           object-fit: cover;
         }
+
         .profile-name {
           margin: 0;
           font-weight: 600;
           color: #6a3a55;
         }
+
         .profile-role {
           font-size: 0.8rem;
           color: #999;
           margin: 0;
         }
+
+        /* ===== LAYOUT ===== */
         .layout-wrapper {
           display: flex;
+          height: 100vh;
+          overflow: hidden;
+          margin-top: 60px; /* offset for fixed header */
         }
+
+        /* ===== SIDEBAR ===== */
         .sidebar {
           width: 240px;
           background: #fff;
           border-right: 1px solid #f2d9e5;
           padding: 20px 10px;
+          position: fixed;
+          top: 60px;
+          bottom: 0;
+          left: 0;
+          overflow-y: auto;
           transition: transform 0.3s ease-in-out;
         }
-        .sidebar.open {
-          transform: translateX(0);
+
+        .sidebar::-webkit-scrollbar {
+          width: 6px;
         }
+        .sidebar::-webkit-scrollbar-thumb {
+          background: #e1bfd3;
+          border-radius: 10px;
+        }
+
         .side-item {
           display: flex;
           align-items: center;
@@ -229,32 +265,49 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           border-radius: 10px;
           transition: all 0.2s ease;
         }
+
         .side-item:hover {
           background: #f8e5f0;
           color: #d5649f;
         }
+
         .logout-btn {
           margin-top: 20px;
           width: 100%;
         }
+
+        /* ===== MAIN CONTENT ===== */
         .main-content {
           flex: 1;
+          margin-left: 240px;
           padding: 25px;
+          overflow-y: auto;
+          height: calc(100vh - 60px);
+          background-color: #fff7fa;
         }
+
+        .main-content::-webkit-scrollbar {
+          width: 8px;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+          background: #e2b8cf;
+          border-radius: 6px;
+        }
+
+        /* ===== RESPONSIVE ===== */
         .mobile-only {
           display: none;
         }
         @media (max-width: 768px) {
           .sidebar {
-            position: fixed;
-            height: 100%;
-            top: 0;
-            left: 0;
             transform: translateX(-100%);
             z-index: 1000;
           }
           .sidebar.open {
             transform: translateX(0);
+          }
+          .main-content {
+            margin-left: 0;
           }
           .mobile-only {
             display: block;

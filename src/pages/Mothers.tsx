@@ -50,6 +50,8 @@ const Mothers: React.FC = () => {
   const [toastMsg, setToastMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
+
 
   const [formData, setFormData] = useState<Mother>({
     first_name: "",
@@ -286,41 +288,71 @@ const Mothers: React.FC = () => {
             <IonSpinner name="dots" />
           </div>
         ) : (
-          <div className="mother-list">
-            {filteredMothers.map((m) => (
-              <div key={m.mother_id} className="mother-card">
-                <h3>
-                  {m.first_name} {m.middle_name?.charAt(0)}. {m.last_name}
-                </h3>
-                <p>
-                  <strong>Age:</strong> {m.age} | <strong>Status:</strong>{" "}
-                  {m.civil_status}
-                </p>
-                <p>
-                  <strong>Address:</strong> {m.address}
-                </p>
-                <p>
-                  <strong>Contact:</strong> {m.contact_number}
-                </p>
-                <p>
-                  <strong>Email:</strong> {m.users?.email || ""}
-                </p>
-                <p>
-                  <strong>LMP:</strong> {m.lmp_date || ""}
-                </p>
-                <p>
-                  <strong>EDC:</strong> {m.edc || ""}
-                </p>
-                <p>
-                  <strong>GPA:</strong> {m.gpa || ""}
-                </p>
-                <p>
-                  <strong>AOG:</strong> {m.aog || ""}
-                </p>
-              </div>
-            ))}
+          <div className="table-wrap">
+            <table className="mother-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Status</th>
+                  <th>Contact</th>
+                  <th>EDC</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMothers.map((m) => (
+                  <tr
+                    key={m.mother_id}
+                    className="clickable-row"
+                    onClick={() => setSelectedMother(m)}
+                  >
+                    <td>
+                      {m.first_name} {m.middle_name?.charAt(0)}. {m.last_name}
+                    </td>
+                    <td>{m.age}</td>
+                    <td>{m.civil_status}</td>
+                    <td>{m.contact_number}</td>
+                    <td>{m.edc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+
+        {/* Full info modal */}
+        <IonModal isOpen={!!selectedMother} onDidDismiss={() => setSelectedMother(null)}>
+          <div className="modal-overlay">
+            <div className="modal-container" style={{ maxWidth: 720 }}>
+              <div className="modal-header">
+                <h2>
+                  {selectedMother?.first_name}{" "}
+                  {selectedMother?.middle_name?.charAt(0)}.{" "}
+                  {selectedMother?.last_name}
+                </h2>
+                <IonButton fill="clear" onClick={() => setSelectedMother(null)}>
+                  <IonIcon icon={closeOutline} />
+                </IonButton>
+              </div>
+              <div className="modal-body">
+                <p><strong>Age:</strong> {selectedMother?.age}</p>
+                <p><strong>Status:</strong> {selectedMother?.civil_status}</p>
+                <p><strong>Address:</strong> {selectedMother?.address}</p>
+                <p><strong>Contact:</strong> {selectedMother?.contact_number}</p>
+                <p><strong>Email:</strong> {selectedMother?.users?.email}</p>
+                <p><strong>LMP:</strong> {selectedMother?.lmp_date}</p>
+                <p><strong>EDC:</strong> {selectedMother?.edc}</p>
+                <p><strong>GPA:</strong> {selectedMother?.gpa}</p>
+                <p><strong>AOG:</strong> {selectedMother?.aog}</p>
+              </div>
+              <div className="modal-footer">
+                <IonButton onClick={() => setSelectedMother(null)} className="btn-cancel">
+                  Close
+                </IonButton>
+              </div>
+            </div>
+          </div>
+        </IonModal>
 
         <IonModal
           isOpen={showModal}
@@ -514,7 +546,7 @@ const Mothers: React.FC = () => {
                   </section>
                 </IonList>
               </div>
-
+ 
               <div className="modal-footer">
                 <IonButton
                   className="btn-cancel"
@@ -539,24 +571,16 @@ const Mothers: React.FC = () => {
       </IonContent>
 
       <style>{`/* ---------- PAGE CONTENT ---------- */
-.page-content { 
-  padding: 16px; 
-  background: #f8f9fb; 
-}
+       .page-content { padding: 16px; background: #f8f9fb; }
+       .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+       .btn-register { background: #2bbf6d; border-radius: 12px; color: #fff; font-weight: 600; }
 
-.toolbar { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 10px; 
-}
-
-.btn-register { 
-  background: #2bbf6d; 
-  border-radius: 12px; 
-  color: #fff; 
-  font-weight: 600; 
-}
+       /* TABLE */
+       .table-wrap { overflow-x: auto; }
+       .mother-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; }
+       .mother-table th, .mother-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eee; }
+       .mother-table th { background: #f3f5f7; font-weight: 600; }
+       .clickable-row:hover { background: #f9fdf9; cursor: pointer; }
 
 .mother-list { 
   display: grid; 

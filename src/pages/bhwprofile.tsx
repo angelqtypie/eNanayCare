@@ -151,23 +151,7 @@ const BhwProfile: React.FC = () => {
               />
             </IonItem>
 
-            <div className="toggles">
-              <IonItem lines="none">
-                <IonLabel>Notifications</IonLabel>
-                <IonToggle
-                  checked={notifications}
-                  onIonChange={(e) => setNotifications(e.detail.checked)}
-                />
-              </IonItem>
-              <IonItem lines="none">
-                <IonLabel>Dark Mode</IonLabel>
-                <IonToggle
-                  checked={darkMode}
-                  onIonChange={(e) => setDarkMode(e.detail.checked)}
-                />
-              </IonItem>
-            </div>
-
+          
             <div className="button-group">
               <IonButton expand="block" color="primary" onClick={saveProfile}>
                 Save Profile

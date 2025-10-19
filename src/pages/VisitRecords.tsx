@@ -21,7 +21,20 @@ const VisitRecords: React.FC = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Fetch visits with filter (Week / Month / Year / All)
+  // Format date & time (local readable)
+  const formatDateTime = (dateTime: string) => {
+    if (!dateTime) return "-";
+    const d = new Date(dateTime);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Fetch visits with filter
   useEffect(() => {
     const fetchVisits = async () => {
       setLoading(true);
@@ -42,8 +55,20 @@ const VisitRecords: React.FC = () => {
 
       let query = supabase
         .from("health_records")
-        .select(`id, mother_id, encounter_date, notes, mothers(name)`)
-        .order("encounter_date", { ascending: false });
+        .select(
+          `
+          id,
+          mother_id,
+          encounter_date,
+          notes,
+          created_at,
+          mothers (
+            first_name,
+            last_name
+          )
+        `
+        )
+        .order("created_at", { ascending: false });
 
       if (startDate) query = query.gte("encounter_date", startDate);
 
@@ -63,13 +88,14 @@ const VisitRecords: React.FC = () => {
   }, [filter]);
 
   // Search filter
-  const filteredRecords = records.filter(
-    (r) =>
-      r.mothers?.name?.toLowerCase().includes(search.toLowerCase()) ||
+  const filteredRecords = records.filter((r) => {
+    const name = `${r.mothers?.first_name || ""} ${r.mothers?.last_name || ""}`.toLowerCase();
+    return (
+      name.includes(search.toLowerCase()) ||
       r.notes?.toLowerCase().includes(search.toLowerCase())
-  );
+    );
+  });
 
-  // Count total visits
   const totalVisits = filteredRecords.length;
 
   return (
@@ -80,14 +106,13 @@ const VisitRecords: React.FC = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
       >
-        {/* HEADER */}
+        {/* Header */}
         <div className="visit-header">
           <h1>
-            Health Visit Records <IonIcon icon={medkitOutline} className="icon" />
+            Visit Records <IonIcon icon={medkitOutline} className="icon" />
           </h1>
 
           <div className="filter-container">
-            <span>Filter by:</span>
             <IonSelect
               value={filter}
               onIonChange={(e) => setFilter(e.detail.value)}
@@ -102,15 +127,14 @@ const VisitRecords: React.FC = () => {
           </div>
         </div>
 
-        {/* VISIT LOGBOOK CARD */}
+        {/* Visit Logbook */}
         <IonCard className="records-card">
           <IonCardHeader>
             <IonCardTitle>
-              Visit Logbook
               <div className="search-bar">
                 <IonIcon icon={searchOutline} className="search-icon" />
                 <IonInput
-                  placeholder="Search by name, purpose or notes..."
+                  placeholder="Search by mother or notes..."
                   value={search}
                   onIonChange={(e) => setSearch(e.detail.value!)}
                   className="search-input"
@@ -131,19 +155,26 @@ const VisitRecords: React.FC = () => {
                 <p className="visit-count">
                   Total Visits: <strong>{totalVisits}</strong>
                 </p>
+
                 <table className="visit-table">
                   <thead>
                     <tr>
                       <th>Mother</th>
                       <th>Encounter Date</th>
+                      <th>Recorded At</th>
                       <th>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredRecords.map((rec) => (
                       <tr key={rec.id}>
-                        <td>{rec.mothers?.name || "Unknown"}</td>
+                        <td>
+                          {rec.mothers
+                            ? `${rec.mothers.first_name} ${rec.mothers.last_name}`
+                            : "Unknown"}
+                        </td>
                         <td>{rec.encounter_date}</td>
+                        <td>{formatDateTime(rec.created_at)}</td>
                         <td>{rec.notes || "-"}</td>
                       </tr>
                     ))}
@@ -154,7 +185,7 @@ const VisitRecords: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
-        {/* STYLES */}
+        {/* Inline Styles */}
         <style>{`
           .visit-records-container {
             padding: 1.5rem;
@@ -170,6 +201,7 @@ const VisitRecords: React.FC = () => {
             display: flex;
             align-items: center;
             gap: 0.4rem;
+            color: #1e293b;
           }
           .filter-container {
             display: flex;
@@ -215,7 +247,11 @@ const VisitRecords: React.FC = () => {
             font-weight: bold;
           }
           .visit-table tr:nth-child(even) {
-            background-color: #fafafa;
+            background-color: #f9fafb;
+          }
+          .visit-table td {
+            font-size: 0.9rem;
+            color: #374151;
           }
           .loading-container {
             display: flex;

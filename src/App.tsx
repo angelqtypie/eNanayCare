@@ -29,6 +29,10 @@ import BhwProfile from "./pages/bhwprofile";
 import VisitRecords from "./pages/VisitRecords";
 import PrenatalRecords from "./pages/PrenatalRecords";
 import AdminChatbotQA from "./pages/AdminChatbotQA";
+import AdminRisks from "./pages/AdminRisks";
+import RiskMonitoring from "./pages/RiskMonitoring";
+
+
 
 
 /* Ionic Core CSS */
@@ -70,11 +74,13 @@ const App: React.FC = () => (
         <Route exact path="/educationalmaterials" component={EducationalMaterials} />
         <Route exact path="/motherappoinments" component={motherappoinments} />
         <Route exact path="/healthrecords" component={HealthRecords} />   
+        <Route exact path="/riskmonitoring" component={RiskMonitoring} />   
         <Route exact path="/visitrecords" component={VisitRecords} />  
         <Route exact path="/bhwprofile" component={BhwProfile} />
         <Route exact path="/adminchatbotqa" component={AdminChatbotQA} />   
         <Route exact path="/prenatal-records" component={PrenatalRecords} />  
         <Route exact path="/mothersProfile" component={MothersProfile} />
+        <Route exact path="/adminrisks" component={AdminRisks} />
         <Route exact path="/adminmaterials" component={AdminMaterials} />
         <Route exact path="/mothersCalendar" component={MothersCalendar} />      
         <Route exact path="/landingpage" component={LandingPage} />

@@ -1,11 +1,10 @@
-// src/pages/DashboardAdmin.tsx
 import React, { useEffect, useState } from "react";
 import { IonIcon } from "@ionic/react";
 import {
   peopleCircleOutline,
   bookOutline,
-  calendarOutline,
   documentTextOutline,
+  analyticsOutline,
 } from "ionicons/icons";
 import { motion } from "framer-motion";
 import { useHistory } from "react-router-dom";
@@ -15,7 +14,6 @@ import "./DashboardAdmin.css";
 
 const DashboardAdmin: React.FC = () => {
   const history = useHistory();
-
   const [counts, setCounts] = useState({
     total: 0,
     bhw: 0,
@@ -23,107 +21,173 @@ const DashboardAdmin: React.FC = () => {
     admins: 0,
     materials: 0,
     reports: 0,
-    schedules: 0,
   });
 
+  const [recentReports, setRecentReports] = useState<any[]>([]);
+
   const fetchCounts = async () => {
-    const { data: users } = await supabase.from("users").select("role");
-    const { count: materials } = await supabase
-      .from("materials")
-      .select("*", { count: "exact", head: true });
-    const { count: reports } = await supabase
-      .from("reports")
-      .select("*", { count: "exact", head: true });
-    const { count: schedules } = await supabase
-      .from("schedules")
-      .select("*", { count: "exact", head: true });
+    try {
+      const { data: users, error: userError } = await supabase
+        .from("users")
+        .select("role");
 
-    if (users) {
-      const total = users.length;
-      const bhw = users.filter((u: any) => u.role === "bhw").length;
-      const mothers = users.filter((u: any) => u.role === "mother").length;
-      const admins = users.filter((u: any) => u.role === "admin").length;
+      const { count: materials, error: materialError } = await supabase
+        .from("educational_materials") // ✅ Fixed table name
+        .select("*", { count: "exact", head: true });
 
-      setCounts({
-        total,
-        bhw,
-        mothers,
-        admins,
-        materials: materials || 0,
-        reports: reports || 0,
-        schedules: schedules || 0,
-      });
+      const { count: reports, error: reportError } = await supabase
+        .from("reports") // ✅ Make sure this table exists
+        .select("*", { count: "exact", head: true });
+
+      if (userError || materialError || reportError) {
+        console.error("Fetch errors:", {
+          userError,
+          materialError,
+          reportError,
+        });
+        return;
+      }
+
+      if (users) {
+        const total = users.length;
+        const bhw = users.filter((u: any) => u.role === "bhw").length;
+        const mothers = users.filter((u: any) => u.role === "mother").length;
+        const admins = users.filter((u: any) => u.role === "admin").length;
+
+        setCounts({
+          total,
+          bhw,
+          mothers,
+          admins,
+          materials: materials || 0,
+          reports: reports || 0,
+        });
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching counts:", err);
+    }
+  };
+
+  const fetchRecentReports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("reports") // ✅ Make sure this table exists
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (error) {
+        console.error("Error fetching recent reports:", error);
+        return;
+      }
+
+      if (data) setRecentReports(data);
+    } catch (err) {
+      console.error("Unexpected error fetching recent reports:", err);
     }
   };
 
   useEffect(() => {
     fetchCounts();
+    fetchRecentReports();
   }, []);
 
   const cards = [
     {
       title: "Users",
-      subtitle: `${counts.bhw} BHWs / ${counts.mothers} Mothers / ${counts.admins} Admins`,
+      subtitle: `${counts.bhw} BHWs • ${counts.mothers} Mothers • ${counts.admins} Admins`,
       value: counts.total,
       icon: peopleCircleOutline,
-      color: "#007bff",
+      gradient: "linear-gradient(135deg, #ffb6c1, #ff66a3)",
       link: "/adminuserpage",
     },
     {
       title: "Materials",
-      subtitle: "Uploaded",
+      subtitle: "Educational Uploads",
       value: counts.materials,
       icon: bookOutline,
-      color: "#28a745",
+      gradient: "linear-gradient(135deg, #9ae6b4, #38a169)",
       link: "/adminmaterials",
     },
     {
       title: "Reports",
-      subtitle: "Generated",
+      subtitle: "Generated Reports",
       value: counts.reports,
       icon: documentTextOutline,
-      color: "#6f42c1",
-      link: "/adminreports",
-    },
-    {
-      title: "Schedules",
-      subtitle: "Upcoming Events",
-      value: counts.schedules,
-      icon: calendarOutline,
-      color: "#ffc107",
-      link: "/adminschedule",
+      gradient: "linear-gradient(135deg, #b794f4, #553c9a)",
+      link: "/adminrisks",
     },
   ];
 
   return (
     <AdminMainLayout>
-      <div className="dashboard-header">
-        <h1>Good morning, Admin 👋</h1>
-        <p>Here’s an overview of system activity and quick navigation.</p>
-      </div>
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <div>
+            <h1>Welcome back, Admin</h1>
+          </div>
+          <div className="date-box">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </div>
+        </div>
 
-      <div className="dashboard-grid">
-        {cards.map((card, index) => (
-          <motion.div
-            key={index}
-            className="dashboard-card"
-            style={{ borderTopColor: card.color }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => history.push(card.link)}
-          >
-            <div className="card-content">
-              <div className="card-header">
-                <IonIcon icon={card.icon} style={{ color: card.color }} />
-                <h3>{card.title}</h3>
+        <motion.div
+          className="dashboard-grid"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {cards.map((card, i) => (
+            <motion.div
+              key={i}
+              className="dashboard-card"
+              style={{ background: card.gradient }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => history.push(card.link)}
+            >
+              <div className="card-top">
+                <IonIcon icon={card.icon} className="icon" />
+                <h2>{card.title}</h2>
               </div>
-              <p className="card-subtitle">{card.subtitle}</p>
-              <div className="card-footer" style={{ color: card.color }}>
-                <span className="card-value">{card.value}</span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+              <p>{card.subtitle}</p>
+              <span className="count">{card.value}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <div className="recent-section">
+          <h2>
+            <IonIcon icon={analyticsOutline} /> Recent Reports
+          </h2>
+
+          {recentReports.length > 0 ? (
+            <table className="recent-table">
+              <thead>
+                <tr>
+                  <th>Report Title</th>
+                  <th>Date Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentReports.map((report, idx) => (
+                  <tr key={idx}>
+                    <td>{report.title || "Untitled Report"}</td>
+                    <td>
+                      {new Date(report.created_at).toLocaleDateString("en-US")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="no-data">No reports found.</p>
+          )}
+        </div>
       </div>
     </AdminMainLayout>
   );

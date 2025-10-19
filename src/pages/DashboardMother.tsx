@@ -1,4 +1,3 @@
-// src/pages/DashboardMother.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonContent,
@@ -6,6 +5,8 @@ import {
   IonCardContent,
   IonIcon,
   IonSpinner,
+  IonModal,
+  IonButton,
 } from "@ionic/react";
 import {
   calendarOutline,
@@ -13,20 +14,46 @@ import {
   bulbOutline,
   bandageOutline,
   statsChartOutline,
+  checkmarkCircleOutline,
+  closeCircleOutline,
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import MotherMainLayout from "../layouts/MotherMainLayout";
 import { supabase } from "../utils/supabaseClient";
 import "./DashboardMother.css";
 
+interface Appointment {
+  date: string;
+  time: string | null;
+  status: string;
+}
+
+interface HealthRecord {
+  bp: string | null;
+  weight: number | null;
+  encounter_date: string;
+  tt_status: string | null;
+}
+
+interface ImmunizationItem {
+  name: string;
+  status: "Completed" | "Pending";
+  date: string | null;
+}
+
 const DashboardMother: React.FC = () => {
   const history = useHistory();
 
   const [motherName, setMotherName] = useState("Mommy");
   const [dailyTip, setDailyTip] = useState("");
-  const [appointment, setAppointment] = useState<any>(null);
-  const [healthRecord, setHealthRecord] = useState<any>(null);
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [pastAppointments, setPastAppointments] = useState<Appointment[]>([]);
+  const [healthRecord, setHealthRecord] = useState<HealthRecord | null>(null);
+  const [pastVisits, setPastVisits] = useState<HealthRecord[]>([]);
   const [summary, setSummary] = useState({ totalVisits: 0, totalAppointments: 0 });
+  const [immunizations, setImmunizations] = useState<ImmunizationItem[]>([]);
+  const [showImmunizationModal, setShowImmunizationModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fallbackTips = [
@@ -39,22 +66,30 @@ const DashboardMother: React.FC = () => {
     "Avoid stress — meditation and calm music help.",
     "Talk to your baby — it helps bonding early.",
     "Get enough sleep — your body needs rest.",
-    "Eat iron-rich foods like spinach and red meat to prevent anemia.",
   ];
 
-  /** Get mother_id and nickname */
+  /** 🔹 Format Time */
+  const formatTime = (time: string | null) => {
+    if (!time || time === "00:00:00" || time === "00:00") return "To be announced";
+    const [hour, minute] = time.split(":");
+    const d = new Date();
+    d.setHours(Number(hour), Number(minute));
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  /** 🔹 Fetch Mother Info */
   const fetchMotherProfile = async (): Promise<string | null> => {
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) return null;
 
-      const { data: mother, error: motherError } = await supabase
+      const { data: mother } = await supabase
         .from("mothers")
         .select("mother_id")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (motherError || !mother) return null;
+      if (!mother) return null;
 
       const { data: settings } = await supabase
         .from("mother_settings")
@@ -65,130 +100,133 @@ const DashboardMother: React.FC = () => {
       setMotherName(settings?.nickname || "Mommy");
       return mother.mother_id;
     } catch (err) {
-      console.error("fetchMotherProfile error:", err);
+      console.error(err);
       return null;
     }
   };
 
-  /** Get next upcoming appointment */
-  const fetchNextAppointment = async (motherId: string) => {
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("date, time, status")
-        .eq("mother_id", motherId)
-        .gte("date", today)
-        .order("date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+  /** 🔹 Next + Past Appointments */
+  const fetchAppointments = async (motherId: string) => {
+    const today = new Date().toISOString().split("T")[0];
 
-      if (error) throw error;
-      setAppointment(data);
-    } catch (err) {
-      console.error("fetchNextAppointment error:", err);
-      setAppointment(null);
+    const { data: upcoming } = await supabase
+      .from("appointments")
+      .select("date, time, status")
+      .eq("mother_id", motherId)
+      .gte("date", today)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: past } = await supabase
+      .from("appointments")
+      .select("date, time, status")
+      .eq("mother_id", motherId)
+      .lt("date", today)
+      .order("date", { ascending: false });
+
+    setAppointment(upcoming || null);
+    setPastAppointments(past || []);
+  };
+
+  /** 🔹 Health Records + Past Visits */
+  const fetchHealthRecords = async (motherId: string) => {
+    const { data } = await supabase
+      .from("health_records")
+      .select("bp, weight, encounter_date, tt_status")
+      .eq("mother_id", motherId)
+      .order("encounter_date", { ascending: false });
+
+    if (data?.length) {
+      setHealthRecord(data[0]);
+      setPastVisits(data.slice(1));
+      setSummary((s) => ({ ...s, totalVisits: data.length }));
     }
   };
 
-  /** Get latest health record */
-  const fetchLatestHealthRecord = async (motherId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("health_records")
-        .select("bp, weight, encounter_date")
-        .eq("mother_id", motherId)
-        .order("encounter_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  /** 🔹 Immunization (TT1, TT2) */
+  const fetchImmunization = async (motherId: string) => {
+    const { data } = await supabase
+      .from("health_records")
+      .select("tt_status, encounter_date")
+      .eq("mother_id", motherId)
+      .order("encounter_date", { ascending: false });
 
-      if (error) throw error;
-      setHealthRecord(data);
-    } catch (err) {
-      console.error("fetchLatestHealthRecord error:", err);
-      setHealthRecord(null);
+    interface TTRecord {
+      tt_status: string | null;
+      encounter_date: string;
     }
+
+    const ttList = ["TT1", "TT2"];
+    const immunizationList: ImmunizationItem[] = ttList.map((tt) => {
+      const found = (data as TTRecord[] | null)?.find(
+        (d: TTRecord) => d.tt_status === tt
+      );
+      return {
+        name: tt,
+        status: found ? "Completed" : "Pending",
+        date: found ? found.encounter_date : null,
+      };
+    });
+
+    setImmunizations(immunizationList);
   };
 
-  /** Fetch visit summary (appointments & visits) */
+  /** 🔹 Summary Count */
   const fetchSummary = async (motherId: string) => {
-    try {
-      const [{ count: totalAppointments }, { count: totalVisits }] =
-        await Promise.all([
-          supabase
-            .from("appointments")
-            .select("*", { count: "exact", head: true })
-            .eq("mother_id", motherId),
-          supabase
-            .from("visit_records")
-            .select("*", { count: "exact", head: true })
-            .eq("mother_id", motherId),
-        ]);
-      setSummary({
-        totalAppointments: totalAppointments || 0,
-        totalVisits: totalVisits || 0,
-      });
-    } catch (err) {
-      console.error("fetchSummary error:", err);
-    }
+    const { count: totalAppointments } = await supabase
+      .from("appointments")
+      .select("*", { count: "exact", head: true })
+      .eq("mother_id", motherId);
+
+    setSummary((s) => ({ ...s, totalAppointments: totalAppointments || 0 }));
   };
 
-  /** Random maternal health tip */
+  /** 🔹 Daily Tip */
   const fetchDailyTip = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("educational_materials")
-        .select("content")
-        .eq("is_published", true)
-        .ilike("category", "%Maternal Health%");
+    const { data } = await supabase
+      .from("educational_materials")
+      .select("content")
+      .eq("is_published", true)
+      .ilike("category", "%Maternal Health%");
 
-      if (error || !data?.length) {
-        setDailyTip(
-          fallbackTips[Math.floor(Math.random() * fallbackTips.length)]
-        );
-      } else {
-        const randomTip = data[Math.floor(Math.random() * data.length)].content;
-        setDailyTip(randomTip);
-      }
-    } catch (err) {
-      console.error("fetchDailyTip error:", err);
+    if (data?.length) {
+      const random = data[Math.floor(Math.random() * data.length)].content;
+      setDailyTip(random);
+    } else {
       setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
     }
   };
 
-  /** Load all data */
+  /** 🔹 Load All Data */
   const loadDashboardData = async () => {
     setLoading(true);
-    const motherId = await fetchMotherProfile();
-    if (motherId) {
+    const id = await fetchMotherProfile();
+    if (id) {
       await Promise.all([
-        fetchNextAppointment(motherId),
-        fetchLatestHealthRecord(motherId),
-        fetchSummary(motherId),
+        fetchAppointments(id),
+        fetchHealthRecords(id),
+        fetchImmunization(id),
+        fetchSummary(id),
         fetchDailyTip(),
       ]);
-    } else {
-      await fetchDailyTip();
-    }
+    } else await fetchDailyTip();
     setLoading(false);
   };
 
-  /** Initial load + auto-refresh every 60s */
   useEffect(() => {
     loadDashboardData();
     const interval = setInterval(loadDashboardData, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  const latestTT = immunizations.find((i) => i.status === "Completed");
+
   return (
     <MotherMainLayout>
-      <IonContent className="dashboard-content" scrollY={true} forceOverscroll={false}>
+      <IonContent className="dashboard-content" scrollY>
+        {/* Header */}
         <div className="header-gradient">
-          <div className="floating-decor decor-1"></div>
-          <div className="floating-decor decor-2"></div>
-          <div className="floating-decor decor-3"></div>
-          <div className="floating-decor decor-4"></div>
-
           <div className="header-text">
             <h2>
               Hello, <span>{motherName}</span>
@@ -197,11 +235,11 @@ const DashboardMother: React.FC = () => {
           </div>
         </div>
 
-        {/* Summary Section */}
+        {/* Summary */}
         <div className="summary-section">
           <IonCard className="summary-card">
             <IonCardContent>
-            <IonIcon icon={statsChartOutline} />
+              <IonIcon icon={statsChartOutline} />
               <div className="summary-stats">
                 <div>
                   <h4>{summary.totalAppointments}</h4>
@@ -216,31 +254,32 @@ const DashboardMother: React.FC = () => {
           </IonCard>
         </div>
 
-        {/* Functional Cards */}
+        {/* Cards */}
         <div className="cards-grid">
+          {/* Appointment */}
           <IonCard
             className="mother-card soft-pink"
             button
-            onClick={() => history.push("/motherscalendar")}
+            onClick={() => setShowHistoryModal(true)}
           >
             <IonCardContent>
               <IonIcon icon={calendarOutline} className="card-icon" />
-              <h3>Appointment</h3>
+              <h3>Appointments</h3>
               {appointment ? (
                 <>
                   <p>
-                    Next check-up:{" "}
                     {new Date(appointment.date).toLocaleDateString()} •{" "}
-                    {appointment.time || "TBA"}
+                    {formatTime(appointment.time)}
                   </p>
                   <span className="status">{appointment.status}</span>
                 </>
               ) : (
-                <p>No appointment scheduled</p>
+                <p>No upcoming appointments</p>
               )}
             </IonCardContent>
           </IonCard>
 
+          {/* Health Record */}
           <IonCard
             className="mother-card soft-lilac"
             button
@@ -248,18 +287,19 @@ const DashboardMother: React.FC = () => {
           >
             <IonCardContent>
               <IonIcon icon={heartOutline} className="card-icon" />
-              <h3>Health Records</h3>
+              <h3>Health Record</h3>
               {healthRecord ? (
                 <p>
                   BP: {healthRecord.bp || "-"} | Weight:{" "}
                   {healthRecord.weight ? `${healthRecord.weight}kg` : "-"}
                 </p>
               ) : (
-                <p>No recent records</p>
+                <p>No health data yet</p>
               )}
             </IonCardContent>
           </IonCard>
 
+          {/* Daily Tip */}
           <IonCard className="mother-card clean-white">
             <IonCardContent>
               <IonIcon icon={bulbOutline} className="card-icon" />
@@ -268,18 +308,116 @@ const DashboardMother: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
+          {/* Immunization */}
           <IonCard
             className="mother-card soft-rose"
             button
-            onClick={() => history.push("/motherimmunization")}
+            onClick={() => setShowImmunizationModal(true)}
           >
             <IonCardContent>
               <IonIcon icon={bandageOutline} className="card-icon" />
               <h3>Immunization</h3>
-              <p>Check upcoming vaccines</p>
+              {latestTT ? (
+                <p>
+                  Last: {latestTT.name} •{" "}
+                  {latestTT.date
+                    ? new Date(latestTT.date).toLocaleDateString()
+                    : ""}
+                </p>
+              ) : (
+                <p>No TT record yet</p>
+              )}
             </IonCardContent>
           </IonCard>
         </div>
+
+        {/* ✅ Clean Small Immunization Modal */}
+        <IonModal
+          isOpen={showImmunizationModal}
+          onDidDismiss={() => setShowImmunizationModal(false)}
+          className="small-modal no-overlay"
+        >
+          <div className="immunization-modal small">
+            <h2>
+              <IonIcon icon={bandageOutline} /> TT Immunization
+            </h2>
+            <ul>
+              {immunizations.map((item) => (
+                <li
+                  key={item.name}
+                  className={item.status === "Completed" ? "done" : "pending"}
+                >
+                  <IonIcon
+                    icon={
+                      item.status === "Completed"
+                        ? checkmarkCircleOutline
+                        : closeCircleOutline
+                    }
+                  />
+                  <div>
+                    <strong>{item.name}</strong>
+                    <p>
+                      {item.status}{" "}
+                      {item.date &&
+                        `• ${new Date(item.date).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <IonButton
+              expand="block"
+              onClick={() => setShowImmunizationModal(false)}
+            >
+              Close
+            </IonButton>
+          </div>
+        </IonModal>
+
+        {/* History Modal */}
+        <IonModal
+          isOpen={showHistoryModal}
+          onDidDismiss={() => setShowHistoryModal(false)}
+        >
+          <div className="history-modal">
+            <h2>
+              <IonIcon icon={calendarOutline} /> Appointment & Visit History
+            </h2>
+
+            <h3>Past Appointments</h3>
+            {pastAppointments.length > 0 ? (
+              <ul>
+                {pastAppointments.map((a, i) => (
+                  <li key={i}>
+                    {new Date(a.date).toLocaleDateString()} •{" "}
+                    {formatTime(a.time)} - {a.status}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No past appointments.</p>
+            )}
+
+            <h3>Past Visits</h3>
+            {pastVisits.length > 0 ? (
+              <ul>
+                {pastVisits.map((v, i) => (
+                  <li key={i}>
+                    {new Date(v.encounter_date).toLocaleDateString()} • BP:{" "}
+                    {v.bp || "-"} | Weight:{" "}
+                    {v.weight ? `${v.weight}kg` : "-"}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No previous visits.</p>
+            )}
+
+            <IonButton expand="block" onClick={() => setShowHistoryModal(false)}>
+              Close
+            </IonButton>
+          </div>
+        </IonModal>
       </IonContent>
     </MotherMainLayout>
   );

@@ -1,4 +1,4 @@
-// File: src/layouts/MainLayout.tsx
+// src/layouts/MainLayout.tsx
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
@@ -13,8 +13,6 @@ import {
   menuOutline,
   peopleOutline,
   calendarOutline,
-  notificationsOutline,
-  documentTextOutline,
   logOutOutline,
   pulseOutline,
   personCircleOutline,
@@ -60,27 +58,26 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <IonPage className="layout-page">
-      {/* HEADER */}
       <IonHeader className="layout-header">
-        <IonToolbar className="toolbar no-padding">
+        <IonToolbar className="toolbar">
           <div className="header-container">
             <div className="header-left">
+              {/* Mobile: Show menu icon */}
               <button
                 className="sidebar-toggle mobile-only"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
                 <IonIcon icon={menuOutline} />
               </button>
-              <img
-                src={logo}
-                alt="eNanayCare"
-                className="dashboard-logo"
-                onClick={() => goTo("/dashboardbhw")}
-              />
-              <span className="app-title">eNanayCare</span>
+
+              {/* Desktop: Show logo + title */}
+              <div className="desktop-only logo-title" onClick={() => goTo("/dashboardbhw")}>
+                <img src={logo} alt="eNanayCare" className="dashboard-logo" />
+                <span className="app-title">eNanayCare</span>
+              </div>
             </div>
 
-            <div className="header-right desktop-only">
+            <div className="header-right">
               <div
                 className="user-profile"
                 onClick={() => goTo("/bhwprofile")}
@@ -97,8 +94,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </IonToolbar>
       </IonHeader>
 
-      {/* CONTENT */}
-      <IonContent className="layout-content" fullscreen>
+      <IonContent className="layout-content" fullscreen scrollY={false}>
         <div className="dashboard-layout">
           {/* SIDEBAR */}
           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
@@ -115,19 +111,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <button className="side-item" onClick={() => goTo("/healthrecords")}>
                 <IonIcon icon={heartOutline} /> Health Records
               </button>
-              <button className="side-item" onClick={() => goTo("/notifications")}>
-                <IonIcon icon={notificationsOutline} /> Notifications
-              </button>
-              <button className="side-item" onClick={() => goTo("/reports")}>
-                <IonIcon icon={documentTextOutline} /> Reports
-              </button>
-              <button className="side-item" onClick={() => goTo("/riskmonitoring")}>
-                <IonIcon icon={pulseOutline} /> Risk Monitoring
-              </button>
               <button className="side-item" onClick={() => goTo("/bhwprofile")}>
                 <IonIcon icon={settingsOutline} /> Settings
               </button>
-
               <IonButton
                 className="logout-btn"
                 color="medium"
@@ -140,7 +126,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </nav>
           </aside>
 
-          {/* MAIN DASHBOARD CONTENT */}
+          {/* MAIN CONTENT */}
           <main className="main-dashboard">{children}</main>
         </div>
       </IonContent>
