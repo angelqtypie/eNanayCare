@@ -18,6 +18,7 @@ import {
   personCircleOutline,
   heartOutline,
   settingsOutline,
+  leafOutline, // 🌿 Added for Wellness Logs
 } from "ionicons/icons";
 import logo from "../assets/logo.svg";
 import "./MainLayout.css";
@@ -71,7 +72,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </button>
 
               {/* Desktop: Show logo + title */}
-              <div className="desktop-only logo-title" onClick={() => goTo("/dashboardbhw")}>
+              <div
+                className="desktop-only logo-title"
+                onClick={() => goTo("/dashboardbhw")}
+              >
                 <img src={logo} alt="eNanayCare" className="dashboard-logo" />
                 <span className="app-title">eNanayCare</span>
               </div>
@@ -99,21 +103,40 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {/* SIDEBAR */}
           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
             <nav className="sidebar-nav">
-              <button className="side-item" onClick={() => goTo("/dashboardbhw")}>
+              <button
+                className="side-item"
+                onClick={() => goTo("/dashboardbhw")}
+              >
                 <IonIcon icon={pulseOutline} /> Dashboard
               </button>
               <button className="side-item" onClick={() => goTo("/mothers")}>
                 <IonIcon icon={peopleOutline} /> Mothers
               </button>
-              <button className="side-item" onClick={() => goTo("/appointments")}>
+              <button
+                className="side-item"
+                onClick={() => goTo("/appointments")}
+              >
                 <IonIcon icon={calendarOutline} /> Appointments
               </button>
-              <button className="side-item" onClick={() => goTo("/healthrecords")}>
+              <button
+                className="side-item"
+                onClick={() => goTo("/healthrecords")}
+              >
                 <IonIcon icon={heartOutline} /> Health Records
               </button>
+
+              {/* 🌿 NEW: Wellness Logs */}
+              <button
+                className="side-item"
+                onClick={() => goTo("/wellnesslogs")}
+              >
+                <IonIcon icon={leafOutline} /> Wellness Logs
+              </button>
+
               <button className="side-item" onClick={() => goTo("/bhwprofile")}>
                 <IonIcon icon={settingsOutline} /> Settings
               </button>
+
               <IonButton
                 className="logout-btn"
                 color="medium"

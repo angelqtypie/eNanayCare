@@ -123,3 +123,52 @@
   text-align: center;
   padding: 15px;
 }
+.barangay-updates-section {
+  margin-top: 30px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.updates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.updates-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 15px;
+}
+
+.updates-list li {
+  margin-bottom: 10px;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-content {
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-icon {
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #666;
+}

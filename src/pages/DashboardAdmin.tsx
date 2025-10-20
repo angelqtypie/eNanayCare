@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { IonIcon } from "@ionic/react";
+import { IonIcon, IonButton, IonInput, IonTextarea, IonModal } from "@ionic/react";
 import {
   peopleCircleOutline,
   bookOutline,
   documentTextOutline,
   analyticsOutline,
+  megaphoneOutline,
+  addCircleOutline,
+  closeOutline,
 } from "ionicons/icons";
 import { motion } from "framer-motion";
 import { useHistory } from "react-router-dom";
@@ -22,31 +25,20 @@ const DashboardAdmin: React.FC = () => {
     materials: 0,
     reports: 0,
   });
-
   const [recentReports, setRecentReports] = useState<any[]>([]);
+  const [updates, setUpdates] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newUpdate, setNewUpdate] = useState({ title: "", description: "" });
 
   const fetchCounts = async () => {
     try {
-      const { data: users, error: userError } = await supabase
-        .from("users")
-        .select("role");
-
-      const { count: materials, error: materialError } = await supabase
-        .from("educational_materials") // ✅ Fixed table name
+      const { data: users } = await supabase.from("users").select("role");
+      const { count: materials } = await supabase
+        .from("educational_materials")
         .select("*", { count: "exact", head: true });
-
-      const { count: reports, error: reportError } = await supabase
-        .from("reports") // ✅ Make sure this table exists
+      const { count: reports } = await supabase
+        .from("reports")
         .select("*", { count: "exact", head: true });
-
-      if (userError || materialError || reportError) {
-        console.error("Fetch errors:", {
-          userError,
-          materialError,
-          reportError,
-        });
-        return;
-      }
 
       if (users) {
         const total = users.length;
@@ -64,32 +56,59 @@ const DashboardAdmin: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error("Unexpected error fetching counts:", err);
+      console.error("Error fetching counts:", err);
     }
   };
 
   const fetchRecentReports = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("reports") // ✅ Make sure this table exists
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(4);
+    const { data } = await supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(4);
+    if (data) setRecentReports(data);
+  };
 
-      if (error) {
-        console.error("Error fetching recent reports:", error);
-        return;
-      }
+  const fetchUpdates = async () => {
+    const { data, error } = await supabase
+      .from("barangay_updates")
+      .select("*")
+      .order("date_posted", { ascending: false });
+    if (error) console.error(error);
+    else setUpdates(data || []);
+  };
 
-      if (data) setRecentReports(data);
-    } catch (err) {
-      console.error("Unexpected error fetching recent reports:", err);
+  const handleAddUpdate = async () => {
+    if (!newUpdate.title || !newUpdate.description) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const { data: user } = await supabase.auth.getUser();
+    const postedBy = user?.user?.id || null;
+
+    const { error } = await supabase.from("barangay_updates").insert([
+      {
+        title: newUpdate.title,
+        description: newUpdate.description,
+        posted_by: postedBy,
+      },
+    ]);
+
+    if (error) {
+      alert("Failed to add update. Please try again.");
+      console.error(error);
+    } else {
+      setShowModal(false);
+      setNewUpdate({ title: "", description: "" });
+      fetchUpdates();
     }
   };
 
   useEffect(() => {
     fetchCounts();
     fetchRecentReports();
+    fetchUpdates();
   }, []);
 
   const cards = [
@@ -123,9 +142,7 @@ const DashboardAdmin: React.FC = () => {
     <AdminMainLayout>
       <div className="dashboard-container">
         <div className="dashboard-header">
-          <div>
-            <h1>Welcome back, Admin</h1>
-          </div>
+          <h1>Welcome back, Admin</h1>
           <div className="date-box">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
@@ -160,34 +177,68 @@ const DashboardAdmin: React.FC = () => {
           ))}
         </motion.div>
 
-        <div className="recent-section">
-          <h2>
-            <IonIcon icon={analyticsOutline} /> Recent Reports
-          </h2>
+        {/* ✅ Barangay Updates Section */}
+        <div className="barangay-updates-section">
+          <div className="updates-header">
+            <h2>
+              <IonIcon icon={megaphoneOutline} /> Barangay Updates
+            </h2>
+            <IonButton
+              color="primary"
+              onClick={() => setShowModal(true)}
+              className="add-btn"
+            >
+              <IonIcon icon={addCircleOutline} /> Add Update
+            </IonButton>
+          </div>
 
-          {recentReports.length > 0 ? (
-            <table className="recent-table">
-              <thead>
-                <tr>
-                  <th>Report Title</th>
-                  <th>Date Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentReports.map((report, idx) => (
-                  <tr key={idx}>
-                    <td>{report.title || "Untitled Report"}</td>
-                    <td>
-                      {new Date(report.created_at).toLocaleDateString("en-US")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {updates.length > 0 ? (
+            <ul className="updates-list">
+              {updates.map((update) => (
+                <li key={update.id}>
+                  <strong>{update.title}</strong> — {update.description}
+                  <br />
+                  <small>
+                    {new Date(update.date_posted).toLocaleString()}
+                  </small>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p className="no-data">No reports found.</p>
+            <p className="no-data">No updates posted yet.</p>
           )}
         </div>
+
+        {/* 🧩 Modal for Adding Update */}
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Add Barangay Update</h2>
+              <IonIcon
+                icon={closeOutline}
+                onClick={() => setShowModal(false)}
+                className="close-icon"
+              />
+            </div>
+            <IonInput
+              placeholder="Enter title"
+              value={newUpdate.title}
+              onIonChange={(e) =>
+                setNewUpdate({ ...newUpdate, title: e.detail.value! })
+              }
+            />
+            <IonTextarea
+              placeholder="Enter description"
+              value={newUpdate.description}
+              onIonChange={(e) =>
+                setNewUpdate({ ...newUpdate, description: e.detail.value! })
+              }
+            />
+            <IonButton expand="block" onClick={handleAddUpdate}>
+              Submit Update
+            </IonButton>
+          </div>
+        </IonModal>
       </div>
     </AdminMainLayout>
   );

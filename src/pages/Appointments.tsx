@@ -1,3 +1,4 @@
+// src/pages/Appointments.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonHeader,
@@ -44,12 +45,21 @@ const Appointments: React.FC = () => {
     return `${y}-${m}-${d}`;
   };
 
+  // --- Convert 24h time to 12h AM/PM ---
+  const formatTimeTo12Hour = (time: string) => {
+    if (!time) return "";
+    const [hourStr, minute] = time.split(":");
+    let hour = parseInt(hourStr, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute} ${ampm}`;
+  };
+
   const fetchMothers = async () => {
     const { data, error } = await supabase
       .from("mothers")
       .select("mother_id, first_name, last_name")
       .order("last_name", { ascending: true });
-
     if (error) console.error(error);
     setMothers(data || []);
   };
@@ -62,7 +72,6 @@ const Appointments: React.FC = () => {
         mother:mothers(first_name, last_name, mother_id)
       `)
       .order("date", { ascending: true });
-
     if (error) console.error(error);
     setAppointments(data || []);
   };
@@ -101,11 +110,7 @@ const Appointments: React.FC = () => {
     const confirmed = window.confirm("Are you sure you want to delete this appointment?");
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("appointments")
-      .delete()
-      .eq("id", id);
-
+    const { error } = await supabase.from("appointments").delete().eq("id", id);
     if (error) {
       console.error(error);
       alert("Failed to delete appointment.");
@@ -145,8 +150,7 @@ const Appointments: React.FC = () => {
               }}
               tileContent={({ date }) => {
                 const has = appointments.some(
-                  (a) =>
-                    new Date(a.date).toDateString() === date.toDateString()
+                  (a) => new Date(a.date).toDateString() === date.toDateString()
                 );
                 return has ? <div className="dot"></div> : null;
               }}
@@ -155,11 +159,7 @@ const Appointments: React.FC = () => {
                 return isToday ? "today-highlight" : null;
               }}
             />
-            <IonButton
-              expand="block"
-              className="add-btn"
-              onClick={() => setShowModal(true)}
-            >
+            <IonButton expand="block" className="add-btn" onClick={() => setShowModal(true)}>
               + New Appointment
             </IonButton>
           </div>
@@ -188,15 +188,11 @@ const Appointments: React.FC = () => {
                           : "N/A"}
                       </td>
                       <td>{a.date}</td>
-                      <td>{a.time}</td>
+                      <td>{formatTimeTo12Hour(a.time)}</td>
                       <td>{a.location}</td>
                       <td>{a.status}</td>
                       <td>
-                        <IonButton
-                          color="danger"
-                          size="small"
-                          onClick={() => deleteAppointment(a.id)}
-                        >
+                        <IonButton color="danger" size="small" onClick={() => deleteAppointment(a.id)}>
                           <IonIcon icon={trashOutline} />
                           &nbsp;Delete
                         </IonButton>
@@ -210,16 +206,11 @@ const Appointments: React.FC = () => {
         </div>
       </IonContent>
 
-      {/* Add Appointment Modal */}
       <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
         <div className="modal-container">
           <div className="modal-header">
             <h2>New Appointment</h2>
-            <IonButton
-              fill="clear"
-              color="medium"
-              onClick={() => setShowModal(false)}
-            >
+            <IonButton fill="clear" color="medium" onClick={() => setShowModal(false)}>
               <IonIcon icon={closeOutline} />
             </IonButton>
           </div>
@@ -284,7 +275,6 @@ const Appointments: React.FC = () => {
         </div>
       </IonModal>
 
-      {/* Styles */}
       <style>
         {`
           .page-title { padding: 10px 20px; font-weight: 600; }
@@ -299,35 +289,11 @@ const Appointments: React.FC = () => {
             padding: 10px; border-bottom: 1px solid #ddd; text-align: left;
           }
           .appointments-table tr:hover { background-color: #f5f9ff; }
-
-          .modal-container {
-            padding: 20px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: #fefefe;
-          }
-          .modal-header {
-            display: flex; justify-content: space-between; align-items: center;
-          }
-          .form-scroll {
-            max-height: 65vh;
-            overflow-y: auto;
-            padding-right: 10px;
-          }
-          .dot {
-            background-color: #3b82f6;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin: auto;
-            margin-top: 2px;
-          }
-          .today-highlight {
-            background: #ffe599 !important;
-            border-radius: 50%;
-          }
+          .modal-container { padding: 20px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; background: #fefefe; }
+          .modal-header { display: flex; justify-content: space-between; align-items: center; }
+          .form-scroll { max-height: 65vh; overflow-y: auto; padding-right: 10px; }
+          .dot { background-color: #3b82f6; width: 6px; height: 6px; border-radius: 50%; margin: auto; margin-top: 2px; }
+          .today-highlight { background: #ffe599 !important; border-radius: 50%; }
         `}
       </style>
     </MainLayout>
