@@ -209,7 +209,7 @@ const DashboardMother: React.FC = () => {
             <h2>
               Hello, <span>{motherName}</span>
             </h2>
-            <p>Your journey to motherhood is beautiful 🌼</p>
+            <p>Your journey to motherhood is beautiful</p>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ const DashboardMother: React.FC = () => {
       <IonIcon icon={leafOutline} /> Wellness Log
     </h2>
     <p className="wellness-desc">
-      Track your daily rest, meals, mood, and activity to support a healthy pregnancy 💖
+      Track your daily rest, meals, mood, and activity to support a healthy pregnancy
     </p>
 
     <IonItem>
@@ -396,10 +396,10 @@ const DashboardMother: React.FC = () => {
         placeholder="Select mood"
         onIonChange={(e) => setMood(e.detail.value!)}
       >
-        <IonSelectOption value="Happy">😊 Happy</IonSelectOption>
-        <IonSelectOption value="Tired">😴 Tired</IonSelectOption>
-        <IonSelectOption value="Anxious">😟 Anxious</IonSelectOption>
-        <IonSelectOption value="Relaxed">🌼 Relaxed</IonSelectOption>
+        <IonSelectOption value="Happy">Happy</IonSelectOption>
+        <IonSelectOption value="Tired">Tired</IonSelectOption>
+        <IonSelectOption value="Anxious">Anxious</IonSelectOption>
+        <IonSelectOption value="Relaxed">Relaxed</IonSelectOption>
       </IonSelect>
     </IonItem>
 
