@@ -31,7 +31,7 @@ import PrenatalRecords from "./pages/PrenatalRecords";
 import AdminChatbotQA from "./pages/AdminChatbotQA";
 import AdminRisks from "./pages/AdminRisks";
 import RiskMonitoring from "./pages/RiskMonitoring";
-
+import BhwWellnessPage from "./pages/BhwWellnessPage";
 
 
 
@@ -77,6 +77,7 @@ const App: React.FC = () => (
         <Route exact path="/riskmonitoring" component={RiskMonitoring} />   
         <Route exact path="/visitrecords" component={VisitRecords} />  
         <Route exact path="/bhwprofile" component={BhwProfile} />
+        <Route exact path="/bhwwellnesspage" component={BhwWellnessPage} />
         <Route exact path="/adminchatbotqa" component={AdminChatbotQA} />   
         <Route exact path="/prenatal-records" component={PrenatalRecords} />  
         <Route exact path="/mothersProfile" component={MothersProfile} />

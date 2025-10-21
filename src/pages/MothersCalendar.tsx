@@ -54,7 +54,6 @@ const MothersCalendar: React.FC = () => {
         return;
       }
 
-      // ✅ Correct relationship: mothers.user_id → appointments.mother_id
       const { data: mother, error: motherError } = await supabase
         .from("mothers")
         .select("mother_id")
@@ -75,7 +74,20 @@ const MothersCalendar: React.FC = () => {
         .order("date", { ascending: true });
 
       if (apptError) throw apptError;
-      setAppointments(data || []);
+
+      // Automatically update status to "Missed" if the appointment has passed
+      const updatedAppointments = data.map((appointment: Appointment) => {
+        const apptDate = new Date(appointment.date + "T" + (appointment.time || "00:00"));
+        const now = new Date();
+
+        if (appointment.status?.toLowerCase() === "scheduled" && apptDate < now) {
+          return { ...appointment, status: "Missed" };
+        }
+
+        return appointment;
+      });
+
+      setAppointments(updatedAppointments);
     } catch (err) {
       console.error("Error loading appointments:", err);
       setError("Failed to load appointments.");
@@ -105,6 +117,10 @@ const MothersCalendar: React.FC = () => {
       default:
         return "#f47ba7"; // pink for scheduled
     }
+  };
+
+  const formatTime = (time?: string) => {
+    return time && time !== "00:00" ? time : "Not set";
   };
 
   return (
@@ -174,7 +190,10 @@ const MothersCalendar: React.FC = () => {
                         <span
                           key={i}
                           className="dot-indicator"
-                          style={{ color: getStatusColor(a.status) }}
+                          style={{
+                            color: getStatusColor(a.status),
+                            fontSize: "1.5rem", // Adjust dot size
+                          }}
                         >
                           •
                         </span>
@@ -220,7 +239,7 @@ const MothersCalendar: React.FC = () => {
                           <h4>{a.notes || "Prenatal Checkup"}</h4>
                           <p>
                             <IonIcon icon={timeOutline} />{" "}
-                            <b>Time:</b> {a.time || "Not set"}
+                            <b>Time:</b> {formatTime(a.time)}
                           </p>
                           <p>
                             <IonIcon icon={pinOutline} />{" "}
@@ -350,7 +369,7 @@ const MothersCalendar: React.FC = () => {
           }
 
           .dot-indicator {
-            font-size: 20px;
+            font-size: 1.5rem; /* Larger dot */
             line-height: 0;
           }
 

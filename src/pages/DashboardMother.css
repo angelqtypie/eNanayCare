@@ -1,116 +1,106 @@
-/* General Layout */
+/* 🌸 DASHBOARD LAYOUT */
 .dashboard-content {
   background: linear-gradient(180deg, #fffafa 0%, #fff5f9 100%);
-  color: #463e45;
   font-family: "Poppins", sans-serif;
+  color: #000;
+  padding-bottom: 40px;
   min-height: 100vh;
-  padding-bottom: 80px;
   overflow-y: auto;
 }
 
-/* Header Section */
+/* 🌸 HEADER (Hello, Yuki) */
 .header-gradient {
-  margin: 24px auto;
+  margin: 10px auto 16px;
   max-width: 1100px;
-  padding: 50px 20px 70px;
-  border-radius: 28px;
+  padding: 20px 20px 30px;
+  border-radius: 20px;
   text-align: center;
-  color: #fff;
   background: linear-gradient(135deg, #f8bfd6, #f5a6c4, #f7c6da);
-  box-shadow: 0 6px 16px rgba(250, 174, 205, 0.25);
-  position: relative;
-  overflow: hidden;
-}
-
-.header-gradient::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 30% 50%,
-    rgba(255, 255, 255, 0.4),
-    transparent 70%
-  );
-}
-
-.header-text {
-  position: relative;
-  z-index: 1;
+  color: #000;
+  box-shadow: 0 4px 12px rgba(250, 174, 205, 0.25);
 }
 
 .header-text h2 {
+  font-size: 1.6rem;
   font-weight: 700;
-  font-size: 2.2rem;
+  margin-bottom: 6px;
 }
 
 .header-text span {
-  background: linear-gradient(90deg, #fff, #fdebf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #000;
+  background: none;
 }
 
 .header-text p {
-  font-size: 1rem;
-  opacity: 0.95;
+  font-size: 0.9rem;
+  color: #222;
+  opacity: 0.9;
+  margin: 0;
 }
 
-/* Summary (Wellness) Section */
+/* 🌿 WELLNESS CARD (CENTER) */
 .summary-section {
   display: flex;
   justify-content: center;
-  margin: 1.5rem 0 2rem;
+  margin: 1rem 0 1.5rem;
 }
 
 .mother-card.soft-green {
-  width: 90%;
+  width: 88%;
   max-width: 500px;
   border: 2px solid #b8e5c6;
   background: linear-gradient(135deg, #f8fff9, #e8f7ee);
-  color: #3e4a43;
-  box-shadow: 0 4px 10px rgba(184, 229, 198, 0.25);
+  color: #000;
+  box-shadow: 0 3px 8px rgba(184, 229, 198, 0.25);
 }
 
-.mother-card.soft-green h3 {
-  color: #3a5f48;
-}
-
-.mother-card.soft-green .card-icon {
-  background: linear-gradient(135deg, #a7e1ba, #8ad09e);
-}
-
-/* Cards Grid */
+/* 🌼 CARDS GRID */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 0 16px;
   max-width: 1100px;
   margin: 0 auto;
 }
 
 .mother-card {
-  border-radius: 20px;
+  border-radius: 18px;
   text-align: center;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(240, 167, 194, 0.1);
+  box-shadow: 0 3px 10px rgba(240, 167, 194, 0.15);
   padding: 10px;
+  color: #000;
 }
 
 .mother-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 18px rgba(240, 167, 194, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(240, 167, 194, 0.25);
 }
 
 .card-icon {
-  font-size: 2.2rem;
+  font-size: 2rem;
   color: #fff;
   background: linear-gradient(135deg, #f6b1d5, #f1a7c2);
-  padding: 12px;
+  padding: 10px;
   border-radius: 50%;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-/* Card Variants */
+.mother-card h3 {
+  margin: 4px 0;
+  font-size: 1rem;
+  color: #000;
+  font-weight: 600;
+}
+
+.mother-card p {
+  font-size: 0.85rem;
+  color: #222;
+  line-height: 1.3;
+}
+
+/* 🌷 SOFT THEMES */
 .soft-pink {
   background: #fff;
   border: 2px solid #f8bfd6;
@@ -131,78 +121,65 @@
   border: 1px solid #f0e0e9;
 }
 
-.mother-card h3 {
-  color: #463e45;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-.mother-card p {
-  color: #5e5061;
-  font-size: 0.9rem;
-  margin-top: 5px;
-}
-
+/* 📅 STATUS TAG */
 .status {
   display: inline-block;
-  margin-top: 6px;
   background: #fde7ef;
   color: #e0638d;
-  font-weight: 600;
   border-radius: 8px;
   padding: 3px 8px;
   font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 4px;
 }
 
-/* 🌿 Wellness Modal */
+/* 🩹 IMMUNIZATION MODAL */
 .immunization-modal.small {
-  padding: 24px;
+  padding: 22px;
   text-align: center;
   max-width: 420px;
   margin: auto;
 }
 
 .immunization-modal h2 {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   color: #4e9a67;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
 
-.wellness-desc {
-  font-size: 0.95rem;
-  color: #555;
-  margin-bottom: 16px;
+.immunization-modal ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.immunization-modal ion-item {
-  --background: #f8fff9;
-  --border-color: #dcefe1;
-  border-radius: 10px;
-  margin-bottom: 10px;
+.immunization-modal li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
 }
 
-.immunization-modal ion-label {
-  color: #3a5f48;
-  font-weight: 500;
+.immunization-modal li.done ion-icon {
+  color: #4e9a67;
 }
 
-.immunization-modal ion-input,
-.immunization-modal ion-select {
-  --padding-start: 10px;
+.immunization-modal li.pending ion-icon {
+  color: #e0638d;
 }
 
-.immunization-modal ion-button {
-  --background: linear-gradient(135deg, #a7e1ba, #8ad09e);
-  color: #fff;
-  border-radius: 10px;
-  font-weight: 600;
+.immunization-modal p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
 }
 
-/* ✅ Modal Positioning */
+/* 🌿 SMALL MODAL GENERAL STYLE */
 .small-modal {
   display: flex;
   align-items: center;
@@ -211,34 +188,101 @@
   --width: 90%;
   max-width: 420px;
   border-radius: 18px;
-  padding: 20px;
+  padding: 18px;
   background: #fff;
   margin: auto;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.15);
 }
 
 .no-overlay::part(backdrop) {
-  background: rgba(0, 0, 0, 0.2) !important;
+  background: rgba(0, 0, 0, 0.25) !important;
 }
 
-/* 📱 Responsive */
-@media (max-width: 768px) {
-  .header-gradient {
-    padding: 40px 15px 55px;
-  }
 
-  .header-text h2 {
-    font-size: 1.8rem;
+
+/* 🔹 Stronger status tag for clarity */
+.status {
+  display: inline-block;
+  background: #fde7ef;
+  color: #d6336c;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.status.active-status {
+  background: #f9c2d6;
+  color: #b02255;
+  border: 1px solid #b02255;
+}
+
+/* 🔹 Limit scroll for desktop, adjust for mobile */
+.dashboard-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  height: auto;
+  overflow-y: auto;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-content {
+    min-height: calc(100vh - 80px);
+    overflow-y: hidden;
   }
 
   .cards-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    padding: 14px;
+  }
+}
+
+/* 🌸 Optimize spacing for mobile view */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding-bottom: 60px; /* reduce bottom space */
+  }
+
+  .summary-section {
+    margin: 0.5rem 0 1rem;
   }
 
   .mother-card {
-    padding: 8px;
+    padding: 6px 4px;
+    border-radius: 14px;
+  }
+
+  .mother-card h3 {
+    font-size: 0.9rem;
+    margin: 2px 0;
+  }
+
+  .mother-card p {
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+
+  .card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .header-gradient {
+    padding: 10px 10px 18px;
+  }
+
+  .header-text h2 {
+    font-size: 1.2rem;
+  }
+
+  .header-text p {
+    font-size: 0.8rem;
   }
 }

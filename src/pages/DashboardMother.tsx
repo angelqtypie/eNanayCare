@@ -231,28 +231,36 @@ const DashboardMother: React.FC = () => {
         {/* Cards Grid */}
         <div className="cards-grid">
           {/* Appointment */}
-          <IonCard
-            className="mother-card soft-pink"
-            button
-            onClick={() => history.push("/motherscalendar")}
-          >
-            <IonCardContent>
-              <IonIcon icon={calendarOutline} className="card-icon" />
-              <h3>Appointments</h3>
-              {appointment ? (
-                <>
-                  <p>
-                    {new Date(appointment.date).toLocaleDateString()} •{" "}
-                    {formatTime(appointment.time)}
-                  </p>
-                  <span className="status">{appointment.status}</span>
-                </>
-              ) : (
-                <p>No upcoming appointments</p>
-              )}
-            </IonCardContent>
-          </IonCard>
-
+{/* Appointment */}
+{appointment && new Date(appointment.date) >= new Date() ? (
+  <IonCard
+    className="mother-card soft-pink"
+    button
+    onClick={() => history.push("/motherscalendar")}
+  >
+    <IonCardContent>
+      <IonIcon icon={calendarOutline} className="card-icon" />
+      <h3>Appointments</h3>
+      <p>
+        {new Date(appointment.date).toLocaleDateString()} •{" "}
+        {formatTime(appointment.time)}
+      </p>
+      <span className="status active-status">{appointment.status}</span>
+    </IonCardContent>
+  </IonCard>
+) : (
+  <IonCard
+    className="mother-card soft-pink"
+    button
+    onClick={() => history.push("/motherscalendar")}
+  >
+    <IonCardContent>
+      <IonIcon icon={calendarOutline} className="card-icon" />
+      <h3>Appointments</h3>
+      <p>No available appointments</p>
+    </IonCardContent>
+  </IonCard>
+)}
           {/* Health Record */}
           <IonCard
             className="mother-card soft-lilac"

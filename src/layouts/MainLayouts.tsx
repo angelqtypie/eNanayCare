@@ -20,7 +20,7 @@ import {
   settingsOutline,
   leafOutline, // 🌿 Added for Wellness Logs
 } from "ionicons/icons";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo.png";
 import "./MainLayout.css";
 import { supabase } from "../utils/supabaseClient";
 
@@ -128,7 +128,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {/* 🌿 NEW: Wellness Logs */}
               <button
                 className="side-item"
-                onClick={() => goTo("/wellnesslogs")}
+                onClick={() => goTo("/bhwwellnesspage")}
               >
                 <IonIcon icon={leafOutline} /> Wellness Logs
               </button>

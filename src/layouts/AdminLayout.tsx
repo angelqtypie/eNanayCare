@@ -20,7 +20,7 @@ import {
   personCircleOutline,
 } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo.png";
 
 const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();

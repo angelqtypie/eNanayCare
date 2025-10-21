@@ -20,8 +20,8 @@ import {
   close,
   send,
 } from "ionicons/icons";
-import logo from "../assets/logo.svg";
-import botAvatar from "../assets/logo.svg"; // default bot
+import logo from "../assets/logo.png";
+import botAvatar from "../assets/logo.png";
 import { supabase } from "../utils/supabaseClient";
 import "./MotherMainLayout.css";
 
@@ -50,7 +50,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const fullName = localStorage.getItem("fullName") || "Nanay";
   const firstName = (nickname || fullName).split(" ")[0];
 
-  // Fetch mother settings
   useEffect(() => {
     const fetchMotherSettings = async () => {
       if (!userId) return;
@@ -74,7 +73,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     fetchMotherSettings();
   }, [userId]);
 
-  // Fetch all questions
   useEffect(() => {
     const fetchQuestions = async () => {
       const { data } = await supabase
@@ -91,7 +89,10 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const scrollToBottom = () => {
     setTimeout(() => {
-      chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
+      chatBodyRef.current?.scrollTo({
+        top: chatBodyRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }, 100);
   };
 
@@ -100,7 +101,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     scrollToBottom();
   };
 
-  // Free-text input handler with simple word detection
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMessage = input.trim();
@@ -110,20 +110,26 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     const words = userMessage.toLowerCase().split(" ");
     let reply = "I’m still learning! Try selecting a question or ask me about prenatal care.";
 
-    const { data } = await supabase.from("chatbot_qa").select("question, answer").eq("is_active", true);
+    const { data } = await supabase
+      .from("chatbot_qa")
+      .select("question, answer")
+      .eq("is_active", true);
+
     if (data && data.length > 0) {
       for (let word of words) {
-        const match = (data as QA[]).find((q) => q.question.toLowerCase().includes(word));
+        const match = (data as QA[]).find((q) =>
+          q.question.toLowerCase().includes(word)
+        );
         if (match) {
           reply = match.answer;
           break;
         }
       }
     }
+
     setTimeout(() => sendMessage(reply, "bot"), 500);
   };
 
-  // Question button click
   const handleQuestionClick = (qa: QA) => {
     sendMessage(qa.question, "user");
     setTimeout(() => sendMessage(qa.answer, "bot"), 500);
@@ -147,7 +153,13 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                   <img
                     src={profileImage}
                     alt="Profile"
-                    style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "2px solid #f3b0c3" }}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2px solid #f3b0c3",
+                    }}
                   />
                 ) : (
                   <IonIcon icon={personCircleOutline} className="profile-icon" />
@@ -159,9 +171,10 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       </IonHeader>
 
       {/* CONTENT */}
-      <IonContent className="mother-layout-content" fullscreen>
+      <IonContent className="mother-layout-content">
         <main className="mother-main">{children}</main>
 
+        {/* CHAT UI */}
         {showChat && (
           <div className="chat-box">
             <div className="chat-header">
@@ -178,7 +191,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                   </div>
                 </div>
               )}
-
               {messages.map((m, i) => (
                 <div key={i} className={`msg ${m.sender}`}>
                   {m.sender === "bot" && <img src={botAvatar} alt="Bot" className="chat-avatar" />}
@@ -189,12 +201,13 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                       className="chat-avatar user-avatar"
                     />
                   )}
-                  <div className={`chat-text ${m.sender === "bot" ? "bot-bubble" : "user-bubble"}`}>{m.text}</div>
+                  <div className={`chat-text ${m.sender === "bot" ? "bot-bubble" : "user-bubble"}`}>
+                    {m.text}
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Scrollable list of all questions */}
             <div className="chat-questions">
               {questions.map((q) => (
                 <button key={q.id} className="question-btn" onClick={() => handleQuestionClick(q)}>
@@ -203,7 +216,6 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               ))}
             </div>
 
-            {/* Free-text input */}
             <div className="chat-input-wrapper">
               <input
                 placeholder="Type your question..."
@@ -218,6 +230,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           </div>
         )}
 
+        {/* Chat FAB */}
         {!showChat && (
           <IonFab vertical="bottom" horizontal="end" slot="fixed">
             <IonFabButton onClick={() => setShowChat(true)}>
@@ -227,38 +240,93 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         )}
       </IonContent>
 
-      {/* FOOTER */}
+      {/* FOOTER NAVIGATION */}
       <footer className="mother-footer-nav">
         <IonButton fill="clear" onClick={() => goTo("/dashboardmother")}>
           <IonIcon icon={homeOutline} />
           <IonLabel>Home</IonLabel>
         </IonButton>
-
         <IonButton fill="clear" onClick={() => goTo("/educationalmaterials")}>
           <IonIcon icon={bookOutline} />
           <IonLabel>Learn</IonLabel>
         </IonButton>
-
         <IonButton fill="clear" onClick={() => goTo("/mothernotifications")}>
           <IonIcon icon={notificationsOutline} />
           <IonLabel>Alerts</IonLabel>
         </IonButton>
       </footer>
 
+      {/* Inline Styling for Key Elements */}
       <style>{`
-        .chat-body { padding: 12px; overflow-y: auto; max-height: 50vh; }
-        .chat-avatar { width: 36px; height: 36px; border-radius: 50%; margin-right: 6px; }
-        .msg { display: flex; margin-bottom: 8px; align-items: flex-end; }
+        .mother-main {
+          padding: 16px;
+          padding-bottom: 120px; /* ensures space above footer */
+        }
+        .chat-body {
+          padding: 12px;
+          overflow-y: auto;
+          max-height: 50vh;
+        }
+        .chat-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          margin-right: 6px;
+        }
+        .msg {
+          display: flex;
+          margin-bottom: 8px;
+          align-items: flex-end;
+        }
         .msg.user { justify-content: flex-end; }
         .msg.bot { justify-content: flex-start; }
-        .chat-text { padding: 10px 14px; max-width: 75%; border-radius: 18px; }
-        .bot-bubble { background: #f8d1e0; color: #6d214f; border-top-left-radius: 0; }
-        .user-bubble { background: #f197ba; color: #fff; border-top-right-radius: 0; }
-        .chat-questions { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; overflow-y: auto; max-height: 120px; }
-        .question-btn { background: #f8d1e0; color: #6d214f; border: none; border-radius: 16px; padding: 6px 12px; cursor: pointer; font-size: 0.9rem; }
-        .question-btn:hover { background: #f4b8cd; }
-        .chat-input-wrapper { display: flex; padding: 6px; border-top: 1px solid #e3b7cb; }
-        .chat-input-wrapper input { flex: 1; padding: 8px; border-radius: 12px; border:1px solid #f3b0c3; font-size: 0.95rem; }
+        .chat-text {
+          padding: 10px 14px;
+          max-width: 75%;
+          border-radius: 18px;
+        }
+        .bot-bubble {
+          background: #f8d1e0;
+          color: #6d214f;
+          border-top-left-radius: 0;
+        }
+        .user-bubble {
+          background: #f197ba;
+          color: #fff;
+          border-top-right-radius: 0;
+        }
+        .chat-questions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          padding: 6px;
+          overflow-y: auto;
+          max-height: 120px;
+        }
+        .question-btn {
+          background: #f8d1e0;
+          color: #6d214f;
+          border: none;
+          border-radius: 16px;
+          padding: 6px 12px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        }
+        .question-btn:hover {
+          background: #f4b8cd;
+        }
+        .chat-input-wrapper {
+          display: flex;
+          padding: 6px;
+          border-top: 1px solid #e3b7cb;
+        }
+        .chat-input-wrapper input {
+          flex: 1;
+          padding: 8px;
+          border-radius: 12px;
+          border: 1px solid #f3b0c3;
+          font-size: 0.95rem;
+        }
       `}</style>
     </IonPage>
   );

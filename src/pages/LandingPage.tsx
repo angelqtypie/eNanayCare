@@ -24,7 +24,7 @@ import {
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import "./LandingPage.css";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo.png";
 import motherImg from "../assets/mother-care.jpg";
 
 const Landing: React.FC = () => {
