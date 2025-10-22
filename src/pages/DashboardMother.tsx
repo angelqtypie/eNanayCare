@@ -57,6 +57,7 @@ const DashboardMother: React.FC = () => {
   const [showImmunizationModal, setShowImmunizationModal] = useState(false);
   const [showWellnessModal, setShowWellnessModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasWellnessLog, setHasWellnessLog] = useState(false);
 
   // Wellness form state
   const [sleepHours, setSleepHours] = useState("");
@@ -77,7 +78,6 @@ const DashboardMother: React.FC = () => {
     "Get enough sleep — your body needs rest.",
   ];
 
-  /** 🔹 Format Time */
   const formatTime = (time: string | null) => {
     if (!time || time === "00:00:00" || time === "00:00")
       return "To be announced";
@@ -87,7 +87,6 @@ const DashboardMother: React.FC = () => {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  /** 🔹 Fetch Mother Info */
   const fetchMotherProfile = async (): Promise<string | null> => {
     try {
       const userId = localStorage.getItem("userId");
@@ -115,7 +114,6 @@ const DashboardMother: React.FC = () => {
     }
   };
 
-  /** 🔹 Appointments */
   const fetchAppointments = async (motherId: string) => {
     const today = new Date().toISOString().split("T")[0];
     const { data: upcoming } = await supabase
@@ -129,7 +127,6 @@ const DashboardMother: React.FC = () => {
     setAppointment(upcoming || null);
   };
 
-  /** 🔹 Health Records */
   const fetchHealthRecords = async (motherId: string) => {
     const { data } = await supabase
       .from("health_records")
@@ -139,7 +136,6 @@ const DashboardMother: React.FC = () => {
     if (data?.length) setHealthRecord(data[0]);
   };
 
-  /** 🔹 Immunization (TT1, TT2) */
   const fetchImmunization = async (motherId: string) => {
     const { data } = await supabase
       .from("health_records")
@@ -159,14 +155,13 @@ const DashboardMother: React.FC = () => {
       );
       return {
         name: tt,
-        status: found ? ("Completed" as const) : ("Pending" as const),
+        status: found ? "Completed" : "Pending",
         date: found ? found.encounter_date : null,
       };
     });
     setImmunizations(immunizationList);
   };
 
-  /** 🔹 Daily Tip */
   const fetchDailyTip = async () => {
     const { data } = await supabase
       .from("educational_materials")
@@ -179,7 +174,17 @@ const DashboardMother: React.FC = () => {
       setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
   };
 
-  /** 🔹 Load All Data */
+  const checkWellnessLog = async (motherId: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("wellness_logs")
+      .select("id")
+      .eq("mother_id", motherId)
+      .eq("created_at", today)
+      .maybeSingle();
+    setHasWellnessLog(!!data);
+  };
+
   const loadDashboardData = async () => {
     setLoading(true);
     const id = await fetchMotherProfile();
@@ -188,6 +193,7 @@ const DashboardMother: React.FC = () => {
         fetchAppointments(id),
         fetchHealthRecords(id),
         fetchImmunization(id),
+        checkWellnessLog(id),
         fetchDailyTip(),
       ]);
     } else await fetchDailyTip();
@@ -198,12 +204,36 @@ const DashboardMother: React.FC = () => {
     loadDashboardData();
   }, []);
 
+  // 🔁 Rotate tips every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDailyTip(
+        fallbackTips[Math.floor(Math.random() * fallbackTips.length)]
+      );
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🔽 Auto-scroll fix on mobile
+  useEffect(() => {
+    const content = document.querySelector(".dashboard-content");
+    if (content) {
+      const contentHeight = content.scrollHeight;
+      const viewportHeight = window.innerHeight;
+      if (contentHeight > viewportHeight) {
+        window.scrollTo({ top: contentHeight - viewportHeight, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0 });
+      }
+    }
+  }, [loading, appointment, healthRecord]);
+
   const latestTT = immunizations.find((i) => i.status === "Completed");
 
   return (
     <MotherMainLayout>
-      <IonContent className="dashboard-content" scrollY>
-        {/* Header */}
+      <IonContent className="dashboard-content" fullscreen scrollY={false}>
+        {/* HEADER */}
         <div className="header-gradient">
           <div className="header-text">
             <h2>
@@ -213,54 +243,43 @@ const DashboardMother: React.FC = () => {
           </div>
         </div>
 
-        {/* 🌿 Wellness Card instead of Summary */}
+        {/* WELLNESS LOG */}
         <div className="summary-section">
           <IonCard
-            className="mother-card soft-green"
+            className={`mother-card soft-green ${hasWellnessLog ? "completed" : ""}`}
             button
             onClick={() => setShowWellnessModal(true)}
           >
             <IonCardContent>
               <IonIcon icon={leafOutline} className="card-icon" />
-              <h3>Wellness Log</h3>
+              <h3>Wellness Log {hasWellnessLog && "✔"}</h3>
               <p>Keep track of your rest, meals, exercise, and mood 🌸</p>
             </IonCardContent>
           </IonCard>
         </div>
 
-        {/* Cards Grid */}
+        {/* CARDS */}
         <div className="cards-grid">
           {/* Appointment */}
-{/* Appointment */}
-{appointment && new Date(appointment.date) >= new Date() ? (
-  <IonCard
-    className="mother-card soft-pink"
-    button
-    onClick={() => history.push("/motherscalendar")}
-  >
-    <IonCardContent>
-      <IonIcon icon={calendarOutline} className="card-icon" />
-      <h3>Appointments</h3>
-      <p>
-        {new Date(appointment.date).toLocaleDateString()} •{" "}
-        {formatTime(appointment.time)}
-      </p>
-      <span className="status active-status">{appointment.status}</span>
-    </IonCardContent>
-  </IonCard>
-) : (
-  <IonCard
-    className="mother-card soft-pink"
-    button
-    onClick={() => history.push("/motherscalendar")}
-  >
-    <IonCardContent>
-      <IonIcon icon={calendarOutline} className="card-icon" />
-      <h3>Appointments</h3>
-      <p>No available appointments</p>
-    </IonCardContent>
-  </IonCard>
-)}
+          <IonCard
+            className="mother-card soft-pink"
+            button
+            onClick={() => history.push("/motherscalendar")}
+          >
+            <IonCardContent>
+              <IonIcon icon={calendarOutline} className="card-icon" />
+              <h3>Appointments</h3>
+              {appointment && new Date(appointment.date) >= new Date() ? (
+                <p>
+                  {new Date(appointment.date).toLocaleDateString()} •{" "}
+                  {formatTime(appointment.time)}
+                </p>
+              ) : (
+                <p>No available appointments</p>
+              )}
+            </IonCardContent>
+          </IonCard>
+
           {/* Health Record */}
           <IonCard
             className="mother-card soft-lilac"
@@ -281,7 +300,7 @@ const DashboardMother: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
-          {/* Daily Tip */}
+          {/* Tip for Today */}
           <IonCard className="mother-card clean-white">
             <IonCardContent>
               <IonIcon icon={bulbOutline} className="card-icon" />
@@ -313,7 +332,7 @@ const DashboardMother: React.FC = () => {
           </IonCard>
         </div>
 
-        {/* 🩹 Immunization Modal */}
+        {/* IMMUNIZATION MODAL */}
         <IonModal
           isOpen={showImmunizationModal}
           onDidDismiss={() => setShowImmunizationModal(false)}
@@ -356,132 +375,133 @@ const DashboardMother: React.FC = () => {
           </div>
         </IonModal>
 
-  {/* 🌿 Wellness Modal */}
-<IonModal
-  isOpen={showWellnessModal}
-  onDidDismiss={() => setShowWellnessModal(false)}
-  className="small-modal no-overlay"
->
-  <div className="immunization-modal small">
-    <h2>
-      <IonIcon icon={leafOutline} /> Wellness Log
-    </h2>
-    <p className="wellness-desc">
-      Track your daily rest, meals, mood, and activity to support a healthy pregnancy
-    </p>
+        {/* WELLNESS MODAL */}
+        <IonModal
+          isOpen={showWellnessModal}
+          onDidDismiss={() => setShowWellnessModal(false)}
+          className="small-modal no-overlay"
+        >
+          <div className="immunization-modal small">
+            <h2>
+              <IonIcon icon={leafOutline} /> Wellness Log
+            </h2>
+            <p className="wellness-desc">
+              Track your daily rest, meals, mood, and activity to support a
+              healthy pregnancy
+            </p>
 
-    <IonItem>
-      <IonLabel position="stacked">Sleep Hours</IonLabel>
-      <IonInput
-        value={sleepHours}
-        placeholder="e.g. 7 hours"
-        onIonChange={(e) => setSleepHours(e.detail.value!)}
-      />
-    </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Sleep Hours</IonLabel>
+              <IonInput
+                value={sleepHours}
+                placeholder="e.g. 7 hours"
+                onIonChange={(e) => setSleepHours(e.detail.value!)}
+              />
+            </IonItem>
 
-    <IonItem>
-      <IonLabel position="stacked">Meals & Hydration</IonLabel>
-      <IonInput
-        value={meals}
-        placeholder="e.g. 3 meals, 8 glasses of water"
-        onIonChange={(e) => setMeals(e.detail.value!)}
-      />
-    </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Meals & Hydration</IonLabel>
+              <IonInput
+                value={meals}
+                placeholder="e.g. 3 meals, 8 glasses of water"
+                onIonChange={(e) => setMeals(e.detail.value!)}
+              />
+            </IonItem>
 
-    <IonItem>
-      <IonLabel position="stacked">Light Exercise</IonLabel>
-      <IonInput
-        value={exercise}
-        placeholder="e.g. 20 min walk"
-        onIonChange={(e) => setExercise(e.detail.value!)}
-      />
-    </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Light Exercise</IonLabel>
+              <IonInput
+                value={exercise}
+                placeholder="e.g. 20 min walk"
+                onIonChange={(e) => setExercise(e.detail.value!)}
+              />
+            </IonItem>
 
-    <IonItem>
-      <IonLabel position="stacked">Mood</IonLabel>
-      <IonSelect
-        value={mood}
-        placeholder="Select mood"
-        onIonChange={(e) => setMood(e.detail.value!)}
-      >
-        <IonSelectOption value="Happy">Happy</IonSelectOption>
-        <IonSelectOption value="Tired">Tired</IonSelectOption>
-        <IonSelectOption value="Anxious">Anxious</IonSelectOption>
-        <IonSelectOption value="Relaxed">Relaxed</IonSelectOption>
-      </IonSelect>
-    </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Mood</IonLabel>
+              <IonSelect
+                value={mood}
+                placeholder="Select mood"
+                onIonChange={(e) => setMood(e.detail.value!)}
+              >
+                <IonSelectOption value="Happy">Happy</IonSelectOption>
+                <IonSelectOption value="Tired">Tired</IonSelectOption>
+                <IonSelectOption value="Anxious">Anxious</IonSelectOption>
+                <IonSelectOption value="Relaxed">Relaxed</IonSelectOption>
+              </IonSelect>
+            </IonItem>
 
-    <IonItem>
-      <IonLabel position="stacked">Vitamins Taken</IonLabel>
-      <IonInput
-        value={vitamins}
-        placeholder="e.g. Prenatal Vitamin, Iron"
-        onIonChange={(e) => setVitamins(e.detail.value!)}
-      />
-    </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Vitamins Taken</IonLabel>
+              <IonInput
+                value={vitamins}
+                placeholder="e.g. Prenatal Vitamin, Iron"
+                onIonChange={(e) => setVitamins(e.detail.value!)}
+              />
+            </IonItem>
 
-    <IonButton
-      expand="block"
-      color="success"
-      style={{ marginTop: "1rem" }}
-      onClick={async () => {
-        try {
-          const userId = localStorage.getItem("userId");
-          if (!userId) {
-            alert("User not logged in");
-            return;
-          }
+            <IonButton
+              expand="block"
+              color="success"
+              style={{ marginTop: "1rem" }}
+              onClick={async () => {
+                try {
+                  const userId = localStorage.getItem("userId");
+                  if (!userId) {
+                    alert("User not logged in");
+                    return;
+                  }
 
-          // Get mother_id
-          const { data: mother } = await supabase
-            .from("mothers")
-            .select("mother_id")
-            .eq("user_id", userId)
-            .maybeSingle();
+                  const { data: mother } = await supabase
+                    .from("mothers")
+                    .select("mother_id")
+                    .eq("user_id", userId)
+                    .maybeSingle();
 
-          if (!mother) {
-            alert("Mother profile not found.");
-            return;
-          }
+                  if (!mother) {
+                    alert("Mother profile not found.");
+                    return;
+                  }
 
-          // Insert new log
-          const { error } = await supabase.from("wellness_logs").insert({
-            mother_id: mother.mother_id,
-            sleep_hours: sleepHours,
-            meals,
-            exercise,
-            mood,
-            vitamins,
-          });
+                  const { error } = await supabase.from("wellness_logs").insert({
+                    mother_id: mother.mother_id,
+                    sleep_hours: sleepHours,
+                    meals,
+                    exercise,
+                    mood,
+                    vitamins,
+                  });
 
-          if (error) throw error;
+                  if (error) throw error;
 
-          alert("🌿 Wellness log saved successfully!");
-          // Clear form
-          setSleepHours("");
-          setMeals("");
-          setExercise("");
-          setMood("");
-          setVitamins("");
-          setShowWellnessModal(false);
-        } catch (err) {
-          console.error(err);
-          alert("Error saving wellness log.");
-        }
-      }}
-    >
-      Save Log
-    </IonButton>
+                  alert("🌿 Wellness log saved successfully!");
+                  setHasWellnessLog(true);
+                  setSleepHours("");
+                  setMeals("");
+                  setExercise("");
+                  setMood("");
+                  setVitamins("");
+                  setShowWellnessModal(false);
+                } catch (err) {
+                  console.error(err);
+                  alert("Error saving wellness log.");
+                }
+              }}
+            >
+              Save Log
+            </IonButton>
 
-    <IonButton
-      expand="block"
-      color="medium"
-      onClick={() => setShowWellnessModal(false)}
-    >
-      Close
-    </IonButton>
-  </div>
-</IonModal>
+            <IonButton
+              expand="block"
+              color="medium"
+              onClick={() => setShowWellnessModal(false)}
+            >
+              Close
+            </IonButton>
+          </div>
+        </IonModal>
+
+        <div style={{ height: "100px" }}></div>
       </IonContent>
     </MotherMainLayout>
   );

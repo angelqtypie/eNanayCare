@@ -1,16 +1,28 @@
-/* 🌸 DASHBOARD LAYOUT */
 .dashboard-content {
   background: linear-gradient(180deg, #fffafa 0%, #fff5f9 100%);
   font-family: "Poppins", sans-serif;
   color: #000;
-  padding-bottom: 40px;
-  min-height: 100vh;
-  overflow-y: auto;
+  min-height: 105vh;
+  height: 100vh;
+  padding-bottom: 90px;
+  overflow-y: visible !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
+
+.dashboard-content::after {
+  content: "";
+  display: block;
+  height: 100px; /* prevent bottom content cut off */
+}
+
+/* keep your other styles same (header, cards, modal, etc) */
+
 
 /* 🌸 HEADER (Hello, Yuki) */
 .header-gradient {
-  margin: 10px auto 16px;
+  margin: 15px auto 16px;
   max-width: 1100px;
   padding: 20px 20px 30px;
   border-radius: 20px;
@@ -46,7 +58,7 @@
 }
 
 .mother-card.soft-green {
-  width: 88%;
+  width: 100%;
   max-width: 500px;
   border: 2px solid #b8e5c6;
   background: linear-gradient(135deg, #f8fff9, #e8f7ee);
@@ -60,8 +72,9 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   padding: 0 16px;
-  max-width: 1100px;
+  max-width: 2000px;
   margin: 0 auto;
+  
 }
 
 .mother-card {
@@ -285,4 +298,10 @@
   .header-text p {
     font-size: 0.8rem;
   }
+}
+
+.done-card {
+  opacity: 0.5;
+  background-color: #e8f5e9 !important;
+  border: 2px solid #4caf50;
 }

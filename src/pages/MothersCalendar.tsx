@@ -310,8 +310,8 @@ const MothersCalendar: React.FC = () => {
           }
 
           .calendar-wrapper {
-            margin: 20px;
-            padding: 16px;
+            margin: -15px;
+            padding: 13px;
             background: #ffffff;
             border-radius: 22px;
             box-shadow: 0 4px 14px rgba(241, 167, 194, 0.25);
@@ -325,7 +325,7 @@ const MothersCalendar: React.FC = () => {
           }
 
           .react-calendar__tile {
-            height: 42px;
+            height: 40px;
             border-radius: 50%;
             transition: all 0.3s ease;
           }
@@ -354,7 +354,7 @@ const MothersCalendar: React.FC = () => {
           .react-calendar__navigation button {
             color: #d16cae !important;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 1.0rem;
           }
 
           .react-calendar__month-view__weekdays__weekday {
@@ -377,7 +377,7 @@ const MothersCalendar: React.FC = () => {
             text-align: center;
             color: #e76fae;
             margin-top: 20px;
-            font-weight: 700;
+            font-weight: 600;
           }
 
           .glass-card {
