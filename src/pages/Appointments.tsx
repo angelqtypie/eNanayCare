@@ -20,7 +20,6 @@ import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 
-
 interface Mother {
   mother_id: string;
   first_name: string;
@@ -91,6 +90,7 @@ const Appointments: React.FC = () => {
 
   const fetchAppointments = async () => {
     setLoading(true);
+
     const { data: appointmentsData, error } = await supabase
       .from("appointments")
       .select(`
@@ -111,9 +111,11 @@ const Appointments: React.FC = () => {
       .select("mother_id, encounter_date");
     if (hrError) console.error(hrError);
 
-    // Mark missed appointments (typed fix)
     const updated: Appointment[] =
-      appointmentsData?.map((a: Appointment) => {
+      appointmentsData?.map((a: any) => {
+        const motherObj =
+          Array.isArray(a.mother) && a.mother.length > 0 ? a.mother[0] : undefined;
+
         const hasRecord = healthRecords?.some((hr: HealthRecord) => {
           return (
             hr.mother_id === a.mother_id &&
@@ -121,14 +123,17 @@ const Appointments: React.FC = () => {
               new Date(a.date).toDateString()
           );
         });
-        if (
-          new Date(a.date) < new Date() &&
-          !hasRecord &&
-          a.status !== "Completed"
-        ) {
-          return { ...a, status: "Missed" };
+
+        let status = a.status;
+        if (new Date(a.date) < new Date() && !hasRecord && a.status !== "Completed") {
+          status = "Missed";
         }
-        return a;
+
+        return {
+          ...a,
+          mother: motherObj,
+          status,
+        };
       }) || [];
 
     setAppointments(updated);
@@ -442,7 +447,6 @@ const Appointments: React.FC = () => {
             overflow-y: auto;
             padding-right: 10px;
           }
-          
         `}
       </style>
     </MainLayout>
