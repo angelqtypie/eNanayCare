@@ -16,6 +16,7 @@ import {
   megaphoneOutline,
 } from "ionicons/icons";
 import { motion } from "framer-motion";
+import { useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 import MainLayout from "../layouts/MainLayouts";
 import "./DashboardBHW.css";
@@ -28,6 +29,8 @@ interface BarangayUpdate {
 }
 
 const DashboardBHW: React.FC = () => {
+  const history = useHistory();
+
   const [motherCount, setMotherCount] = useState(0);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [todayVisitCount, setTodayVisitCount] = useState(0);
@@ -112,20 +115,24 @@ const DashboardBHW: React.FC = () => {
         className="dashboard-container"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
       >
         <div className="dashboard-header">
           <h1>
             {getGreeting()}, <span>{fullName}!</span>
           </h1>
           <p className="sub-text">
-            Thank you for your service today Keep our pregnant moms safe and well.
+            Thank you for your service today. Keep our pregnant moms safe and well.
           </p>
         </div>
 
-        {/* Summary Cards */}
+        {/* ===== Summary Cards ===== */}
         <div className="dashboard-grid">
-          <IonCard className="stat-card">
+          {/* Mothers Card */}
+          <IonCard
+            className="stat-card clickable"
+            onClick={() => history.push("/mothers")}
+          >
             <IonCardHeader>
               <IonCardTitle>
                 <IonIcon icon={peopleOutline} /> Registered Mothers
@@ -136,7 +143,11 @@ const DashboardBHW: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
-          <IonCard className="stat-card">
+          {/* Appointments Card */}
+          <IonCard
+            className="stat-card clickable"
+            onClick={() => history.push("/appointments")}
+          >
             <IonCardHeader>
               <IonCardTitle>
                 <IonIcon icon={calendarOutline} /> Appointments
@@ -147,6 +158,7 @@ const DashboardBHW: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
+          {/* Visits Today */}
           <IonCard className="stat-card">
             <IonCardHeader>
               <IonCardTitle>
@@ -159,19 +171,10 @@ const DashboardBHW: React.FC = () => {
           </IonCard>
         </div>
 
-        {/* Wellness + Updates Row */}
+        {/* ===== Wellness + Updates Row ===== */}
         <div className="wellness-updates-row">
           <div className="left-col">
-            <IonCard className="stat-card">
-              <IonCardHeader>
-                <IonCardTitle>
-                  <IonIcon icon={leafOutline} /> Wellness Logs
-                </IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <strong>{wellnessCount}</strong>
-              </IonCardContent>
-            </IonCard>
+          
 
             <div className="risk-card">
               <h2>
@@ -191,7 +194,6 @@ const DashboardBHW: React.FC = () => {
             <h2>
               <IonIcon icon={megaphoneOutline} /> Barangay Updates
             </h2>
-
             {updates.length === 0 ? (
               <p className="empty-text">No barangay updates available.</p>
             ) : (

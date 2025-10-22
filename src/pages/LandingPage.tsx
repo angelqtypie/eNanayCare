@@ -6,140 +6,201 @@ import {
   IonToolbar,
   IonTitle,
   IonButton,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonGrid,
   IonRow,
   IonCol,
   IonFooter,
-  IonIcon,
 } from "@ionic/react";
-import {
-  notificationsOutline,
-  documentTextOutline,
-  chatbubbleEllipsesOutline,
-  heartOutline,
-} from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import "./LandingPage.css";
 import logo from "../assets/logo.png";
 import motherImg from "../assets/mother-care.jpg";
+import member1 from "../assets/member1.jpg";
+import member2 from "../assets/member2.jpg";
+import member3 from "../assets/member3.jpg";
 
-const Landing: React.FC = () => {
+const LandingPage: React.FC = () => {
   const history = useHistory();
+
+  const scrollToSection = (id: string) => {
+    const section = document.getElementById(id);
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <IonPage>
-      <IonHeader className="header">
+      {/* Sticky Header */}
+      <IonHeader className="sticky-header">
         <IonToolbar>
           <div className="header-container">
-            <img src={logo} alt="eNanayCare Logo" className="logo" />
-            <IonTitle className="app-title">eNanayCare</IonTitle>
-            <nav className="nav-links">
-              <button onClick={() => history.push("/login")}>Login</button>
-            </nav>
+            <div className="header-left">
+              <img src={logo} alt="eNanayCare Logo" className="logo" />
+              <IonTitle className="app-title">eNanayCare</IonTitle>
+            </div>
+            <div className="nav-buttons">
+              <button onClick={() => scrollToSection("about")}>About</button>
+              <button onClick={() => scrollToSection("features")}>Features</button>
+              <button onClick={() => scrollToSection("mission")}>Mission</button>
+              <button onClick={() => scrollToSection("team")}>Team</button>
+              <button onClick={() => scrollToSection("contact")}>Contact</button>
+              <IonButton
+                className="login-btn"
+                fill="outline"
+                color="primary"
+                onClick={() => history.push("/login")}
+              >
+                Login
+              </IonButton>
+            </div>
           </div>
         </IonToolbar>
       </IonHeader>
 
+      {/* Scrollable Content */}
       <IonContent fullscreen>
         <section className="hero-section">
           <div className="hero-overlay">
-            <div className="hero-content">
-              <h1>Maternal Health Guidance & Awareness</h1>
+            <div className="hero-content animate-fadein">
+              <h1>Empowering Maternal Care Through Technology</h1>
               <p>
-                Empowering mothers and Barangay Health Workers with safe,
-                accessible, digital care tools.
+                eNanayCare bridges mothers and Barangay Health Workers through
+                technology — ensuring safer pregnancies, timely checkups, and
+                accessible health information.
               </p>
               <IonButton
                 className="btn-get-started"
-                onClick={() => history.push("/login")}
+                onClick={() => scrollToSection("about")}
               >
-                Get Started
+                Learn More
               </IonButton>
             </div>
           </div>
         </section>
 
-        <section className="about-section">
+        <section id="about" className="section about-section animate-up">
           <IonGrid>
             <IonRow>
               <IonCol size="12" sizeMd="6">
-                <img
-                  src={motherImg}
-                  alt="Maternal care"
-                  className="about-image"
-                />
+                <img src={motherImg} alt="Maternal care" className="about-image" />
               </IonCol>
               <IonCol size="12" sizeMd="6" className="about-text">
                 <h2>About eNanayCare</h2>
                 <p>
-                  Many rural mothers miss essential checkups. eNanayCare bridges
-                  this gap with reminders, digital health records, and education
-                  — bringing care closer to home.
+                  The eNanayCare web application is designed to promote digital
+                  maternal health awareness, record management, and efficient
+                  communication between mothers and health workers. It helps
+                  communities track maternal milestones and supports early
+                  interventions.
                 </p>
               </IonCol>
             </IonRow>
           </IonGrid>
         </section>
 
-        <section className="features-section">
-          <h2>Our Core Features</h2>
+        <section id="features" className="section features-section animate-up">
+          <h2>Key Features</h2>
           <IonGrid>
             <IonRow>
               {[
                 {
-                  icon: notificationsOutline,
                   title: "Reminders",
-                  description:
-                    "Automated alerts for checkups & maternal activities.",
+                  desc: "Automated alerts for prenatal checkups and vitamins.",
                 },
                 {
-                  icon: documentTextOutline,
-                  title: "Digital Booklet",
-                  description: "Secure, accessible pregnancy health records.",
+                  title: "Digital Records",
+                  desc: "Secure and easily accessible maternal data.",
                 },
                 {
-                  icon: chatbubbleEllipsesOutline,
-                  title: "FAQs Chatbot",
-                  description: "Instant answers to common questions.",
+                  title: "Education",
+                  desc: "DOH-approved learning materials for mothers.",
                 },
                 {
-                  icon: heartOutline,
-                  title: "DOH Guidelines",
-                  description: "Built-in maternal care standards.",
+                  title: "Chatbot",
+                  desc: "Quick answers to common maternal questions.",
                 },
-              ].map(({ icon, title, description }, i) => (
+              ].map((feature, i) => (
                 <IonCol size="12" sizeMd="6" sizeLg="3" key={i}>
-                  <IonCard className="feature-card">
-                    <IonCardHeader>
-                      <IonIcon icon={icon} className="feature-icon" />
-                      <IonCardTitle>{title}</IonCardTitle>
-                    </IonCardHeader>
-                    <IonCardContent>{description}</IonCardContent>
-                  </IonCard>
+                  <div className="feature-card animate-fadein">
+                    <h3>{feature.title}</h3>
+                    <p>{feature.desc}</p>
+                  </div>
                 </IonCol>
               ))}
             </IonRow>
           </IonGrid>
         </section>
+
+        <section id="mission" className="section mission-section animate-up">
+          <h2>Our Mission</h2>
+          <p>
+            To empower every mother through accessible digital healthcare,
+            supporting safer motherhood and stronger communities with the help
+            of Barangay Health Workers.
+          </p>
+        </section>
+
+        <section id="team" className="section team-section animate-up">
+          <h2>Meet the Team</h2>
+          <IonGrid>
+            <IonRow>
+              {[
+                {
+                  name: "Evarine B. Rayon",
+                  role: "Project Leader/Analyst",
+                  img: member1,
+                  fb: "https://www.facebook.com/evarinerayon",
+                  ig: "https://instagram.com/",
+                },
+                {
+                  name: "Angel Justine Ballaso.",
+                  role: "Programmer",
+                  img: member2,
+                  fb: "https://www.facebook.com/eyn.gylii/",
+                  ig: "https://instagram.com/",
+                },
+                {
+                  name: "Keyna C. Gogo",
+                  role: "Documenter/Lead Analyst",
+                  img: member3,
+                  fb: "https://www.facebook.com/keyna.gogo",
+                  ig: "https://instagram.com/",
+                },
+              ].map((member, i) => (
+                <IonCol size="12" sizeMd="4" key={i}>
+                  <div className="team-card animate-fadein">
+                    <img src={member.img} alt={member.name} className="team-img" />
+                    <h3>{member.name}</h3>
+                    <p>{member.role}</p>
+                    <div className="team-socials">
+                      <a href={member.fb} target="_blank" rel="noreferrer">
+                        <i className="fab fa-facebook-f"></i>
+                      </a>
+                      <a href={member.ig} target="_blank" rel="noreferrer">
+                        <i className="fab fa-instagram"></i>
+                      </a>
+                    </div>
+                  </div>
+                </IonCol>
+              ))}
+            </IonRow>
+          </IonGrid>
+        </section>
+
+        <section id="contact" className="section contact-section animate-up">
+          <h2>Contact Us</h2>
+          <p>
+            For inquiries, reach us at{" "}
+            <b>brgtrio.enanaycare@gmail.com</b>
+          </p>
+        </section>
       </IonContent>
 
-      <IonFooter>
+      <IonFooter className="sticky-footer">
         <IonToolbar>
           <div className="footer">
-            <p>© 2025 eNanayCare | by BRG Trio</p>
-            <p>
-              <button onClick={() => history.push("/login")} className="footer-btn">
-                BHW Login
-              </button>{" "}
-              |{" "}
-              <button onClick={() => history.push("/login")} className="footer-btn">
-                Admin Login
-              </button>
-            </p>
+            <p>© 2025 eNanayCare | Developed by BRG Trio</p>
           </div>
         </IonToolbar>
       </IonFooter>
@@ -147,4 +208,4 @@ const Landing: React.FC = () => {
   );
 };
 
-export default Landing;
+export default LandingPage;

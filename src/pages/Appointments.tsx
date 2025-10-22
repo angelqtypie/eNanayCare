@@ -1,4 +1,3 @@
-// src/pages/Appointments.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonHeader,
@@ -13,6 +12,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
+  IonSpinner,
 } from "@ionic/react";
 import { closeOutline, trashOutline } from "ionicons/icons";
 import Calendar from "react-calendar";
@@ -20,11 +20,38 @@ import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 
+
+interface Mother {
+  mother_id: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface Appointment {
+  id: number;
+  mother_id: string;
+  date: string;
+  time: string;
+  location: string;
+  notes: string;
+  status: string;
+  mother?: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
+interface HealthRecord {
+  mother_id: string;
+  encounter_date: string;
+}
+
 const Appointments: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [mothers, setMothers] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [mothers, setMothers] = useState<Mother[]>([]);
   const [calendarDate, setCalendarDate] = useState<Date | null>(new Date());
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     motherIds: [] as string[],
@@ -34,9 +61,8 @@ const Appointments: React.FC = () => {
     notes: "",
   });
 
-  const handleChange = (name: string, value: any) => {
+  const handleChange = (name: string, value: any) =>
     setForm((prev) => ({ ...prev, [name]: value }));
-  };
 
   const formatDate = (date: Date) => {
     const y = date.getFullYear();
@@ -45,7 +71,6 @@ const Appointments: React.FC = () => {
     return `${y}-${m}-${d}`;
   };
 
-  // --- Convert 24h time to 12h AM/PM ---
   const formatTimeTo12Hour = (time: string) => {
     if (!time) return "";
     const [hourStr, minute] = time.split(":");
@@ -65,15 +90,49 @@ const Appointments: React.FC = () => {
   };
 
   const fetchAppointments = async () => {
-    const { data, error } = await supabase
+    setLoading(true);
+    const { data: appointmentsData, error } = await supabase
       .from("appointments")
       .select(`
-        id, date, time, location, notes, status,
-        mother:mothers(first_name, last_name, mother_id)
+        id, date, time, location, notes, status, mother_id,
+        mother:mothers(first_name, last_name)
       `)
       .order("date", { ascending: true });
-    if (error) console.error(error);
-    setAppointments(data || []);
+
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch all health records
+    const { data: healthRecords, error: hrError } = await supabase
+      .from("health_records")
+      .select("mother_id, encounter_date");
+    if (hrError) console.error(hrError);
+
+    // Mark missed appointments (typed fix)
+    const updated: Appointment[] =
+      appointmentsData?.map((a: Appointment) => {
+        const hasRecord = healthRecords?.some((hr: HealthRecord) => {
+          return (
+            hr.mother_id === a.mother_id &&
+            new Date(hr.encounter_date).toDateString() ===
+              new Date(a.date).toDateString()
+          );
+        });
+        if (
+          new Date(a.date) < new Date() &&
+          !hasRecord &&
+          a.status !== "Completed"
+        ) {
+          return { ...a, status: "Missed" };
+        }
+        return a;
+      }) || [];
+
+    setAppointments(updated);
+    setLoading(false);
   };
 
   const addAppointment = async () => {
@@ -107,17 +166,11 @@ const Appointments: React.FC = () => {
   };
 
   const deleteAppointment = async (id: number) => {
-    const confirmed = window.confirm("Are you sure you want to delete this appointment?");
-    if (!confirmed) return;
-
+    if (!window.confirm("Are you sure you want to delete this appointment?"))
+      return;
     const { error } = await supabase.from("appointments").delete().eq("id", id);
-    if (error) {
-      console.error(error);
-      alert("Failed to delete appointment.");
-    } else {
-      fetchAppointments();
-      alert("Appointment deleted.");
-    }
+    if (error) console.error(error);
+    else fetchAppointments();
   };
 
   useEffect(() => {
@@ -140,7 +193,8 @@ const Appointments: React.FC = () => {
       </IonHeader>
 
       <IonContent className="appointments-content">
-        <div className="appointments-layout">
+        <div className="appointments-container">
+          {/* Calendar Section */}
           <div className="calendar-section">
             <Calendar
               value={calendarDate}
@@ -155,17 +209,27 @@ const Appointments: React.FC = () => {
                 return has ? <div className="dot"></div> : null;
               }}
               tileClassName={({ date }) => {
-                const isToday = date.toDateString() === new Date().toDateString();
+                const isToday =
+                  date.toDateString() === new Date().toDateString();
                 return isToday ? "today-highlight" : null;
               }}
             />
-            <IonButton expand="block" className="add-btn" onClick={() => setShowModal(true)}>
+            <IonButton
+              expand="block"
+              className="add-btn"
+              onClick={() => setShowModal(true)}
+            >
               + New Appointment
             </IonButton>
           </div>
 
+          {/* Appointments Table */}
           <div className="table-wrapper">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="loading">
+                <IonSpinner name="dots" />
+              </div>
+            ) : filtered.length === 0 ? (
               <p className="empty-text">No appointments today.</p>
             ) : (
               <table className="appointments-table">
@@ -190,9 +254,15 @@ const Appointments: React.FC = () => {
                       <td>{a.date}</td>
                       <td>{formatTimeTo12Hour(a.time)}</td>
                       <td>{a.location}</td>
-                      <td>{a.status}</td>
+                      <td className={`status ${a.status.toLowerCase()}`}>
+                        {a.status}
+                      </td>
                       <td>
-                        <IonButton color="danger" size="small" onClick={() => deleteAppointment(a.id)}>
+                        <IonButton
+                          color="danger"
+                          size="small"
+                          onClick={() => deleteAppointment(a.id)}
+                        >
                           <IonIcon icon={trashOutline} />
                           &nbsp;Delete
                         </IonButton>
@@ -206,11 +276,16 @@ const Appointments: React.FC = () => {
         </div>
       </IonContent>
 
+      {/* Modal */}
       <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
         <div className="modal-container">
           <div className="modal-header">
             <h2>New Appointment</h2>
-            <IonButton fill="clear" color="medium" onClick={() => setShowModal(false)}>
+            <IonButton
+              fill="clear"
+              color="medium"
+              onClick={() => setShowModal(false)}
+            >
               <IonIcon icon={closeOutline} />
             </IonButton>
           </div>
@@ -221,7 +296,7 @@ const Appointments: React.FC = () => {
               <IonSelect
                 multiple
                 value={form.motherIds}
-                placeholder="Search or select mothers"
+                placeholder="Select mothers"
                 onIonChange={(e) => handleChange("motherIds", e.detail.value!)}
               >
                 {mothers.map((m) => (
@@ -277,23 +352,97 @@ const Appointments: React.FC = () => {
 
       <style>
         {`
-          .page-title { padding: 10px 20px; font-weight: 600; }
-          .appointments-layout { display: flex; gap: 20px; padding: 20px; }
-          .calendar-section { width: 350px; }
-          .table-wrapper { flex: 1; }
+          .page-title {
+            font-weight: 600;
+            padding: 10px 20px;
+          }
+          .appointments-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+          }
+          .calendar-section {
+            width: 340px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px;
+          }
+          .table-wrapper {
+            flex: 1;
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow-x: auto;
+          }
           .appointments-table {
-            width: 100%; border-collapse: collapse; background: white;
-            border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            border-collapse: collapse;
           }
           .appointments-table th, .appointments-table td {
-            padding: 10px; border-bottom: 1px solid #ddd; text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
           }
-          .appointments-table tr:hover { background-color: #f5f9ff; }
-          .modal-container { padding: 20px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; background: #fefefe; }
-          .modal-header { display: flex; justify-content: space-between; align-items: center; }
-          .form-scroll { max-height: 65vh; overflow-y: auto; padding-right: 10px; }
-          .dot { background-color: #3b82f6; width: 6px; height: 6px; border-radius: 50%; margin: auto; margin-top: 2px; }
-          .today-highlight { background: #ffe599 !important; border-radius: 50%; }
+          .appointments-table tr:hover {
+            background: #f8faff;
+          }
+          .status.scheduled {
+            color: #2563eb;
+            font-weight: 600;
+          }
+          .status.completed {
+            color: #16a34a;
+            font-weight: 600;
+          }
+          .status.missed {
+            color: #dc2626;
+            font-weight: 600;
+          }
+          .add-btn {
+            margin-top: 10px;
+            font-weight: 600;
+          }
+          .dot {
+            background-color: #2563eb;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin: auto;
+            margin-top: 2px;
+          }
+          .today-highlight {
+            background: #ffe599 !important;
+            border-radius: 50%;
+          }
+          .empty-text {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+          }
+          .loading {
+            text-align: center;
+            padding: 30px;
+          }
+          .modal-container {
+            background: #fefefe;
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+          }
+          .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .form-scroll {
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 10px;
+          }
+          
         `}
       </style>
     </MainLayout>

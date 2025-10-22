@@ -18,11 +18,11 @@ import {
   IonItem,
   IonLabel,
   IonInput,
+  IonSpinner,
 } from "@ionic/react";
 import { personCircleOutline, filterOutline } from "ionicons/icons";
-import { supabase } from "../utils/supabaseClient"; // ✅ central Supabase client
+import { supabase } from "../utils/supabaseClient";
 import MainLayout from "../layouts/MainLayouts";
-
 
 interface User {
   id: string;
@@ -52,6 +52,7 @@ const BhwWellnessPage: React.FC = () => {
   const [logs, setLogs] = useState<WellnessLog[]>([]);
   const [searchText, setSearchText] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchMothers();
@@ -63,7 +64,6 @@ const BhwWellnessPage: React.FC = () => {
 
   const fetchMothers = async () => {
     try {
-      // ✅ Step 1: Get all users with role 'mother'
       const { data: users, error: userError } = await supabase
         .from("users")
         .select("id, full_name, role")
@@ -74,14 +74,12 @@ const BhwWellnessPage: React.FC = () => {
 
       const userIds = users.map((u: User) => u.id);
 
-      // ✅ Step 2: Fetch mothers linked to these user_ids
       const { data: mothersData, error: motherError } = await supabase
         .from("mothers")
         .select("mother_id, first_name, last_name, user_id")
         .in("user_id", userIds);
 
       if (motherError) throw motherError;
-
       setMothers(mothersData || []);
     } catch (error) {
       console.error("Error fetching mothers:", error);
@@ -90,6 +88,7 @@ const BhwWellnessPage: React.FC = () => {
 
   const fetchLogsByDate = async (date: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("wellness_logs")
         .select(
@@ -98,65 +97,62 @@ const BhwWellnessPage: React.FC = () => {
         .eq("date_logged", date);
 
       if (error) throw error;
-
       setLogs(data || []);
     } catch (error) {
       console.error("Error fetching logs:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 🧮 Summary Calculations
   const totalMothers = mothers.length;
-  const mothersWithLogs = mothers.filter((mother) =>
-    logs.some((log) => log.mother_id === mother.mother_id)
+  const mothersWithLogs = mothers.filter((m) =>
+    logs.some((log) => log.mother_id === m.mother_id)
   ).length;
   const complianceRate =
     totalMothers > 0 ? Math.round((mothersWithLogs / totalMothers) * 100) : 0;
 
-  // 🎨 Progress Bar Color Logic
   const getBarColor = () => {
-    if (complianceRate >= 80) return "#16a34a"; // green
-    if (complianceRate >= 50) return "#eab308"; // yellow
-    return "#dc2626"; // red
+    if (complianceRate >= 80) return "#16a34a";
+    if (complianceRate >= 50) return "#eab308";
+    return "#dc2626";
   };
 
-  // 🔍 Search Filter
   const filteredMothers = mothers.filter((m) =>
     `${m.first_name} ${m.last_name}`
       .toLowerCase()
       .includes(searchText.toLowerCase())
   );
 
-  const getMotherLog = (mother_id: string) =>
-    logs.find((log) => log.mother_id === mother_id);
+  const getMotherLog = (id: string) => logs.find((log) => log.mother_id === id);
 
   return (
     <MainLayout>
       <IonHeader>
         <IonToolbar color="primary">
-          <IonTitle>BHW Wellness Monitoring</IonTitle>
+          <IonTitle className="font-semibold">
+            BHW Wellness Monitoring
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* 🔹 Summary Section */}
+        {/* Summary Section */}
         <IonCard className="summary-card">
           <IonCardHeader>
-            <IonCardTitle className="flex items-center gap-2">
+            <IonCardTitle className="flex items-center gap-2 text-lg">
               <IonIcon icon={personCircleOutline} />
               Daily Wellness Summary
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p className="text-gray-600 mb-3">
-              {selectedDate ? selectedDate : "Select a date to view summary"}
+            <p className="text-gray-500 mb-2">
+              {selectedDate || "Select a date to view summary"}
             </p>
             <IonGrid>
               <IonRow className="text-center">
                 <IonCol>
-                  <h2 className="text-2xl font-bold text-primary">
-                    {totalMothers}
-                  </h2>
+                  <h2 className="text-2xl font-bold">{totalMothers}</h2>
                   <p className="text-sm text-gray-500">Total Mothers</p>
                 </IonCol>
                 <IonCol>
@@ -176,8 +172,7 @@ const BhwWellnessPage: React.FC = () => {
                 </IonCol>
               </IonRow>
             </IonGrid>
-
-            <div className="progress-bar">
+            <div className="progress-bar mt-3">
               <div
                 className="progress"
                 style={{
@@ -189,7 +184,7 @@ const BhwWellnessPage: React.FC = () => {
           </IonCardContent>
         </IonCard>
 
-        {/* 🔹 Filter Section */}
+        {/* Date Filter */}
         <IonItem className="ion-margin-top">
           <IonLabel position="stacked">Date</IonLabel>
           <IonInput
@@ -202,46 +197,51 @@ const BhwWellnessPage: React.FC = () => {
         <div className="flex justify-end mt-3">
           <IonButton
             color="primary"
-            onClick={() => {
-              if (selectedDate) fetchLogsByDate(selectedDate);
-            }}
+            onClick={() => selectedDate && fetchLogsByDate(selectedDate)}
           >
             <IonIcon icon={filterOutline} slot="start" />
             FILTER
           </IonButton>
         </div>
 
-        {/* 🔹 Searchbar */}
+        {/* Search */}
         <IonSearchbar
           placeholder="Search mother..."
           value={searchText}
           onIonInput={(e) => setSearchText(e.detail.value!)}
           className="ion-margin-top"
-        ></IonSearchbar>
+        />
 
-        {/* 🔹 Data Table */}
+        {/* Table */}
         <IonCard>
+          <IonCardHeader>
+            <IonCardTitle className="text-base font-semibold">
+              Wellness Logs Overview
+            </IonCardTitle>
+          </IonCardHeader>
           <IonCardContent>
-            <IonGrid>
-              <IonRow className="table-header">
-                <IonCol>Mother</IonCol>
-                <IonCol>Sleep</IonCol>
-                <IonCol>Meals</IonCol>
-                <IonCol>Exercise</IonCol>
-                <IonCol>Mood</IonCol>
-                <IonCol>Vitamins</IonCol>
-                <IonCol>Status</IonCol>
-              </IonRow>
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <IonSpinner name="crescent" />
+              </div>
+            ) : (
+              <IonGrid>
+                <IonRow className="table-header">
+                  <IonCol>Mother</IonCol>
+                  <IonCol>Sleep</IonCol>
+                  <IonCol>Meals</IonCol>
+                  <IonCol>Exercise</IonCol>
+                  <IonCol>Mood</IonCol>
+                  <IonCol>Vitamins</IonCol>
+                  <IonCol>Status</IonCol>
+                </IonRow>
 
-              {filteredMothers.length > 0 ? (
-                filteredMothers.map((mother) => {
+                {filteredMothers.map((mother) => {
                   const log = getMotherLog(mother.mother_id);
                   return (
                     <IonRow
                       key={mother.mother_id}
-                      className={`table-row ${
-                        log ? "logged" : "nologue"
-                      } hover:shadow-md transition-all duration-200`}
+                      className={`table-row ${log ? "logged" : "nologue"}`}
                     >
                       <IonCol className="font-medium">
                         {mother.first_name} {mother.last_name}
@@ -252,61 +252,68 @@ const BhwWellnessPage: React.FC = () => {
                       <IonCol>{log?.mood || "-"}</IonCol>
                       <IonCol>{log?.vitamins || "-"}</IonCol>
                       <IonCol>
-                        {log ? (
-                          <span className="status logged">Logged</span>
-                        ) : (
-                          <span className="status nologue">No Log</span>
-                        )}
+                        <span
+                          className={`status ${log ? "logged" : "nologue"}`}
+                        >
+                          {log ? "Logged" : "No Log"}
+                        </span>
                       </IonCol>
                     </IonRow>
                   );
-                })
-              ) : (
-                <IonRow>
-                  <IonCol className="text-center text-gray-500">
-                    No mothers found.
-                  </IonCol>
-                </IonRow>
-              )}
-            </IonGrid>
+                })}
+
+                {filteredMothers.length === 0 && (
+                  <IonRow>
+                    <IonCol className="text-center text-gray-500">
+                      No mothers found.
+                    </IonCol>
+                  </IonRow>
+                )}
+              </IonGrid>
+            )}
           </IonCardContent>
         </IonCard>
 
-        {/* 🌈 Inline Styling */}
+        {/* Inline Styling */}
         <style>{`
-      .compact {
-        margin-bottom: 0.5rem;
-      }
-      .progress-bar {
-        background: #e5e7eb;
-        height: 6px;
-        border-radius: 5px;
-      }
-      .progress {
-        height: 100%;
-        transition: width 0.3s ease;
-      }
-      .table-header {
-        font-weight: 600;
-        background: #f8fafc;
-        border-bottom: 2px solid #e5e7eb;
-      }
-      .table-row {
-        font-size: 14px;
-        border-bottom: 1px solid #f1f5f9;
-      }
-      .table-row.logged { background: #ecfdf5; }
-      .table-row.nologue { background: #fff1f2; }
-      .status {
-        padding: 2px 6px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: white;
-      }
-      .status.logged { background: #16a34a; }
-      .status.nologue { background: #dc2626; }
-    `}</style>
+          .progress-bar {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 6px;
+          }
+          .progress {
+            height: 100%;
+            transition: width 0.4s ease;
+          }
+          .table-header {
+            font-weight: 600;
+            background: #f8fafc;
+            border-bottom: 2px solid #e5e7eb;
+          }
+          .table-row {
+            font-size: 14px;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .table-row.logged {
+            background: #ecfdf5;
+          }
+          .table-row.nologue {
+            background: #fef2f2;
+          }
+          .status {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+          }
+          .status.logged {
+            background: #16a34a;
+          }
+          .status.nologue {
+            background: #dc2626;
+          }
+        `}</style>
       </IonContent>
     </MainLayout>
   );
