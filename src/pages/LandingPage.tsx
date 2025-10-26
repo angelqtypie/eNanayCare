@@ -37,7 +37,7 @@ const LandingPage: React.FC = () => {
           <div className="header-container">
             <div className="header-left">
               <img src={logo} alt="eNanayCare Logo" className="logo" />
-              <IonTitle className="app-title">eNanayCare</IonTitle>
+              <h1 className="app-title">eNanayCare</h1>
             </div>
             <div className="nav-buttons">
               <button onClick={() => scrollToSection("about")}>About</button>
@@ -154,7 +154,7 @@ const LandingPage: React.FC = () => {
                   ig: "https://instagram.com/",
                 },
                 {
-                  name: "Angel Justine Ballaso.",
+                  name: "Angel Justine Ballaso",
                   role: "Programmer",
                   img: member2,
                   fb: "https://www.facebook.com/eyn.gylii/",
@@ -191,8 +191,7 @@ const LandingPage: React.FC = () => {
         <section id="contact" className="section contact-section animate-up">
           <h2>Contact Us</h2>
           <p>
-            For inquiries, reach us at{" "}
-            <b>brgtrio.enanaycare@gmail.com</b>
+            For inquiries, reach us at <b>rbgtrio.enanaycare@gmail.com</b>
           </p>
         </section>
       </IonContent>
@@ -200,7 +199,7 @@ const LandingPage: React.FC = () => {
       <IonFooter className="sticky-footer">
         <IonToolbar>
           <div className="footer">
-            <p>© 2025 eNanayCare | Developed by BRG Trio</p>
+            <p>© 2025 eNanayCare | Developed by RBG Trio</p>
           </div>
         </IonToolbar>
       </IonFooter>

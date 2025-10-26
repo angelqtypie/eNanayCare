@@ -1,3 +1,4 @@
+// src/pages/MotherNotifications.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonHeader,
@@ -8,9 +9,13 @@ import {
   IonCardContent,
   IonSpinner,
   IonBadge,
+  IonModal,
+  IonButton,
+  IonIcon,
   useIonViewWillLeave,
   useIonViewDidEnter,
 } from "@ionic/react";
+import { closeCircle } from "ionicons/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
 import MotherMainLayout from "../layouts/MotherMainLayout";
@@ -36,7 +41,19 @@ interface HealthRecord {
   notes: string | null;
 }
 
-type NotificationType = "appointment" | "material" | "health" | "system";
+interface BarangayUpdate {
+  id: string;
+  title: string;
+  description: string;
+  date_posted: string;
+}
+
+type NotificationType =
+  | "appointment"
+  | "material"
+  | "health"
+  | "system"
+  | "barangay";
 
 interface NotificationItem {
   id: string;
@@ -44,11 +61,14 @@ interface NotificationItem {
   message: string;
   time: string;
   type: NotificationType;
+  data?: BarangayUpdate; // store barangay details for modal
 }
 
 const MotherNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBarangay, setSelectedBarangay] = useState<BarangayUpdate | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useIonViewDidEnter(() => {
     requestAnimationFrame(() => {
@@ -77,8 +97,8 @@ const MotherNotifications: React.FC = () => {
 
         const { data: mother } = await supabase
           .from("mothers")
-          .select("id")
-          .eq("auth_user_id", user.id)
+          .select("mother_id")
+          .eq("user_id", user.id)
           .single();
         if (!mother) return;
 
@@ -89,7 +109,7 @@ const MotherNotifications: React.FC = () => {
         const { data: appointments } = await supabase
           .from("appointments")
           .select("id, date, time, location, status")
-          .eq("mother_id", mother.id)
+          .eq("mother_id", mother.mother_id)
           .gte("date", today.toISOString().split("T")[0])
           .lte("date", next3Days.toISOString().split("T")[0])
           .order("date", { ascending: true });
@@ -104,9 +124,15 @@ const MotherNotifications: React.FC = () => {
         const { data: records } = await supabase
           .from("health_records")
           .select("id, encounter_date, notes")
-          .eq("mother_id", mother.id)
+          .eq("mother_id", mother.mother_id)
           .order("encounter_date", { ascending: false })
           .limit(1);
+
+        const { data: barangayUpdates } = await supabase
+          .from("barangay_updates")
+          .select("id, title, description, date_posted")
+          .order("date_posted", { ascending: false })
+          .limit(3);
 
         const notifList: NotificationItem[] = [];
 
@@ -138,6 +164,17 @@ const MotherNotifications: React.FC = () => {
             }. Learn something new today!`,
             time: new Date(m.created_at).toLocaleString("en-PH"),
             type: "material",
+          });
+        });
+
+        (barangayUpdates ?? []).forEach((b: BarangayUpdate) => {
+          notifList.push({
+            id: b.id,
+            title: "Barangay Update",
+            message: `${b.title}: ${b.description.slice(0, 70)}...`, // show preview
+            time: new Date(b.date_posted).toLocaleString("en-PH"),
+            type: "barangay",
+            data: b,
           });
         });
 
@@ -189,8 +226,15 @@ const MotherNotifications: React.FC = () => {
       material: "success",
       health: "warning",
       system: "tertiary",
+      barangay: "danger",
     };
     return map[type];
+  };
+
+  const handleBarangayClick = (data?: BarangayUpdate) => {
+    if (!data) return;
+    setSelectedBarangay(data);
+    setIsModalOpen(true);
   };
 
   return (
@@ -207,7 +251,7 @@ const MotherNotifications: React.FC = () => {
             <IonSpinner name="crescent" color="danger" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="notif-empty">You’re all caught up 💖</div>
+          <div className="notif-empty">You’re all caught up</div>
         ) : (
           <motion.div
             className="notif-container"
@@ -223,7 +267,10 @@ const MotherNotifications: React.FC = () => {
                   exit={{ opacity: 0 }}
                   transition={{ delay: i * 0.04 }}
                 >
-                  <IonCard className={`notif-card notif-${n.type}`}>
+                  <IonCard
+                    className={`notif-card notif-${n.type}`}
+                    onClick={() => n.type === "barangay" && handleBarangayClick(n.data)}
+                  >
                     <IonCardContent>
                       <div className="notif-header">
                         <h2>{n.title}</h2>
@@ -238,6 +285,40 @@ const MotherNotifications: React.FC = () => {
             </AnimatePresence>
           </motion.div>
         )}
+
+        <IonModal isOpen={isModalOpen} onDidDismiss={() => setIsModalOpen(false)}>
+          <IonHeader>
+            <IonToolbar color="danger">
+              <IonTitle>Barangay Update</IonTitle>
+              <IonButton
+                slot="end"
+                fill="clear"
+                onClick={() => setIsModalOpen(false)}
+              >
+                <IonIcon icon={closeCircle} color="light" />
+              </IonButton>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+            {selectedBarangay && (
+              <>
+                <h2>{selectedBarangay.title}</h2>
+                <p style={{ marginTop: "8px" }}>{selectedBarangay.description}</p>
+                <p
+                  style={{
+                    marginTop: "12px",
+                    fontSize: "0.8rem",
+                    color: "#666",
+                    textAlign: "right",
+                  }}
+                >
+                  Posted on{" "}
+                  {new Date(selectedBarangay.date_posted).toLocaleString("en-PH")}
+                </p>
+              </>
+            )}
+          </IonContent>
+        </IonModal>
       </IonContent>
 
       <style>{`
@@ -248,7 +329,6 @@ const MotherNotifications: React.FC = () => {
           font-weight: 700;
           border-radius: 0 0 18px 18px;
         }
-
         .notif-loading, .notif-empty {
           display: flex;
           justify-content: center;
@@ -258,7 +338,6 @@ const MotherNotifications: React.FC = () => {
           font-size: 1rem;
           font-weight: 500;
         }
-
         .notif-container {
           padding: 15px;
           display: flex;
@@ -267,19 +346,18 @@ const MotherNotifications: React.FC = () => {
           background: linear-gradient(to bottom, #fff6fb, #fff);
           min-height: 100%;
         }
-
         .notif-card {
           border-radius: 18px;
           box-shadow: 0 3px 10px rgba(0,0,0,0.06);
           border: 1px solid #fbe2ec;
           transition: all 0.25s ease;
           background: #fff;
+          cursor: pointer;
         }
         .notif-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 5px 18px rgba(213,100,159,0.15);
         }
-
         .notif-header {
           display: flex;
           justify-content: space-between;
@@ -302,16 +380,11 @@ const MotherNotifications: React.FC = () => {
           color: #999;
           text-align: right;
         }
-
         .notif-appointment { border-left: 4px solid #3b82f6; }
         .notif-material { border-left: 4px solid #16a34a; }
         .notif-health { border-left: 4px solid #eab308; }
         .notif-system { border-left: 4px solid #a855f7; }
-
-        @media (max-width: 460px) {
-          .notif-header h2 { font-size: 0.95rem; }
-          .notif-message { font-size: 0.85rem; }
-        }
+        .notif-barangay { border-left: 4px solid #ef4444; }
       `}</style>
     </MotherMainLayout>
   );
