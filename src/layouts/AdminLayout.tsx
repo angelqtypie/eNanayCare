@@ -129,11 +129,6 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </button>
               )}
 
-              <button className="side-item" onClick={() => goTo("/adminrisks")}>
-                <IonIcon icon={alertCircleOutline} />
-                <IonLabel>Risk Reports</IonLabel>
-              </button>
-
               <IonButton
                 fill="clear"
                 color="medium"

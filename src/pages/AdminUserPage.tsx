@@ -393,10 +393,10 @@ const ManageUsers: React.FC = () => {
                   <IonSelectOption value="Zone 3">Zone 3</IonSelectOption>
                   <IonSelectOption value="Zone 4">Zone 4</IonSelectOption>
                   <IonSelectOption value="Zone 5">Zone 5</IonSelectOption>
-                  <IonSelectOption value="Zone 5">Zone 6</IonSelectOption>
-                  <IonSelectOption value="Zone 5">Zone 7</IonSelectOption>
-                  <IonSelectOption value="Zone 5">Zone 8</IonSelectOption>
-                  <IonSelectOption value="Zone 5">Zone 9</IonSelectOption>
+                  <IonSelectOption value="Zone 6">Zone 6</IonSelectOption>
+                  <IonSelectOption value="Zone 7">Zone 7</IonSelectOption>
+                  <IonSelectOption value="Zone 8">Zone 8</IonSelectOption>
+                  <IonSelectOption value="Zone 9">Zone 9</IonSelectOption>
                 </IonSelect>
               </IonItem>
             )}
