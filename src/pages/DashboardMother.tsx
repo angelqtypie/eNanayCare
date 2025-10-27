@@ -55,7 +55,7 @@ interface WellnessLogRow {
   created_at: string;
 }
 
-const vitaminList = [ "Iron", "Calcium", "Folic Acid", "Vitamin D"];
+const vitaminList = ["Iron", "Calcium", "Folic Acid", "Vitamin D"];
 
 const DashboardMother: React.FC = () => {
   const history = useHistory();
@@ -70,7 +70,7 @@ const DashboardMother: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasWellnessLog, setHasWellnessLog] = useState(false);
 
-  // Wellness states
+  // wellness input states
   const [sleepHours, setSleepHours] = useState("");
   const [meals, setMeals] = useState("");
   const [hydration, setHydration] = useState("");
@@ -224,23 +224,21 @@ const DashboardMother: React.FC = () => {
             <p>Your journey to motherhood is beautiful</p>
           </div>
 
-          <div className="summary-section">
-            <IonCard
-              className={`mother-card wellness-card ${
-                hasWellnessLog ? "completed" : ""
-              }`}
-              button
-              onClick={() => setShowWellnessModal(true)}
-            >
-              <IonCardContent>
-                <IonIcon icon={leafOutline} className="card-icon" />
-                <h3>Wellness Log {hasWellnessLog && "✔"}</h3>
-                <p>Track your sleep, meals, hydration, and mood</p>
-              </IonCardContent>
-            </IonCard>
-          </div>
+          <IonCard
+            className={`mother-card wellness-card ${
+              hasWellnessLog ? "completed" : ""
+            }`}
+            button
+            onClick={() => setShowWellnessModal(true)}
+          >
+            <IonCardContent>
+              <IonIcon icon={leafOutline} className="card-icon" />
+              <h3>Wellness Log {hasWellnessLog && "✔"}</h3>
+              <p>Track your sleep, meals, hydration, and mood</p>
+            </IonCardContent>
+          </IonCard>
 
-          <div className="cards-grid centered">
+          <div className="cards-grid">
             <IonCard
               className="mother-card soft-pink"
               button
@@ -309,10 +307,17 @@ const DashboardMother: React.FC = () => {
           </div>
 
           {/* Immunization Modal */}
-          <IonModal isOpen={showImmunizationModal} onDidDismiss={() => setShowImmunizationModal(false)}>
+          <IonModal
+            isOpen={showImmunizationModal}
+            onDidDismiss={() => setShowImmunizationModal(false)}
+          >
             <IonContent className="modal-scroll">
               <div className="modal-inner fixed-modal">
-                <IonButton fill="clear" className="close-btn" onClick={() => setShowImmunizationModal(false)}>
+                <IonButton
+                  fill="clear"
+                  className="close-btn"
+                  onClick={() => setShowImmunizationModal(false)}
+                >
                   <IonIcon icon={closeCircleOutline} />
                 </IonButton>
                 <h2>
@@ -338,41 +343,73 @@ const DashboardMother: React.FC = () => {
             </IonContent>
           </IonModal>
 
-          {/* Wellness Log Modal */}
-          <IonModal isOpen={showWellnessModal} onDidDismiss={() => setShowWellnessModal(false)}>
+          {/* Wellness Modal */}
+          <IonModal
+            isOpen={showWellnessModal}
+            onDidDismiss={() => setShowWellnessModal(false)}
+          >
             <IonContent className="modal-scroll">
               <div className="modal-inner fixed-modal">
-                <IonButton fill="clear" className="close-btn" onClick={() => setShowWellnessModal(false)}>
+                <IonButton
+                  fill="clear"
+                  className="close-btn"
+                  onClick={() => setShowWellnessModal(false)}
+                >
                   <IonIcon icon={closeCircleOutline} />
                 </IonButton>
                 <h2>
                   <IonIcon icon={leafOutline} /> Daily Wellness Log
                 </h2>
-                <p className="wellness-desc">Fill in your daily wellness details</p>
+                <p className="wellness-desc">
+                  Fill in your daily wellness details
+                </p>
 
                 <IonItem>
                   <IonLabel position="stacked">Sleep Hours</IonLabel>
-                  <IonInput type="number" placeholder="e.g., 8" value={sleepHours} onIonChange={(e) => setSleepHours(e.detail.value!)} />
+                  <IonInput
+                    type="number"
+                    placeholder="e.g., 8"
+                    value={sleepHours}
+                    onIonChange={(e) => setSleepHours(e.detail.value!)}
+                  />
                 </IonItem>
 
                 <IonItem>
                   <IonLabel position="stacked">Meals Today</IonLabel>
-                  <IonInput type="number" placeholder="e.g., 3" value={meals} onIonChange={(e) => setMeals(e.detail.value!)} />
+                  <IonInput
+                    type="number"
+                    placeholder="e.g., 3"
+                    value={meals}
+                    onIonChange={(e) => setMeals(e.detail.value!)}
+                  />
                 </IonItem>
 
                 <IonItem>
                   <IonLabel position="stacked">Water (glasses)</IonLabel>
-                  <IonInput type="number" placeholder="e.g., 8" value={hydration} onIonChange={(e) => setHydration(e.detail.value!)} />
+                  <IonInput
+                    type="number"
+                    placeholder="e.g., 8"
+                    value={hydration}
+                    onIonChange={(e) => setHydration(e.detail.value!)}
+                  />
                 </IonItem>
 
                 <IonItem>
                   <IonLabel position="stacked">Exercise / Movement</IonLabel>
-                  <IonInput placeholder="e.g., 20-min walk" value={exercise} onIonChange={(e) => setExercise(e.detail.value!)} />
+                  <IonInput
+                    placeholder="e.g., 20-min walk"
+                    value={exercise}
+                    onIonChange={(e) => setExercise(e.detail.value!)}
+                  />
                 </IonItem>
 
                 <IonItem>
                   <IonLabel position="stacked">Mood</IonLabel>
-                  <IonSelect placeholder="Select mood" value={mood} onIonChange={(e) => setMood(e.detail.value!)}>
+                  <IonSelect
+                    placeholder="Select mood"
+                    value={mood}
+                    onIonChange={(e) => setMood(e.detail.value!)}
+                  >
                     <IonSelectOption value="Happy">Happy</IonSelectOption>
                     <IonSelectOption value="Tired">Tired</IonSelectOption>
                     <IonSelectOption value="Anxious">Anxious</IonSelectOption>
@@ -415,15 +452,17 @@ const DashboardMother: React.FC = () => {
                         return;
                       }
 
-                      const { error } = await supabase.from("wellness_logs").insert({
-                        mother_id: mother.mother_id,
-                        sleep_hours: sleepHours,
-                        meals,
-                        hydration,
-                        exercise,
-                        mood,
-                        vitamins: vitamins.join(", "),
-                      });
+                      const { error } = await supabase
+                        .from("wellness_logs")
+                        .insert({
+                          mother_id: mother.mother_id,
+                          sleep_hours: sleepHours,
+                          meals,
+                          hydration,
+                          exercise,
+                          mood,
+                          vitamins: vitamins.join(", "),
+                        });
 
                       if (error) throw error;
 

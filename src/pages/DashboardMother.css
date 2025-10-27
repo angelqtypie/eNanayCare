@@ -1,247 +1,302 @@
-/* General Dashboard Styling */
+/* === GENERAL DASHBOARD === */
 .dashboard-content {
-  --background: linear-gradient(180deg, #fff0f9 0%, #fde4ff 100%);
+  --background: linear-gradient(180deg, #fff5fa 0%, #fde8ff 100%);
   font-family: "Poppins", sans-serif;
-  color: #222;
-  display: block;
-  overflow-y: auto; /* Enable scrolling */
-  min-height: 80vh;
-}
-
-/* Wrapper for Dashboard */
-.dashboard-wrapper {
+  color: #2b2b2b;
+  overflow-y: auto;
+  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 16px;
-  padding: 16px;
-  box-sizing: border-box;
 }
 
-/* Cards Grid (Responsive Grid) */
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
+.dashboard-wrapper {
+  flex: 1;
   width: 100%;
-  padding: 0 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 7rem; /* extra space above footer */
 }
 
-/* Card Styling (Soft look) */
-.mother-card {
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 3px 10px rgba(220, 50, 140, 0.15);
-  transition: all 0.3s ease;
-  background: #fff; /* Removed background image or color */
-  padding: 16px;
-}
-
-.mother-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 18px rgba(220, 50, 140, 0.25);
-}
-
-/* Card Icon Styling (Centered, Responsive) */
-.card-icon {
-  font-size: 2.5rem; /* Slightly larger icons */
-  margin-bottom: 8px;
-  color: var(--primary-dark); /* Keep the icon color dark for visibility */
-}
-
-/* Card Headers */
-.mother-card h3 {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-/* Text within cards */
-.mother-card p {
-  font-size: 0.9rem;
-  color: #777;
-}
-
-/* Modal Scroll Fix */
-.modal-scroll {
-  --background: #fff;
-  overflow-y: auto;
-  max-height: 90vh;
-  padding-bottom: 20px;
-}
-
-/* Card Variants (Soft colors for different card types) */
-.soft-pink { border: 2px solid #f8bfd6; }
-.soft-lilac { border: 2px solid #e3c5eb; }
-.soft-rose { border: 2px solid #f9bcd1; }
-
-.clean-white { border: 2px solid #fff; }
-
-/* Header Style */
+/* === HEADER === */
 .header-gradient {
-  padding: 20px;
-  text-align: center;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #ff94c2, #d884f8);
-  box-shadow: 0 4px 12px rgba(220, 50, 140, 0.25);
+  background: linear-gradient(135deg, #fba4d9, #c87ff7);
   color: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(180, 70, 180, 0.25);
 }
 
 .header-gradient h2 {
-  font-size: 1.8rem;
   font-weight: 700;
   margin: 0;
+  font-size: 2rem;
 }
 
 .header-gradient span {
-  color: #fffbe9;
+  color: #fffde8;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 600px) {
-  /* Make the cards fit better on smaller screens */
-  .cards-grid {
-    grid-template-columns: 1fr 1fr; /* Two columns layout on mobile */
-  }
-
-  .header-gradient h2 {
-    font-size: 1.4rem;
-  }
-
-  /* Increase icon size for smaller screens */
-  .card-icon {
-    font-size: 2rem; 
-  }
-
-  .mother-card {
-    padding: 16px;
-    font-size: 0.9rem;
-  }
-
-  /* Text scaling */
-  .mother-card h3 {
-    font-size: 1rem;
-  }
-
-  .mother-card p {
-    font-size: 0.85rem; /* Adjust text size for smaller screens */
-  }
+.header-gradient p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  opacity: 0.9;
 }
 
-/* Wide Screen (larger devices) */
-@media (min-width: 1200px) {
-  .cards-grid {
-    grid-template-columns: repeat(4, 1fr); /* 4 columns layout on wide screens */
-  }
-
-  .card-icon {
-    font-size: 2.8rem;
-  }
-
-  .mother-card {
-    padding: 24px;
-  }
+/* === CARD GRID === */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 cards per row (desktop) */
+  gap: 1.2rem;
+  width: 100%;
 }
 
-/* Enhanced Modal Style (Clean form, no background) */
-.fixed-modal {
-  position: relative;
-  max-width: 450px;
-  margin: auto;
-  padding: 24px;
-  border-radius: 16px;
+.mother-card {
+  border-radius: 20px;
   background: #fff;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.08);
+  padding: 1.4rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 160px;
 }
 
-.close-btn {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  color: #d76ef5;
-  font-size: 1.5rem;
-  z-index: 10;
+.mother-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* Immunization Modal (Small Pop-Up Style) */
-.ion-modal {
-  max-width: 80%;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.5); /* Dark overlay background */
+.card-icon {
+  font-size: 2.5rem;
+  color: #e31b81;
+  margin-bottom: 0.5rem;
 }
 
-.modal-inner {
-  max-width: 450px; /* Smaller width for the modal */
-  margin: 0 auto;
-  background: #fff; /* White background for modal content */
-  border-radius: 12px; /* Round corners for the modal */
+.mother-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+  color: #3b2a3d;
+}
+
+.mother-card p {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* === CARD COLORS === */
+.soft-pink { background: #ffe6f2; }
+.soft-lilac { background: #f3e8ff; }
+.soft-rose { background: #ffe8ec; }
+.clean-white { background: #ffffff; }
+
+.wellness-card {
+  background: #fff5f8;
+  border: 2px dashed #f38bb2;
+}
+
+.wellness-card.completed {
+  background: #e8ffe9;
+  border-color: #5ac77d;
+}
+
+/* === IMMUNIZATION LIST === */
+.immunization-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.immunization-list li {
+  font-size: 0.95rem;
+  color: #444;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f2f2f2;
+  display: flex;
+  justify-content: space-between;
+}
+
+.immunization-list .date {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+/* === MODAL STYLES === */
+.modal-scroll {
+  --background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.fixed-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.8rem;
+  margin: 1rem;
+  width: 90%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-inner h2 {
-  font-size: 1.4rem;
-  font-weight: bold;
-  text-align: center;
-  color: var(--primary-dark);
-  margin-bottom: 16px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e31b81;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
 }
 
 .wellness-desc {
   text-align: center;
   color: #777;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
+  font-style: italic;
 }
 
-.immunization-list {
-  list-style: none;
-  padding: 0;
+/* === CLOSE BUTTON === */
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #e31b81;
+  font-size: 1.6rem;
+  z-index: 10;
 }
 
-.immunization-list li {
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.immunization-list .date {
-  font-size: 0.8rem;
-  color: #888;
-  margin-left: 6px;
-}
-
-/* Button Styling */
-.ion-button {
-  font-size: 0.9rem;
-  padding: 10px 20px;
-  border-radius: 20px;
-}
-
-/* Custom Form Styling */
+/* === FORM STYLES === */
 .ion-item {
-  margin-bottom: 12px;
+  --background: #fff;
+  margin: 0.4rem 0;
+  border-radius: 10px;
 }
 
-.ion-label {
-  font-weight: bold;
-  color: var(--primary-dark);
+.vitamins-section {
+  background: #fff9fc;
+  border: 1px solid #f9d8e6;
+  border-radius: 14px;
+  padding: 0.8rem;
+  margin-top: 1rem;
 }
 
-.ion-input,
-.ion-select {
-  font-size: 0.9rem;
+.vitamins-section ion-label {
+  color: #333;
+  font-weight: 600;
 }
 
-.ion-checkbox {
-  margin-left: 8px;
+/* === CHATBOT FAB ICON === */
+.chatbot-fab-wrapper {
+  position: fixed !important;
+  bottom: 85px !important;
+  right: 20px !important;
+  z-index: 2000 !important;
 }
 
-/* Adjust for smaller screens */
-@media (max-width: 600px) {
+.chatbot-fab {
+  background: linear-gradient(135deg, #e31b81, #ff9ecf) !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50%;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2.8s infinite ease-in-out;
+  transition: transform 0.3s ease;
+}
+
+.chatbot-fab:hover {
+  transform: scale(1.08);
+}
+
+.chatbot-icon {
+  font-size: 1.9rem;
+  color: #fff;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr); /* medium screens (tablet) */
+  }
+}
+
+@media (max-width: 768px) {
+  .header-gradient { padding: 1.4rem; }
+  .header-gradient h2 { font-size: 1.5rem; }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr); /* mobile screens */
+    gap: 1rem;
+  }
+
   .fixed-modal {
-    padding: 16px;
-    width: 100%; /* Modal takes up most of the screen on mobile */
-  }
-
-  .modal-inner h2 {
-    font-size: 1.2rem;
+    width: 95%;
+    height: 90vh;
+    padding: 1.4rem;
   }
 }
 
+@media (max-width: 480px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+
+  .mother-card {
+    padding: 1rem;
+    min-height: 140px;
+  }
+
+  .card-icon {
+    font-size: 2rem;
+  }
+
+  .header-gradient h2 {
+    font-size: 1.3rem;
+  }
+
+  .fixed-modal {
+    width: 96%;
+    height: 95vh;
+    margin: 0.6rem auto;
+  }
+}

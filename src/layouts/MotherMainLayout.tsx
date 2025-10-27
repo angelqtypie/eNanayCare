@@ -16,7 +16,7 @@ import {
   bookOutline,
   notificationsOutline,
   personCircleOutline,
-  chatbubbleOutline,
+  chatbubbleEllipsesOutline,
   close,
   send,
 } from "ionicons/icons";
@@ -241,12 +241,13 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           </div>
         )}
 
-        {!showChat && (
-          <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton onClick={() => setShowChat(true)}>
-              <IonIcon icon={chatbubbleOutline} />
-            </IonFabButton>
-          </IonFab>
+{/* ===== CHATBOT FAB ICON ===== */}
+{!showChat && (
+  <IonFab vertical="bottom" horizontal="end" slot="fixed" className="chatbot-fab-wrapper">
+    <IonFabButton className="chatbot-fab" onClick={() => setShowChat(true)}>
+      <IonIcon icon={chatbubbleEllipsesOutline} className="chatbot-icon" />
+    </IonFabButton>
+  </IonFab>
         )}
       </IonContent>
 
@@ -313,9 +314,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           padding: 0rem 1rem;
         }
 
-        .mother-logo {
-          width: 42px; height: 42px;
-        }
+        .mother-logo { width: 42px; height: 42px; }
 
         .app-title {
           font-weight: 800;
@@ -354,7 +353,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           overflow: hidden;
           z-index: 1000;
         }
-        
+
         .chat-header {
           background: linear-gradient(90deg, var(--primary-dark), var(--primary-pink));
           color: white;
@@ -363,7 +362,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           padding: 12px;
           position: relative;
         }
-        
+
         .close-icon {
           position: absolute;
           right: 12px;
@@ -371,29 +370,29 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           font-size: 22px;
           cursor: pointer;
         }
-        
+
         .chat-body {
           flex: 1;
           padding: 10px;
           background: #fff9fb;
           overflow-y: auto;
         }
-        
+
         .msg { 
           display: flex; 
           align-items: flex-end; 
           margin: 6px 0; 
         }
-        
+
         .msg.bot { justify-content: flex-start; }
         .msg.user { justify-content: flex-end; }
-        
+
         .chat-avatar {
           width: 38px; height: 38px;
           border-radius: 50%;
           object-fit: cover;
         }
-        
+
         .chat-text {
           padding: 10px 14px;
           border-radius: 18px;
@@ -401,10 +400,10 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           font-size: 0.9rem;
           line-height: 1.4;
         }
-        
+
         .bot-bubble { background: var(--bubble-bot); color: var(--text-dark); margin-left: 6px; }
         .user-bubble { background: var(--bubble-user); color: white; margin-right: 6px; }
-        
+
         .chat-questions {
           display: flex;
           flex-wrap: wrap;
@@ -412,10 +411,10 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           padding: 6px;
           background: #fff;
           border-top: 1px solid #f3c1d8;
-          overflow-y: auto; /* Make it scrollable */
-          max-height: 150px; /* Limit height of the question section */
+          overflow-y: auto;
+          max-height: 150px;
         }
-        
+
         .question-btn {
           background: var(--bubble-bot);
           color: var(--primary-dark);
@@ -426,12 +425,12 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           font-weight: bold;
           transition: 0.2s;
         }
-        
+
         .question-btn:hover {
           background: var(--primary-pink);
           color: white;
         }
-        
+
         .chat-input {
           display: flex;
           align-items: center;
@@ -439,7 +438,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           border-top: 1px solid #f3c1d8;
           background: #fff;
         }
-        
+
         .chat-input input {
           flex: 1;
           border: 1px solid #f3b0c3;
@@ -447,7 +446,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           padding: 10px 14px;
           font-size: 0.9rem;
         }
-        
+
         .send-btn {
           width: 44px;
           height: 44px;
@@ -460,7 +459,41 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           justify-content: center;
           margin-left: 6px;
         }
-        
+
+        /* CHATBOT FAB ICON */
+.chatbot-fab-wrapper {
+  position: fixed !important;
+  bottom: 85px !important; /* Slightly above footer */
+  right: 20px !important;
+  z-index: 2000 !important;
+}
+
+.chatbot-fab {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-pink)) !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 50%;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2.8s infinite ease-in-out;
+  transition: transform 0.3s ease;
+}
+
+.chatbot-fab:hover {
+  transform: scale(1.08);
+}
+
+.chatbot-icon {
+  font-size: 1.8rem;
+  color: #fff;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+}
 
         /* FOOTER */
         .mother-footer-nav {
@@ -477,6 +510,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           border-top-left-radius: 16px;
           border-top-right-radius: 16px;
           box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
+          z-index: 1000;
         }
 
         .footer-btn {

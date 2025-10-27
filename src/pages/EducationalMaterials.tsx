@@ -18,86 +18,98 @@ interface Material {
 }
 
 /* ========================================
-   BUILT-IN MATERIALS (DEFAULT DATA)
+   PRELOADED EDUCATIONAL MATERIALS
 ======================================== */
 const BUILT_IN_MATERIALS: Material[] = [
   {
     id: "m1",
-    title: "Pregnancy Nutrition Essentials (DOH)",
+    title: "🌸 Pregnancy Nutrition Essentials",
     category: "Nutrition",
     image_url: "https://cdn-icons-png.flaticon.com/512/2966/2966487.png",
-    content: `A balanced diet keeps you and your baby healthy. Include fruits, vegetables, and protein daily.
-✅ Eat small frequent meals
-✅ Drink 8–10 glasses of water
-✅ Take your prenatal vitamins regularly
-✅ Avoid alcohol and smoking
+    content: `Eating well is one of the greatest gifts you can give to your growing baby. 🥗  
+- Include colorful fruits and leafy vegetables  
+- Enjoy protein-rich foods like eggs, beans, and fish  
+- Drink 8–10 glasses of water daily to stay hydrated  
+- Take your prenatal vitamins every morning  
+- Avoid alcohol, caffeine, and smoking  
 
-🍎 Healthy mama = healthy baby!`,
+A nourished mama builds a strong, healthy baby. 💕`,
     source: "DOH Maternal Health Guide",
   },
   {
     id: "m2",
-    title: "Signs of Pregnancy Danger (WHO)",
-    category: "Risk Awareness",
+    title: "🚨 Warning Signs During Pregnancy",
+    category: "Warning Signs",
     image_url: "https://cdn-icons-png.flaticon.com/512/3209/3209048.png",
-    content: `⚠️ Seek medical help immediately if you experience:
-- Severe headache or blurred vision
-- Heavy bleeding or leaking fluid
-- Swelling of hands and face
-- Abdominal pain or fever
-- Decreased baby movement`,
+    content: `Always listen to your body, mama.  
+Call or visit your health worker right away if you experience:  
+⚠️ Severe headache or blurred vision  
+⚠️ Sudden swelling in face or hands  
+⚠️ Heavy bleeding or leaking fluid  
+⚠️ Persistent fever or abdominal pain  
+⚠️ Decreased baby movement  
+
+Trust your instincts — your safety matters most. 💖`,
     source: "WHO Maternal Safety Guide",
   },
   {
     id: "m3",
-    title: "Preparing for Safe Delivery",
-    category: "Delivery Readiness",
+    title: "👜 Preparing for Safe Delivery",
+    category: "Birth Preparation",
     image_url: "https://cdn-icons-png.flaticon.com/512/3176/3176292.png",
-    content: `Before labor starts:
-👜 Prepare your hospital bag early:
-- Maternity book & ID
-- Clothes, baby blanket
-- Toiletries & snacks
+    content: `As your due date approaches, stay ready and calm. 🌼  
+Pack your hospital bag early with:  
+- Maternity book, ID, and health records  
+- Comfortable clothes and baby blanket  
+- Toiletries, snacks, and water bottle  
 
-🏥 Know your nearest birthing center and transport plan.`,
+💗 Know your nearest birthing center and your emergency transport plan.  
+Prepared mama = safe, confident birth.`,
     source: "DOH Safe Motherhood Program",
   },
   {
     id: "m4",
-    title: "Postpartum Care for Mothers",
+    title: "🤱 Postpartum Care for New Mothers",
     category: "Postpartum Care",
     image_url: "https://cdn-icons-png.flaticon.com/512/4849/4849837.png",
-    content: `Your body needs recovery after giving birth. 💕
-- Rest and eat nutritious meals
-- Keep your wound clean and dry
-- Breastfeed your baby frequently
-- Avoid heavy work for at least 6 weeks
-- Visit your health center for check-ups`,
+    content: `You’ve brought life into the world — now it’s time to care for *you*. 🌷  
+- Rest whenever your baby sleeps  
+- Eat balanced meals to recover strength  
+- Keep your wound clean and dry  
+- Breastfeed frequently and drink lots of water  
+- Avoid heavy lifting for at least 6 weeks  
+- Schedule your postnatal check-up  
+
+Remember: healing takes time and love. You’re doing great, mama. 💞`,
     source: "DOH Postpartum Guide",
   },
   {
     id: "m5",
-    title: "Baby Immunization Schedule",
+    title: "💉 Baby Immunization Schedule",
     category: "Immunization",
     image_url: "https://cdn-icons-png.flaticon.com/512/3048/3048704.png",
-    content: `💉 Vaccines protect your baby from serious diseases.
-Here’s the basic immunization schedule:
-- BCG & Hepatitis B: at birth
-- DPT, Polio, Hib: 6, 10, 14 weeks
-- Measles: 9 months`,
+    content: `Vaccines are your baby’s shield against serious diseases. 🌈  
+Here’s the recommended schedule:  
+👶 BCG & Hepatitis B – at birth  
+🍼 DPT, Polio, Hib – 6, 10, and 14 weeks  
+🌼 Measles – 9 months  
+
+Keep your baby’s immunization card safe and updated. A protected baby is a happy baby! 💚`,
     source: "DOH Immunization Guide",
   },
   {
     id: "m6",
-    title: "Caring for Your Mental Health",
+    title: "💗 Caring for Your Mental Health",
     category: "Mental Health",
     image_url: "https://cdn-icons-png.flaticon.com/512/2821/2821637.png",
-    content: `It’s normal to feel emotional changes during pregnancy.
-💗 Tips to manage stress:
-- Talk about your feelings
-- Rest often
-- Ask help from family or friends
-- If sadness persists, consult your health worker.`,
+    content: `Pregnancy brings changes — physical, emotional, and mental. 🌸  
+It’s okay to feel overwhelmed sometimes. Here are gentle reminders:  
+✨ Rest and breathe deeply  
+✨ Share your feelings with loved ones  
+✨ Accept help — you don’t have to do it all  
+✨ Consult your health worker if sadness lingers  
+
+You’re stronger than you think, mama. 💕`,
     source: "WHO Mental Health Support",
   },
 ];
@@ -131,7 +143,20 @@ const EducationalMaterials: React.FC = () => {
     })();
   }, []);
 
-  const categories = ["All", ...Array.from(new Set(materials.map((m) => m.category)))];
+  const categories = [
+    "All", 
+    "Nutrition", 
+    "Prenatal Care", 
+    "Warning Signs", 
+    "Birth Preparation", 
+    "Postpartum Care", 
+    "Mental Health", 
+    "Family Planning", 
+    "Baby Care", 
+    "Immunization",
+    "Others"
+  ];
+
   const filtered =
     selectedCategory === "All"
       ? materials
@@ -141,12 +166,14 @@ const EducationalMaterials: React.FC = () => {
     <MotherMainLayout>
       {/* HERO */}
       <motion.section
-        className="edu-hero glassy-hero"
+        className="edu-hero"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2>Learn & Grow 🌷</h2>
-        <p>Curated maternal and baby care guides from DOH & WHO</p>
+        <h2>🌷 Learn & Bloom, Mama</h2>
+        <p>
+          Gentle guidance and inspiring tips for every stage of motherhood — from pregnancy to postpartum. 💖
+        </p>
       </motion.section>
 
       {/* CATEGORY FILTER */}
@@ -180,7 +207,7 @@ const EducationalMaterials: React.FC = () => {
             {filtered.map((m) => (
               <motion.div
                 key={m.id}
-                className="mat-card glassy-card"
+                className="mat-card"
                 onClick={() => {
                   setActiveMaterial(m);
                   setModalOpen(true);
@@ -208,11 +235,12 @@ const EducationalMaterials: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* INTERACTIVE MODAL */}
       <IonModal
         isOpen={modalOpen}
         onDidDismiss={() => setModalOpen(false)}
         className="edu-modal"
+        backdropDismiss
       >
         <AnimatePresence>
           {activeMaterial && (
@@ -237,11 +265,6 @@ const EducationalMaterials: React.FC = () => {
 
               <div className="modal-body">
                 <p className="modal-content">{activeMaterial.content}</p>
-                {activeMaterial.source && (
-                  <p className="modal-source">
-                    📖 Source: {activeMaterial.source}
-                  </p>
-                )}
               </div>
 
               <IonButton expand="block" fill="outline" onClick={() => setModalOpen(false)}>
@@ -255,7 +278,7 @@ const EducationalMaterials: React.FC = () => {
       {/* STYLING */}
       <style>{`
         /* HERO */
-        .glassy-hero {
+        .edu-hero {
           background: linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7);
           backdrop-filter: blur(10px);
           color: #6a3a55;
@@ -264,12 +287,12 @@ const EducationalMaterials: React.FC = () => {
           text-align: center;
           box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .glassy-hero h2 {
+        .edu-hero h2 {
           font-weight: 700;
           font-size: 1.4rem;
           margin-bottom: 6px;
         }
-        .glassy-hero p {
+        .edu-hero p {
           font-size: 0.95rem;
           opacity: 0.8;
         }
@@ -305,7 +328,7 @@ const EducationalMaterials: React.FC = () => {
           padding: 15px;
         }
 
-        .glassy-card {
+        .mat-card {
           background: rgba(255,255,255,0.8);
           backdrop-filter: blur(8px);
           border-radius: 20px;
