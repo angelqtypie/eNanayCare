@@ -61,8 +61,7 @@ const AdminEducationalMaterials: React.FC = () => {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) console.error("Error fetching materials:", error);
-    else setMaterials(data || []);
+    if (!error) setMaterials(data || []);
   };
 
   useEffect(() => {
@@ -77,20 +76,13 @@ const AdminEducationalMaterials: React.FC = () => {
         .from("educational-images")
         .upload(fileName, file, { upsert: true });
 
-      if (error) {
-        console.error("Upload failed:", error);
-        alert("Image upload failed. Please check your Supabase bucket policy.");
-        return "";
-      }
+      if (error) return "";
 
       const { data: publicUrlData } = supabase.storage
         .from("educational-images")
         .getPublicUrl(fileName);
 
       return publicUrlData?.publicUrl || "";
-    } catch (err) {
-      console.error("Upload error:", err);
-      return "";
     } finally {
       setUploading(false);
     }
@@ -100,16 +92,13 @@ const AdminEducationalMaterials: React.FC = () => {
     fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
 
   const handleAdd = async () => {
-    if (!newMaterial.title || !newMaterial.category || !newMaterial.content) {
-      alert("Please fill in all required fields.");
-      return;
-    }
+    if (!newMaterial.title || !newMaterial.category || !newMaterial.content) return;
 
     let imageUrl = newMaterial.image_url?.trim() || "";
     if (file) imageUrl = await uploadImageAndGetUrl(file);
     if (!imageUrl) imageUrl = getRandomFallback();
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("educational_materials")
       .insert([
         {
@@ -121,11 +110,7 @@ const AdminEducationalMaterials: React.FC = () => {
       ])
       .select();
 
-    if (error) {
-      console.error("Add material failed:", error);
-      alert("Failed to add material.");
-    } else {
-      alert("✅ Material added successfully!");
+    if (data) {
       setMaterials([...(data || []), ...materials]);
       setNewMaterial({ title: "", category: "", content: "", image_url: "" });
       setFile(null);
@@ -140,7 +125,7 @@ const AdminEducationalMaterials: React.FC = () => {
   };
 
   const handleUpdate = async () => {
-    if (!newMaterial.id) return alert("Invalid material selected.");
+    if (!newMaterial.id) return;
 
     let imageUrl = newMaterial.image_url || "";
     if (file) imageUrl = await uploadImageAndGetUrl(file);
@@ -156,11 +141,7 @@ const AdminEducationalMaterials: React.FC = () => {
       })
       .eq("id", newMaterial.id);
 
-    if (error) {
-      console.error("Update failed:", error);
-      alert("Failed to update.");
-    } else {
-      alert("✅ Material updated!");
+    if (!error) {
       setIsEditing(false);
       setNewMaterial({ title: "", category: "", content: "", image_url: "" });
       setFile(null);
@@ -172,17 +153,15 @@ const AdminEducationalMaterials: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this material?")) return;
     const { error } = await supabase.from("educational_materials").delete().eq("id", id);
-    if (error) {
-      console.error("Delete failed:", error);
-      alert("Failed to delete.");
-    } else {
-      alert("🗑️ Deleted successfully!");
-      setMaterials(materials.filter((m) => m.id !== id));
-    }
+    if (!error) setMaterials(materials.filter((m) => m.id !== id));
   };
 
   const handleView = (material: Material) => setSelectedMaterial(material);
   const closeView = () => setSelectedMaterial(null);
+  const removePreviewImage = () => {
+    setFile(null);
+    setPreviewUrl("");
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const uploadedFile = acceptedFiles[0];
@@ -233,7 +212,15 @@ const AdminEducationalMaterials: React.FC = () => {
             <IonIcon icon={cloudUploadOutline} size="large" />
             {isDragActive ? <p>Drop the image here...</p> : <p>Drag & drop or click to upload</p>}
           </div>
-          {previewUrl && <img src={previewUrl} alt="Preview" className="preview-image" />}
+
+          {previewUrl && (
+            <div className="preview-wrapper">
+              <img src={previewUrl} alt="Preview" className="preview-image" />
+              <button className="remove-preview" onClick={removePreviewImage}>
+                <IonIcon icon={closeOutline} />
+              </button>
+            </div>
+          )}
 
           {isEditing ? (
             <button className="update" onClick={handleUpdate}>
@@ -285,30 +272,33 @@ const AdminEducationalMaterials: React.FC = () => {
       )}
 
       <style>{`
-        .materials-container { padding: 30px; background: linear-gradient(180deg, #f8e9ef 0%, #fdf5f8 100%); min-height:100vh; }
-        h1 { color:#6d214f; font-weight:800; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
-        .materials-form { background:#fff; border:1px solid #f4d1e0; border-radius:18px; padding:20px; margin-bottom:28px; box-shadow:0 2px 8px rgba(217,82,140,0.15); }
-        input, select, textarea { width:100%; padding:10px 12px; margin-bottom:12px; border:1px solid #e3b7cb; border-radius:12px; font-size:0.95rem; }
-        button { background: linear-gradient(135deg,#d6639c,#f197ba); color:#fff; border:none; padding:10px 18px; border-radius:12px; cursor:pointer; font-weight:600; transition: transform 0.2s ease, background 0.3s ease; }
-        button:hover { transform: translateY(-2px); background: linear-gradient(135deg,#a43c6b,#d45b94); }
+        .materials-container { padding: 30px; background: linear-gradient(180deg,#f1f5f9 0%,#e2e8f0 100%); min-height:100vh; }
+        h1 { color:#1e293b; font-weight:800; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+        .materials-form { background:#fff; border:1px solid #cbd5e1; border-radius:18px; padding:20px; margin-bottom:28px; box-shadow:0 2px 8px rgba(30,41,59,0.1); }
+        input, select, textarea { width:100%; padding:10px 12px; margin-bottom:12px; border:1px solid #94a3b8; border-radius:12px; font-size:0.95rem; background:#f8fafc; }
+        button { background: linear-gradient(135deg,#334155,#64748b); color:#fff; border:none; padding:10px 18px; border-radius:12px; cursor:pointer; font-weight:600; transition: transform 0.2s ease, background 0.3s ease; }
+        button:hover { transform: translateY(-2px); background: linear-gradient(135deg,#1e293b,#475569); }
+        .dropzone { border:2px dashed #64748b; padding:20px; text-align:center; cursor:pointer; border-radius:12px; margin-bottom:12px; transition: background 0.3s ease; color:#475569; }
+        .dropzone.active { background:#e2e8f0; }
+        .preview-wrapper { position:relative; display:inline-block; }
+        .preview-image { max-width:100%; max-height:180px; margin-top:10px; border-radius:12px; object-fit:cover; }
+        .remove-preview { position:absolute; top:8px; right:8px; background:rgba(255,255,255,0.9); color:#1e293b; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+        .remove-preview:hover { background:#e2e8f0; }
         .materials-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
         .material-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.05); transition:all 0.3s ease; position:relative; }
-        .material-card:hover { transform:translateY(-4px); box-shadow:0 8px 18px rgba(167,61,104,0.2); }
+        .material-card:hover { transform:translateY(-4px); box-shadow:0 8px 18px rgba(51,65,85,0.2); }
         .material-card img { width:100%; height:150px; object-fit:cover; }
         .info { padding:14px; }
-        .info h3 { color:#6b214e; font-weight:700; }
-        .cat { color:#b05d8b; font-weight:600; font-size:0.85rem; }
+        .info h3 { color:#0f172a; font-weight:700; }
+        .cat { color:#475569; font-weight:600; font-size:0.85rem; }
         .actions { position:absolute; top:10px; right:10px; display:flex; gap:8px; }
-        .actions button { background:#fff; color:#a24a75; border-radius:8px; padding:5px 7px; }
-        .modal { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+        .actions button { background:#f1f5f9; color:#334155; border-radius:8px; padding:5px 7px; }
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; margin-bottom: -60px; }
         .modal-content { background:#fff; border-radius:18px; padding:24px 28px; max-width:700px; width:90%; position:relative; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; }
-        .modal-content img { width:100%; max-height:260px; object-fit:contain; border-radius:12px; margin-bottom:16px; }
+        .modal-content img { width:100%; max-height:200px; object-fit:contain; border-radius:12px; margin-bottom:16px; }
         .modal-text { overflow-y:auto; padding-right:8px; flex:1; }
-        .modal-text p { white-space:pre-wrap; line-height:1.6; color:#333; }
-        .close { position:absolute; top:10px; right:14px; background:#f8d7e0; color:#8a2957; border:none; border-radius:50%; width:32px; height:32px; font-size:1.2rem; cursor:pointer; }
-        .dropzone { border:2px dashed #d6639c; padding:20px; text-align:center; cursor:pointer; border-radius:12px; margin-bottom:12px; transition: background 0.3s ease; }
-        .dropzone.active { background:#fce4f3; }
-        .preview-image { max-width:100%; max-height:180px; margin-top:10px; border-radius:12px; object-fit:cover; }
+        .modal-text p { white-space:pre-wrap; line-height:1.6; color:#1e293b; }
+        .close { position:absolute; top:10px; right:14px; background:#e2e8f0; color:#1e293b; border:none; border-radius:50%; width:32px; height:32px; font-size:1.2rem; cursor:pointer; }
       `}</style>
     </AdminMainLayout>
   );
