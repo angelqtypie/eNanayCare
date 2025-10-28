@@ -11,7 +11,6 @@ import {
   peopleOutline,
   calendarOutline,
   checkmarkCircleOutline,
-  leafOutline,
   alertCircleOutline,
   megaphoneOutline,
 } from "ionicons/icons";
@@ -28,13 +27,22 @@ interface BarangayUpdate {
   date_posted: string;
 }
 
+interface RiskReport {
+  id: number;
+  mother_id: number;
+  mother_name: string;
+  risk_type: string;
+  status: string;
+  created_at: string;
+}
+
 const DashboardBHW: React.FC = () => {
   const history = useHistory();
 
   const [motherCount, setMotherCount] = useState(0);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [todayVisitCount, setTodayVisitCount] = useState(0);
-  const [wellnessCount, setWellnessCount] = useState(0);
+  const [riskReports, setRiskReports] = useState<RiskReport[]>([]);
   const [riskCount, setRiskCount] = useState(0);
   const [updates, setUpdates] = useState<BarangayUpdate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,26 +86,20 @@ const DashboardBHW: React.FC = () => {
           .eq("encounter_date", today);
         setTodayVisitCount(visitCount ?? 0);
 
-        const { count: wellCount } = await supabase
-          .from("wellness_logs")
-          .select("*", { count: "exact" })
-          .eq("date", today);
-        setWellnessCount(wellCount ?? 0);
-
-        const { count: riskCount } = await supabase
+        const { data: riskData } = await supabase
           .from("risk_reports")
-          .select("*", { count: "exact" })
-          .eq("status", "Pending");
-        setRiskCount(riskCount ?? 0);
+          .select("*")
+          .eq("status", "Pending")
+          .order("created_at", { ascending: false });
 
-        // 🆕 Fetch Barangay Updates
-        const { data: updatesData, error: updatesError } = await supabase
+        setRiskReports(riskData ?? []);
+        setRiskCount(riskData?.length ?? 0);
+
+        const { data: updatesData } = await supabase
           .from("barangay_updates")
           .select("*")
           .order("date_posted", { ascending: false })
           .limit(5);
-
-        if (updatesError) throw updatesError;
         setUpdates(updatesData ?? []);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -126,9 +128,7 @@ const DashboardBHW: React.FC = () => {
           </p>
         </div>
 
-        {/* ===== Summary Cards ===== */}
         <div className="dashboard-grid">
-          {/* Mothers Card */}
           <IonCard
             className="stat-card clickable"
             onClick={() => history.push("/mothers")}
@@ -143,7 +143,6 @@ const DashboardBHW: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
-          {/* Appointments Card */}
           <IonCard
             className="stat-card clickable"
             onClick={() => history.push("/appointments")}
@@ -158,7 +157,6 @@ const DashboardBHW: React.FC = () => {
             </IonCardContent>
           </IonCard>
 
-          {/* Visits Today */}
           <IonCard className="stat-card">
             <IonCardHeader>
               <IonCardTitle>
@@ -171,45 +169,62 @@ const DashboardBHW: React.FC = () => {
           </IonCard>
         </div>
 
-        {/* ===== Wellness + Updates Row ===== */}
-        <div className="wellness-updates-row">
-          <div className="left-col">
-          
+{/* ===== Risk Reports List ===== */}
+<div className="risk-report-card">
+  <h2>
+    <IonIcon icon={alertCircleOutline} /> Mothers At Risk
+  </h2>
 
-            <div className="risk-card">
-              <h2>
-                <IonIcon icon={alertCircleOutline} /> Risk Reports
-              </h2>
-              {riskCount > 0 ? (
-                <p className="alert-text">
-                  You have <b>{riskCount}</b> pending risk reports to review.
-                </p>
-              ) : (
-                <p className="alert-text safe">All mothers are safe and stable</p>
-              )}
-            </div>
-          </div>
+  {loading ? (
+    <IonSpinner name="dots" />
+  ) : riskReports.length > 0 ? (
+    <>
+      <ul className="risk-list">
+        {riskReports.slice(0, 3).map((r) => (
+          <li key={r.id}>
+            <strong>{r.mother_name}</strong> — {r.risk_type}
+            <br />
+            <small>{new Date(r.created_at).toLocaleDateString()}</small>
+          </li>
+        ))}
+      </ul>
 
-          <div className="updates-card">
-            <h2>
-              <IonIcon icon={megaphoneOutline} /> Barangay Updates
-            </h2>
-            {updates.length === 0 ? (
-              <p className="empty-text">No barangay updates available.</p>
-            ) : (
-              <ul>
-                {updates.map((update) => (
-                  <li key={update.id}>
-                    <strong>{update.title}</strong> — {update.description}
-                    <br />
-                    <small>
-                      {new Date(update.date_posted).toLocaleDateString()}
-                    </small>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+      {riskReports.length > 3 && (
+        <button
+          className="view-all-btn"
+          onClick={() => history.push("/riskreportpage")}
+        >
+          View All ({riskReports.length})
+        </button>
+      )}
+    </>
+  ) : (
+    <p className="alert-text safe">
+      ✅ No mothers currently at risk. All are safe and stable.
+    </p>
+  )}
+</div>
+
+
+        <div className="updates-card">
+          <h2>
+            <IonIcon icon={megaphoneOutline} /> Barangay Updates
+          </h2>
+          {updates.length === 0 ? (
+            <p className="empty-text">No barangay updates available.</p>
+          ) : (
+            <ul>
+              {updates.map((update) => (
+                <li key={update.id}>
+                  <strong>{update.title}</strong> — {update.description}
+                  <br />
+                  <small>
+                    {new Date(update.date_posted).toLocaleDateString()}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </motion.div>
     </MainLayout>

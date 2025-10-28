@@ -1,163 +1,171 @@
-/* ===== Dashboard Container ===== */
 .dashboard-container {
   padding: 16px;
-  font-family: "Inter", Arial, sans-serif;
+  font-family: "Inter", sans-serif;
   color: #333;
   background-color: #f8f8fc;
   min-height: 100vh;
 }
 
-/* ===== Header ===== */
+/* HEADER */
 .dashboard-header {
   text-align: center;
   margin-bottom: 20px;
 }
-
 .dashboard-header h1 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #4b3da7;
-  margin-bottom: 6px;
 }
-
 .dashboard-header span {
   color: #7e57c2;
 }
-
 .sub-text {
   color: #777;
   font-size: 0.9rem;
 }
 
-/* ===== Stats Cards ===== */
+/* GRID 3 CARDS */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 20px;
+}
+@media (min-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .stat-card {
-  --background: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  padding: 10px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   text-align: center;
+  transition: all 0.2s ease-in-out;
 }
-
+.stat-card:hover {
+  transform: scale(1.03);
+}
 .stat-card ion-card-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  color: #4a4a4a;
   gap: 6px;
+  color: #555;
+  font-size: 1rem;
 }
-
 .stat-card strong {
   display: block;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   color: #4b3da7;
-  margin-top: 6px;
 }
 
-/* ===== Wellness + Updates Row ===== */
-.wellness-updates-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-/* Left column (wellness + risk) */
-.left-col {
-  flex: 1 1 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Right column (updates) */
-.updates-card {
-  flex: 2 1 380px;
+/* RISK SECTION */
+.risk-report-card {
   background: #fff;
-  padding: 14px 16px;
+  padding: 16px;
   border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
 }
-
-.updates-card h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #4b3da7;
-  margin-bottom: 10px;
+.risk-report-card h2 {
+  color: #b71c1c;
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.risk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.risk-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+.risk-list small {
+  color: #888;
 }
 
+/* BARANGAY UPDATES */
+.updates-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.updates-card h2 {
+  color: #4b3da7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
 .updates-card ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .updates-card li {
-  padding: 6px 0;
   border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
+  padding: 8px 0;
 }
-
 .updates-card small {
   color: #888;
 }
-
-/* ===== Risk Card ===== */
-.risk-card {
-  background: #fff;
-  padding: 14px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+.view-all-btn {
+  margin-top: 10px;
+  background: #7e57c2;
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.risk-card h2 {
-  font-size: 1rem;
+.view-all-btn:hover {
+  background: #5e35b1;
+}
+
+.page-container {
+  padding: 16px;
+}
+
+.page-container h1 {
   color: #b71c1c;
+  font-size: 1.3rem;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.alert-text {
+.risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.risk-table th, .risk-table td {
+  border-bottom: 1px solid #eee;
+  padding: 8px 10px;
+  text-align: left;
   font-size: 0.9rem;
-  color: #444;
 }
 
-.alert-text.safe {
-  color: #2e7d32;
-  font-weight: 500;
+.status.pending {
+  color: #d32f2f;
+  font-weight: 600;
 }
-
-/* ===== Empty / Loading Text ===== */
-.empty-text {
-  color: #777;
-  font-size: 0.9rem;
-}
-
-ion-spinner {
-  width: 24px;
-  height: 24px;
-}
-
-/* ===== Mobile Optimization ===== */
-@media (max-width: 600px) {
-  .dashboard-header h1 {
-    font-size: 1.2rem;
-  }
-  .stat-card strong {
-    font-size: 1.3rem;
-  }
-  .updates-card,
-  .risk-card {
-    font-size: 0.9rem;
-  }
+.status.resolved {
+  color: #388e3c;
+  font-weight: 600;
 }

@@ -1,4 +1,3 @@
-// src/layouts/MainLayout.tsx
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
@@ -15,10 +14,10 @@ import {
   calendarOutline,
   logOutOutline,
   pulseOutline,
-  personCircleOutline,
   heartOutline,
   settingsOutline,
-  leafOutline, // 🌿 Added for Wellness Logs
+  leafOutline,
+  alertCircleOutline,
 } from "ionicons/icons";
 import logo from "../assets/logo.png";
 import "./MainLayout.css";
@@ -62,8 +61,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <IonHeader className="layout-header">
         <IonToolbar className="toolbar">
           <div className="header-container">
+            {/* LEFT SECTION */}
             <div className="header-left">
-              {/* Mobile: Show menu icon */}
+              {/* Mobile: Menu icon */}
               <button
                 className="sidebar-toggle mobile-only"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -71,27 +71,28 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <IonIcon icon={menuOutline} />
               </button>
 
-              {/* Desktop: Show logo + title */}
+              {/* Desktop: Logo + App Name */}
               <div
-                className="desktop-only logo-title"
+                className="logo-title desktop-only"
                 onClick={() => goTo("/dashboardbhw")}
               >
                 <img src={logo} alt="eNanayCare" className="dashboard-logo" />
                 <span className="app-title">eNanayCare</span>
               </div>
+
+              {/* Mobile: App Name only */}
+              <span className="app-title mobile-only">eNanayCare</span>
             </div>
 
-            <div className="header-right">
-              <div
-                className="user-profile"
-                onClick={() => goTo("/bhwprofile")}
-                style={{ cursor: "pointer" }}
-              >
-                <IonIcon icon={personCircleOutline} className="profile-icon" />
-                <div>
-                  <p className="profile-name">{fullName}</p>
-                  <p className="profile-role">Barangay Health Worker</p>
-                </div>
+            {/* RIGHT SECTION: BHW info */}
+            <div
+              className="user-profile"
+              onClick={() => goTo("/bhwprofile")}
+              style={{ cursor: "pointer" }}
+            >
+              <div>
+                <p className="profile-name">{fullName}</p>
+                <p className="profile-role">Barangay Health Worker</p>
               </div>
             </div>
           </div>
@@ -124,13 +125,17 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               >
                 <IonIcon icon={heartOutline} /> Health Records
               </button>
-
-              {/* 🌿 NEW: Wellness Logs */}
               <button
                 className="side-item"
                 onClick={() => goTo("/bhwwellnesspage")}
               >
                 <IonIcon icon={leafOutline} /> Wellness Logs
+              </button>
+              <button
+                className="side-item"
+                onClick={() => goTo("/riskreportpage")}
+              >
+                <IonIcon icon={alertCircleOutline} /> Risk Reports
               </button>
 
               <button className="side-item" onClick={() => goTo("/bhwprofile")}>

@@ -11,26 +11,35 @@ body, html, .layout-page {
   overflow: hidden;
 }
 
+/* Sticky Header */
 .layout-header {
   background: #fff;
   border-bottom: 1px solid #eee;
   z-index: 1001;
+  position: sticky;
+  top: 0;
 }
 
 .toolbar {
   padding: 0;
 }
 
+/* Header Layout */
 .header-container {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: .5rem 1rem;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.4rem 0.8rem;
+  box-sizing: border-box;
 }
 
 .header-left {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .logo-title {
@@ -40,45 +49,48 @@ body, html, .layout-page {
 }
 
 .dashboard-logo {
-  height: 36px;
-  margin-right: .5rem;
+  height: 32px;
+  margin-right: .4rem;
 }
 
 .app-title {
   font-size: 1.2rem;
-  font-weight: bold;
+  font-weight: 700;
   color: #1d3557;
+  white-space: nowrap;
 }
 
-.profile-icon {
-  font-size: 1.8rem;
-  margin-right: .5rem;
-  color: #1d3557;
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .profile-name {
   font-weight: 600;
   margin: 0;
+  line-height: 1.1;
 }
 
 .profile-role {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
   margin: 0;
+  line-height: 1;
 }
 
-.user-profile {
-  display: flex;
-  align-items: center;
-}
-
+/* Sidebar & Layout */
 .dashboard-layout {
   display: flex;
   height: calc(100vh - 56px);
   overflow: hidden;
 }
 
-/* Sidebar */
 .sidebar {
   width: 220px;
   background: #ffffff;
@@ -87,7 +99,7 @@ body, html, .layout-page {
   height: 100%;
   flex-shrink: 0;
   overflow: hidden;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease-in-out;
   z-index: 1002;
 }
 
@@ -121,14 +133,13 @@ body, html, .layout-page {
   align-self: flex-start;
 }
 
-/* Main Dashboard Content */
 .main-dashboard {
   flex-grow: 1;
   padding: 1.2rem;
   overflow: auto;
 }
 
-/* Mobile & Sidebar Overlay */
+/* Visibility Control */
 .mobile-only {
   display: none;
 }
@@ -137,22 +148,65 @@ body, html, .layout-page {
   display: flex;
 }
 
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0,0,0,0.4);
-  z-index: 1001;
-}
-
 /* ============ MEDIA ============ */
 @media (max-width: 768px) {
   .mobile-only {
-    display: block;
+    display: flex;
   }
 
   .desktop-only {
     display: none;
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+  }
+
+  .sidebar-toggle {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    color: #1d3557;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+
+  .dashboard-logo {
+    display: none;
+  }
+
+  .app-title.mobile-only {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1d3557;
+  }
+
+  .user-profile {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .profile-name {
+    font-size: 0.9rem;
+  }
+
+  .profile-role {
+    font-size: 0.75rem;
   }
 
   .sidebar {
@@ -168,10 +222,6 @@ body, html, .layout-page {
 
   .sidebar.open {
     transform: translateX(0);
-  }
-
-  .sidebar-overlay.active {
-    display: block;
   }
 
   .main-dashboard {
