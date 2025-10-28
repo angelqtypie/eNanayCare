@@ -1,11 +1,11 @@
 /* === GENERAL DASHBOARD === */
 .dashboard-content {
-  --background: linear-gradient(180deg, #fff5fa 0%, #fde8ff 100%);
+  --background: #ffffff; /* plain white background */
   font-family: "Poppins", sans-serif;
   color: #2b2b2b;
   overflow-y: auto;
   height: 100%;
-  min-height: 100vh;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
 }
@@ -20,17 +20,17 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: 7rem; /* extra space above footer */
+  padding-bottom: 7rem;
 }
 
 /* === HEADER === */
 .header-gradient {
-  background: linear-gradient(135deg, #fba4d9, #c87ff7);
-  color: #fff;
+  background: linear-gradient(135deg, #ffe0ef, #f6d4ff);
+  color: #822a5c;
   padding: 2rem 1.5rem;
-  border-radius: 24px;
+  border-radius: 20px;
   text-align: center;
-  box-shadow: 0 6px 14px rgba(180, 70, 180, 0.25);
+  box-shadow: 0 3px 12px rgba(233, 155, 200, 0.3);
 }
 
 .header-gradient h2 {
@@ -40,7 +40,7 @@
 }
 
 .header-gradient span {
-  color: #fffde8;
+  color: #e31b81;
 }
 
 .header-gradient p {
@@ -52,87 +52,101 @@
 /* === CARD GRID === */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 cards per row (desktop) */
-  gap: 1.2rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
   width: 100%;
 }
 
+/* === CARD DESIGN === */
 .mother-card {
   border-radius: 20px;
-  background: #fff;
   text-align: center;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.08);
-  padding: 1.4rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  padding: 1.3rem;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: 160px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  color: #3a2b35;
+  font-weight: 500;
 }
 
 .mother-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
 }
 
+/* === SOFT MATERNAL COLORS === */
+.soft-pink {
+  background: linear-gradient(145deg, #ffe1f0, #ffd4e8);
+}
+
+.soft-lilac {
+  background: linear-gradient(145deg, #f0e5ff, #e2d1ff);
+}
+
+.soft-rose {
+  background: linear-gradient(145deg, #ffe8ec, #ffd4da);
+}
+
+.soft-peach {
+  background: linear-gradient(145deg, #ffe9d9, #ffd4c3);
+}
+
+.soft-mint {
+  background: linear-gradient(145deg, #e7fff2, #d4ffea);
+}
+
+/* === TEXT INSIDE CARDS === */
 .card-icon {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   color: #e31b81;
   margin-bottom: 0.5rem;
 }
 
 .mother-card h3 {
-  font-size: 1.1rem;
-  margin-bottom: 0.3rem;
-  color: #3b2a3d;
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+  color: #4b2c3a;
+  font-weight: 700; /* make card title bold */
 }
 
 .mother-card p {
   font-size: 0.9rem;
-  color: #666;
+  color: #4e4e4e;
   line-height: 1.4;
+  word-break: break-word;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* === CARD COLORS === */
-.soft-pink { background: #ffe6f2; }
-.soft-lilac { background: #f3e8ff; }
-.soft-rose { background: #ffe8ec; }
-.clean-white { background: #ffffff; }
+/* === FIX LONG TEXT ON SMALL SCREENS === */
+.mother-card p,
+.mother-card h3 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
 
+/* === WELLNESS CARD === */
 .wellness-card {
-  background: #fff5f8;
+  background: linear-gradient(145deg, #fff5f8, #ffe9f2);
   border: 2px dashed #f38bb2;
 }
 
 .wellness-card.completed {
-  background: #e8ffe9;
-  border-color: #5ac77d;
+  background: #e8ffe9 !important;
+  border-color: #5ac77d !important;
 }
 
-/* === IMMUNIZATION LIST === */
-.immunization-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0;
-}
-
-.immunization-list li {
-  font-size: 0.95rem;
-  color: #444;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #f2f2f2;
-  display: flex;
-  justify-content: space-between;
-}
-
-.immunization-list .date {
-  font-size: 0.8rem;
-  color: #999;
-}
-
-/* === MODAL STYLES === */
+/* === MODALS === */
 .modal-scroll {
-  --background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -150,68 +164,9 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
-  animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-inner h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #e31b81;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.8rem;
-}
-
-.wellness-desc {
-  text-align: center;
-  color: #777;
-  margin-bottom: 1rem;
-  font-style: italic;
-}
-
-/* === CLOSE BUTTON === */
-.close-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  color: #e31b81;
-  font-size: 1.6rem;
-  z-index: 10;
-}
-
-/* === FORM STYLES === */
-.ion-item {
-  --background: #fff;
-  margin: 0.4rem 0;
-  border-radius: 10px;
-}
-
-.vitamins-section {
-  background: #fff9fc;
-  border: 1px solid #f9d8e6;
-  border-radius: 14px;
-  padding: 0.8rem;
-  margin-top: 1rem;
-}
-
-.vitamins-section ion-label {
-  color: #333;
-  font-weight: 600;
-}
-
-/* === CHATBOT FAB ICON === */
+/* === CHATBOT === */
 .chatbot-fab-wrapper {
   position: fixed !important;
   bottom: 85px !important;
@@ -252,30 +207,111 @@
   }
 }
 
+/* === MODALS (Updated for Responsiveness & Aesthetics) === */
+.modal-scroll {
+  background: rgba(0, 0, 0, 0.5); /* dark transparent backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  backdrop-filter: blur(5px);
+}
+
+/* Inner modal container */
+.fixed-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 1rem auto;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 35px rgba(0, 0, 0, 0.25);
+  position: relative;
+  animation: modalFadeIn 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+/* Modal title and layout */
+.fixed-modal h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e31b81;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  justify-content: center;
+}
+
+.fixed-modal p.wellness-desc {
+  font-size: 0.95rem;
+  text-align: center;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+/* Modal close button (X) */
+.close-btn {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  color: #e31b81;
+  font-size: 1.5rem;
+  z-index: 2;
+}
+
+/* Immunization List Style */
+.immunization-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.immunization-list li {
+  background: #fff4f8;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  color: #333;
+}
+
+.immunization-list .date {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Vitamins section inside modal */
+.vitamins-section {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  background: #fff8fb;
+  border-radius: 15px;
+}
+
+.vitamins-section ion-label {
+  display: block;
+  font-weight: 600;
+  color: #e31b81;
+  margin-bottom: 0.5rem;
+}
+
+/* Save button spacing */
+.fixed-modal ion-button {
+  margin-top: 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+
 /* === RESPONSIVE === */
-@media (max-width: 1024px) {
-  .cards-grid {
-    grid-template-columns: repeat(3, 1fr); /* medium screens (tablet) */
-  }
-}
-
 @media (max-width: 768px) {
-  .header-gradient { padding: 1.4rem; }
-  .header-gradient h2 { font-size: 1.5rem; }
-
-  .cards-grid {
-    grid-template-columns: repeat(2, 1fr); /* mobile screens */
-    gap: 1rem;
-  }
-
-  .fixed-modal {
-    width: 95%;
-    height: 90vh;
-    padding: 1.4rem;
-  }
-}
-
-@media (max-width: 480px) {
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.8rem;
@@ -287,16 +323,132 @@
   }
 
   .card-icon {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
-  .header-gradient h2 {
-    font-size: 1.3rem;
+  .mother-card h3 {
+    font-size: 0.95rem;
   }
 
+  .mother-card p {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  .mother-card {
+    padding: 0.6rem;
+    min-height: 120px;
+  }
+
+  .card-icon {
+    font-size: 1.5rem;
+  }
+
+  .mother-card h3 {
+    font-size: 0.75rem;
+  }
+
+  .mother-card p {
+    font-size: 0.70rem;
+  }
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
+@media (max-width: 768px) {
+  .fixed-modal {
+    width: 95%;
+    padding: 1.5rem;
+    max-height: 80vh;
+  }
+
+  .fixed-modal h2 {
+    font-size: 1.2rem;
+  }
+
+  .fixed-modal p.wellness-desc {
+    font-size: 0.9rem;
+  }
+
+  .immunization-list li {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+
+  .vitamins-section {
+    padding: 0.8rem;
+  }
+}
+
+/* Smooth modal appearance animation */
+@keyframes modalFadeIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
+@media (max-width: 768px) {
+  .fixed-modal {
+    width: 95%;
+    padding: 1.5rem;
+    max-height: 80vh;
+  }
+
+  .fixed-modal h2 {
+    font-size: 1.2rem;
+  }
+
+  .fixed-modal p.wellness-desc {
+    font-size: 0.9rem;
+  }
+
+  .immunization-list li {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+
+  .vitamins-section {
+    padding: 0.8rem;
+  }
+}
+
+@media (max-width: 420px) {
   .fixed-modal {
     width: 96%;
-    height: 95vh;
-    margin: 0.6rem auto;
+    padding: 1rem;
+    border-radius: 15px;
+  }
+
+  .fixed-modal h2 {
+    font-size: 1rem;
+  }
+
+  .fixed-modal p.wellness-desc {
+    font-size: 0.85rem;
+  }
+
+  .immunization-list li {
+    font-size: 0.85rem;
+  }
+
+  .vitamins-section ion-label {
+    font-size: 0.9rem;
+  }
+
+  .close-btn {
+    top: 0.6rem;
+    right: 0.6rem;
+    font-size: 1.3rem;
   }
 }

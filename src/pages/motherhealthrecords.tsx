@@ -1,3 +1,4 @@
+// src/pages/HealthRecord.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonContent,
@@ -8,15 +9,13 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
-  IonButton,
-  IonIcon,
   IonText,
   IonSelect,
   IonSelectOption,
+  IonIcon,
 } from "@ionic/react";
 import { motion } from "framer-motion";
 import {
-  arrowBackOutline,
   heartOutline,
   pulseOutline,
   calendarOutline,
@@ -25,14 +24,12 @@ import {
 } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import MotherMainLayout from "../layouts/MotherMainLayout";
-import { useHistory } from "react-router-dom";
 
 const HealthRecord: React.FC = () => {
   const [records, setRecords] = useState<any[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
-  const history = useHistory();
 
   useEffect(() => {
     fetchRecords();
@@ -46,46 +43,40 @@ const HealthRecord: React.FC = () => {
     try {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
-
-      if (userError) throw userError;
       if (!user) return;
 
-      const { data: mother, error: motherError } = await supabase
+      const { data: mother } = await supabase
         .from("mothers")
         .select("mother_id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (motherError) throw motherError;
       if (!mother?.mother_id) {
         setError("Mother profile not found.");
         return;
       }
 
-      const { data: recordsData, error: recordError } = await supabase
+      const { data: recordsData, error } = await supabase
         .from("health_records")
         .select("*")
         .eq("mother_id", mother.mother_id)
         .order("encounter_date", { ascending: false });
 
-      if (recordError) throw recordError;
+      if (error) throw error;
 
       setRecords(recordsData || []);
     } catch (err) {
-      console.error("Error fetching records:", err);
+      console.error(err);
       setError("Failed to load health records.");
     }
   };
 
   const handleFilterChange = (value: string) => {
     setFilter(value);
-    if (value === "all") {
-      setFilteredRecords(records);
-    } else if (value === "latest") {
-      setFilteredRecords(records.slice(0, 1));
-    } else if (value === "3months") {
+    if (value === "all") setFilteredRecords(records);
+    else if (value === "latest") setFilteredRecords(records.slice(0, 1));
+    else if (value === "3months") {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       setFilteredRecords(
@@ -99,42 +90,38 @@ const HealthRecord: React.FC = () => {
       {/* HEADER */}
       <IonHeader>
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <IonToolbar
             style={{
-              "--background": "linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7)",
+              "--background": "linear-gradient(135deg, #fbd5e7, #fde6f2, #fff)",
               "--color": "#6a3a55",
             }}
           >
-            <IonButton
-              fill="clear"
-              slot="start"
-              onClick={() => history.push("/dashboardmother")}
+            <IonTitle
               style={{
-                color: "#fff",
-                borderRadius: "50%",
-                marginLeft: "6px",
+                fontWeight: "700",
+                fontSize: "1.1rem",
+                textAlign: "center",
+                color: "#7c3a67",
               }}
             >
-              <IonIcon icon={arrowBackOutline} style={{ fontSize: "22px" }} />
-            </IonButton>
-            <IonTitle style={{ fontWeight: "bold" }}>Health Record</IonTitle>
+              Health Record
+            </IonTitle>
           </IonToolbar>
         </motion.div>
       </IonHeader>
 
       {/* CONTENT */}
-      <IonContent fullscreen scrollY={true} className="health-container">
+      <IonContent fullscreen className="health-container">
         {error && <IonText color="danger">{error}</IonText>}
 
         <motion.div
+          className="page-header"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="page-header"
         >
           <h2 className="header-title">Your Health Journey</h2>
           <p className="header-subtitle">
@@ -148,7 +135,6 @@ const HealthRecord: React.FC = () => {
             interface="popover"
             value={filter}
             onIonChange={(e) => handleFilterChange(e.detail.value!)}
-            placeholder="Filter"
             className="filter-select"
           >
             <IonSelectOption value="all">All Records</IonSelectOption>
@@ -160,54 +146,73 @@ const HealthRecord: React.FC = () => {
         {/* RECORDS */}
         {filteredRecords.length === 0 ? (
           <motion.div
+            className="empty-state"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="empty-state"
           >
             <IonIcon
               icon={heartOutline}
-              style={{ fontSize: "38px", color: "#f47ba7" }}
+              style={{ fontSize: "42px", color: "#f47ba7" }}
             />
-            <p>No health records found.</p>
+            <p>No health records found yet.</p>
           </motion.div>
         ) : (
-          filteredRecords.map((r, index) => (
+          filteredRecords.map((r, i) => (
             <motion.div
               key={r.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
             >
               <IonCard className="record-card">
                 <IonCardHeader>
                   <IonCardTitle>
                     <IonIcon
                       icon={calendarOutline}
-                      style={{ marginRight: "6px", color: "#f47ba7" }}
+                      style={{ marginRight: "6px", color: "#e85d9b" }}
                     />
-                    {new Date(r.encounter_date).toDateString()}
+                    {new Date(r.encounter_date).toLocaleDateString("en-PH", {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </IonCardTitle>
                 </IonCardHeader>
+
                 <IonCardContent>
-                  <div className="record-row">
-                    <IonIcon icon={bodyOutline} />
-                    <span><b>Weight:</b> {r.weight ?? "-"} kg</span>
+                  <div className="record-grid">
+                    <div className="record-item">
+                      <IonIcon icon={bodyOutline} />
+                      <span>
+                        <b>Weight:</b> {r.weight ?? "-"} kg
+                      </span>
+                    </div>
+                    <div className="record-item">
+                      <IonIcon icon={pulseOutline} />
+                      <span>
+                        <b>Blood Pressure:</b> {r.bp ?? "-"}
+                      </span>
+                    </div>
+                    <div className="record-item">
+                      <IonIcon icon={waterOutline} />
+                      <span>
+                        <b>Temperature:</b> {r.temp ?? "-"} °C
+                      </span>
+                    </div>
+                    <div className="record-item">
+                      <IonIcon icon={heartOutline} />
+                      <span>
+                        <b>Heart Rate:</b> {r.hr ?? "-"} bpm
+                      </span>
+                    </div>
                   </div>
-                  <div className="record-row">
-                    <IonIcon icon={pulseOutline} />
-                    <span><b>Blood Pressure:</b> {r.bp ?? "-"}</span>
-                  </div>
-                  <div className="record-row">
-                    <IonIcon icon={waterOutline} />
-                    <span><b>Temperature:</b> {r.temp ?? "-"} °C</span>
-                  </div>
-                  <div className="record-row">
-                    <IonIcon icon={heartOutline} />
-                    <span><b>Heart Rate:</b> {r.hr ?? "-"} bpm</span>
-                  </div>
+
                   {r.notes && (
                     <div className="notes-box">
-                      <p><b>Notes:</b> {r.notes}</p>
+                      <p>
+                        <b>Notes:</b> {r.notes}
+                      </p>
                     </div>
                   )}
                 </IonCardContent>
@@ -216,80 +221,94 @@ const HealthRecord: React.FC = () => {
           ))
         )}
 
-        {/* STYLES */}
         <style>{`
           .health-container {
-            background: #fff8fb;
+            background: #fff9fc;
             font-family: "Poppins", sans-serif;
             padding-bottom: 70px;
           }
+
           .page-header {
             text-align: center;
-            margin-top: 20px;
-            margin-bottom: 10px;
+            margin: 25px 0 10px;
           }
           .header-title {
-            color: #e76fae;
+            color: #e85d9b;
             font-weight: 700;
             font-size: 1.4rem;
           }
           .header-subtitle {
-            color: #999;
+            color: #777;
             font-size: 0.9rem;
           }
+
           .filter-wrapper {
             text-align: center;
-            margin: 15px 0;
+            margin: 12px 0 20px;
           }
           .filter-select {
-            width: 60%;
-            max-width: 240px;
-            background: #fff;
+            width: 70%;
+            max-width: 260px;
             border-radius: 16px;
-            box-shadow: 0 2px 8px rgba(244, 123, 167, 0.25);
-            padding: 4px 8px;
+            box-shadow: 0 3px 10px rgba(232, 93, 155, 0.25);
+            padding: 5px 8px;
+            background: #fff;
             font-size: 0.9rem;
           }
-          .empty-state {
-            text-align: center;
-            margin-top: 70px;
-            color: #999;
-            font-size: 0.95rem;
-          }
+
           .record-card {
-            background: rgba(255, 255, 255, 0.92);
+            background: #fff;
             border-radius: 20px;
             margin: 14px 18px;
-            box-shadow: 0 4px 14px rgba(241, 167, 194, 0.25);
+            box-shadow: 0 4px 14px rgba(241, 167, 194, 0.2);
             transition: all 0.3s ease;
           }
           .record-card:hover {
             transform: scale(1.02);
-            box-shadow: 0 6px 18px rgba(241, 167, 194, 0.35);
+            box-shadow: 0 6px 20px rgba(241, 167, 194, 0.35);
           }
+
           .record-card ion-card-title {
-            color: #d764a0;
+            color: #c94b88;
             font-weight: 600;
             font-size: 1rem;
           }
-          .record-row {
+
+          .record-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 10px;
+            margin-top: 4px;
+          }
+
+          .record-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 6px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            color: #444;
           }
-          .record-row ion-icon {
-            color: #f47ba7;
+
+          .record-item ion-icon {
+            color: #e85d9b;
           }
+
           .notes-box {
             background: #fff2f7;
             border-left: 4px solid #f47ba7;
-            padding: 8px 10px;
-            border-radius: 10px;
-            margin-top: 8px;
+            padding: 10px;
+            border-radius: 12px;
+            margin-top: 10px;
             font-size: 0.9rem;
             color: #555;
+            line-height: 1.4;
+          }
+
+          .empty-state {
+            text-align: center;
+            margin-top: 80px;
+            color: #999;
+            font-size: 0.95rem;
           }
         `}</style>
       </IonContent>

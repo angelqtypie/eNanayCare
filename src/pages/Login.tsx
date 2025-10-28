@@ -53,7 +53,7 @@ const RoleLogin: React.FC = () => {
       name: "Admin",
       icon: <UserCog className="icon blue" />,
       color: "#3b82f6",
-      description: "Oversee system operations, manage accounts, and maintain analytics for the eNanayCare platform.",
+      description: "Oversee system operations, manage all users, and posting maternal health matrials.",
     },
   ];
 

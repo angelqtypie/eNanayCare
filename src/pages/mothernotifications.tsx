@@ -5,8 +5,6 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
-  IonCard,
-  IonCardContent,
   IonSpinner,
   IonBadge,
   IonModal,
@@ -18,6 +16,7 @@ import {
 import { closeCircle } from "ionicons/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
+import { useHistory } from "react-router-dom";
 import MotherMainLayout from "../layouts/MotherMainLayout";
 
 interface Appointment {
@@ -61,7 +60,7 @@ interface NotificationItem {
   message: string;
   time: string;
   type: NotificationType;
-  data?: BarangayUpdate; // store barangay details for modal
+  data?: BarangayUpdate;
 }
 
 const MotherNotifications: React.FC = () => {
@@ -69,6 +68,7 @@ const MotherNotifications: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBarangay, setSelectedBarangay] = useState<BarangayUpdate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const history = useHistory();
 
   useIonViewDidEnter(() => {
     requestAnimationFrame(() => {
@@ -90,9 +90,7 @@ const MotherNotifications: React.FC = () => {
     const loadNotifications = async () => {
       try {
         setLoading(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
         const { data: mother } = await supabase
@@ -103,15 +101,12 @@ const MotherNotifications: React.FC = () => {
         if (!mother) return;
 
         const today = new Date();
-        const next3Days = new Date(today);
-        next3Days.setDate(today.getDate() + 3);
 
         const { data: appointments } = await supabase
           .from("appointments")
           .select("id, date, time, location, status")
           .eq("mother_id", mother.mother_id)
           .gte("date", today.toISOString().split("T")[0])
-          .lte("date", next3Days.toISOString().split("T")[0])
           .order("date", { ascending: true });
 
         const { data: materials } = await supabase
@@ -134,91 +129,128 @@ const MotherNotifications: React.FC = () => {
           .order("date_posted", { ascending: false })
           .limit(3);
 
+        // get previously read notification ids
+        const { data: readNotifs } = await supabase
+          .from("mother_notifications")
+          .select("notif_id")
+          .eq("mother_id", mother.mother_id);
+        const readIds = readNotifs?.map((n: any) => n.notif_id) || [];
+
         const notifList: NotificationItem[] = [];
 
+        // Appointment reminders
         (appointments ?? []).forEach((a: Appointment) => {
+          const apptDate = new Date(a.date);
           const daysLeft = Math.ceil(
-            (new Date(a.date).getTime() - today.getTime()) /
-              (1000 * 60 * 60 * 24)
+            (apptDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
           );
-          notifList.push({
-            id: a.id,
-            title: "Upcoming Appointment",
-            message:
-              daysLeft === 0
-                ? `You have an appointment today at ${a.time || "TBA"}.`
-                : `Your appointment is in ${daysLeft} day${
-                    daysLeft > 1 ? "s" : ""
-                  } (${a.date}) at ${a.location || "Health Center"}.`,
-            time: new Date(a.date).toLocaleDateString("en-PH"),
-            type: "appointment",
-          });
+
+          if ([3, 1, 0].includes(daysLeft)) {
+            let message = "";
+            if (daysLeft === 3)
+              message = `Your appointment is in 3 days (${a.date}) at ${a.location || "Health Center"}.`;
+            else if (daysLeft === 1)
+              message = `Your appointment is tomorrow (${a.date}) at ${a.location || "Health Center"}.`;
+            else message = `You have an appointment today at ${a.time || "TBA"} in ${a.location || "Health Center"}.`;
+
+            const notifId = `${a.id}-reminder-${daysLeft}`;
+            if (!readIds.includes(notifId)) {
+              notifList.push({
+                id: notifId,
+                title: "📅 Appointment Reminder",
+                message,
+                time: new Date().toLocaleString("en-PH"),
+                type: "appointment",
+              });
+            }
+          }
         });
 
+        // Materials
         (materials ?? []).forEach((m: Material) => {
-          notifList.push({
-            id: m.id,
-            title: "New Learning Material",
-            message: `“${m.title}” has been added ${
-              m.category ? `to ${m.category}` : ""
-            }. Learn something new today!`,
-            time: new Date(m.created_at).toLocaleString("en-PH"),
-            type: "material",
-          });
+          if (!readIds.includes(m.id)) {
+            notifList.push({
+              id: m.id,
+              title: "📘 New Learning Material",
+              message: `“${m.title}” has been added ${m.category ? `to ${m.category}` : ""}.`,
+              time: new Date(m.created_at).toLocaleString("en-PH"),
+              type: "material",
+            });
+          }
         });
 
+        // Barangay updates (permanent)
         (barangayUpdates ?? []).forEach((b: BarangayUpdate) => {
           notifList.push({
             id: b.id,
-            title: "Barangay Update",
-            message: `${b.title}: ${b.description.slice(0, 70)}...`, // show preview
+            title: "📢 Barangay Update",
+            message: `${b.title}: ${b.description.slice(0, 70)}...`,
             time: new Date(b.date_posted).toLocaleString("en-PH"),
             type: "barangay",
             data: b,
           });
         });
 
+        // Health record
         (records ?? []).forEach((r: HealthRecord) => {
-          notifList.push({
-            id: r.id,
-            title: "Health Record Update",
-            message: `Last health check recorded on ${r.encounter_date}. ${
-              r.notes ? r.notes : ""
-            }`,
-            time: new Date(r.encounter_date).toLocaleDateString("en-PH"),
-            type: "health",
-          });
+          if (!readIds.includes(r.id)) {
+            notifList.push({
+              id: r.id,
+              title: "❤️ Health Record Update",
+              message: `Health check recorded on ${r.encounter_date}. ${r.notes || ""}`,
+              time: new Date(r.encounter_date).toLocaleDateString("en-PH"),
+              type: "health",
+            });
+          }
         });
 
-        notifList.push(
-          {
+        // System reminders
+        if (!readIds.includes("sys1"))
+          notifList.push({
             id: "sys1",
             title: "💧 Stay Hydrated",
-            message:
-              "Drink plenty of water throughout the day to stay healthy and support your baby’s development.",
+            message: "Drink plenty of water throughout the day.",
             time: new Date().toLocaleDateString("en-PH"),
             type: "system",
-          },
-          {
+          });
+        if (!readIds.includes("sys2"))
+          notifList.push({
             id: "sys2",
             title: "🧘 Relaxation Reminder",
-            message:
-              "Take a few minutes to breathe deeply and rest. A calm mother helps a calm baby!",
+            message: "Take a few minutes to rest. A calm mother helps a calm baby.",
             time: new Date().toLocaleDateString("en-PH"),
             type: "system",
-          }
-        );
+          });
 
-        notifList.sort(
-          (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
-        );
+        notifList.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
         setNotifications(notifList);
       } finally {
         setLoading(false);
       }
     };
+
     loadNotifications();
   }, []);
+
+  const markAsRead = async (notif: NotificationItem) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: mother } = await supabase
+      .from("mothers")
+      .select("mother_id")
+      .eq("user_id", user.id)
+      .single();
+    if (!mother) return;
+
+    if (notif.type !== "barangay") {
+      await supabase.from("mother_notifications").insert({
+        mother_id: mother.mother_id,
+        notif_id: notif.id,
+        type: notif.type,
+        read_at: new Date().toISOString(),
+      });
+    }
+  };
 
   const badgeColor = (type: NotificationType): string => {
     const map: Record<NotificationType, string> = {
@@ -231,10 +263,32 @@ const MotherNotifications: React.FC = () => {
     return map[type];
   };
 
-  const handleBarangayClick = (data?: BarangayUpdate) => {
-    if (!data) return;
-    setSelectedBarangay(data);
-    setIsModalOpen(true);
+  const handleNotificationClick = async (notif: NotificationItem) => {
+    await markAsRead(notif);
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+
+    switch (notif.type) {
+      case "appointment":
+        history.push("/motherscalendar");
+        break;
+      case "material":
+        history.push("/educationalmaterials");
+        break;
+      case "health":
+        history.push("/motherhealthrecords");
+        break;
+      case "barangay":
+        setSelectedBarangay(notif.data || null);
+        setIsModalOpen(true);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleSwipeRemove = async (notif: NotificationItem) => {
+    await markAsRead(notif);
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
   };
 
   return (
@@ -251,35 +305,32 @@ const MotherNotifications: React.FC = () => {
             <IonSpinner name="crescent" color="danger" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="notif-empty">You’re all caught up</div>
+          <div className="notif-empty">🎉 You’re all caught up</div>
         ) : (
-          <motion.div
-            className="notif-container"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="notif-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <AnimatePresence>
               {notifications.map((n, i) => (
                 <motion.div
                   key={n.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
+                  exit={{ opacity: 0, x: 120 }}
                   transition={{ delay: i * 0.04 }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.6}
+                  onDragEnd={(_, info) => {
+                    if (info.offset.x > 100 && n.type !== "barangay") handleSwipeRemove(n);
+                  }}
                 >
-                  <IonCard
-                    className={`notif-card notif-${n.type}`}
-                    onClick={() => n.type === "barangay" && handleBarangayClick(n.data)}
-                  >
-                    <IonCardContent>
-                      <div className="notif-header">
-                        <h2>{n.title}</h2>
-                        <IonBadge color={badgeColor(n.type)}>{n.type}</IonBadge>
-                      </div>
-                      <p className="notif-message">{n.message}</p>
-                      <p className="notif-time">{n.time}</p>
-                    </IonCardContent>
-                  </IonCard>
+                  <div className={`notif-card notif-${n.type}`} onClick={() => handleNotificationClick(n)}>
+                    <div className="notif-header">
+                      <h2>{n.title}</h2>
+                      <IonBadge color={badgeColor(n.type)}>{n.type}</IonBadge>
+                    </div>
+                    <p className="notif-message">{n.message}</p>
+                    <p className="notif-time">{n.time}</p>
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -290,11 +341,7 @@ const MotherNotifications: React.FC = () => {
           <IonHeader>
             <IonToolbar color="danger">
               <IonTitle>Barangay Update</IonTitle>
-              <IonButton
-                slot="end"
-                fill="clear"
-                onClick={() => setIsModalOpen(false)}
-              >
+              <IonButton slot="end" fill="clear" onClick={() => setIsModalOpen(false)}>
                 <IonIcon icon={closeCircle} color="light" />
               </IonButton>
             </IonToolbar>
@@ -304,16 +351,8 @@ const MotherNotifications: React.FC = () => {
               <>
                 <h2>{selectedBarangay.title}</h2>
                 <p style={{ marginTop: "8px" }}>{selectedBarangay.description}</p>
-                <p
-                  style={{
-                    marginTop: "12px",
-                    fontSize: "0.8rem",
-                    color: "#666",
-                    textAlign: "right",
-                  }}
-                >
-                  Posted on{" "}
-                  {new Date(selectedBarangay.date_posted).toLocaleString("en-PH")}
+                <p style={{ marginTop: "12px", fontSize: "0.8rem", color: "#666", textAlign: "right" }}>
+                  Posted on {new Date(selectedBarangay.date_posted).toLocaleString("en-PH")}
                 </p>
               </>
             )}
@@ -323,46 +362,35 @@ const MotherNotifications: React.FC = () => {
 
       <style>{`
         .notif-toolbar {
-          linear-gradient(120deg, #f9e0eb, #fbeaf1, #faf2f7);
-          color: #6b0f47;
-          text-align: center;
+          background: linear-gradient(120deg, #ffdce7, #fff1f7, #fff);
+          color: #7b1a57;
           font-weight: 700;
+          text-align: center;
           border-radius: 0 0 18px 18px;
         }
-        .notif-loading, .notif-empty {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 80vh;
-          color: #d5649f;
-          font-size: 1rem;
-          font-weight: 500;
-        }
         .notif-container {
-          padding: 15px;
+          padding: 16px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          background: linear-gradient(to bottom, #fff6fb, #fff);
-          min-height: 100%;
+          gap: 16px;
+          background: linear-gradient(to bottom, #fff9fd, #ffffff);
         }
         .notif-card {
-          border-radius: 18px;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.06);
-          border: 1px solid #fbe2ec;
-          transition: all 0.25s ease;
           background: #fff;
-          cursor: pointer;
+          border-radius: 18px;
+          padding: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          border-left: 5px solid var(--notif-accent);
+          transition: all 0.2s ease-in-out;
         }
         .notif-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 5px 18px rgba(213,100,159,0.15);
+          transform: scale(1.02);
+          background: #fff7fa;
         }
         .notif-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 6px;
         }
         .notif-header h2 {
           font-size: 1rem;
@@ -370,21 +398,31 @@ const MotherNotifications: React.FC = () => {
           font-weight: 600;
         }
         .notif-message {
-          font-size: 0.9rem;
+          font-size: 0.92rem;
           color: #444;
+          margin-top: 6px;
           line-height: 1.5;
-          margin-bottom: 5px;
         }
         .notif-time {
           font-size: 0.75rem;
           color: #999;
           text-align: right;
+          margin-top: 6px;
         }
-        .notif-appointment { border-left: 4px solid #3b82f6; }
-        .notif-material { border-left: 4px solid #16a34a; }
-        .notif-health { border-left: 4px solid #eab308; }
-        .notif-system { border-left: 4px solid #a855f7; }
-        .notif-barangay { border-left: 4px solid #ef4444; }
+        .notif-loading, .notif-empty {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 80vh;
+          color: #d5649f;
+          font-weight: 500;
+          font-size: 1.1rem;
+        }
+        .notif-appointment { --notif-accent: #3b82f6; }
+        .notif-material { --notif-accent: #16a34a; }
+        .notif-health { --notif-accent: #eab308; }
+        .notif-system { --notif-accent: #a855f7; }
+        .notif-barangay { --notif-accent: #ef4444; }
       `}</style>
     </MotherMainLayout>
   );

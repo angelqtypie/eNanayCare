@@ -24,14 +24,12 @@ const LandingPage: React.FC = () => {
 
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
-    }
+    if (section) section.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <IonPage>
-      {/* Sticky Header */}
+      {/* Header */}
       <IonHeader className="sticky-header">
         <IonToolbar>
           <div className="header-container">
@@ -39,12 +37,18 @@ const LandingPage: React.FC = () => {
               <img src={logo} alt="eNanayCare Logo" className="logo" />
               <h1 className="app-title">eNanayCare</h1>
             </div>
+
             <div className="nav-buttons">
-              <button onClick={() => scrollToSection("about")}>About</button>
-              <button onClick={() => scrollToSection("features")}>Features</button>
-              <button onClick={() => scrollToSection("mission")}>Mission</button>
-              <button onClick={() => scrollToSection("team")}>Team</button>
-              <button onClick={() => scrollToSection("contact")}>Contact</button>
+              {["about", "features", "mission", "team", "contact"].map(
+                (section) => (
+                  <button
+                    key={section}
+                    onClick={() => scrollToSection(section)}
+                  >
+                    {section.charAt(0).toUpperCase() + section.slice(1)}
+                  </button>
+                )
+              )}
               <IonButton
                 className="login-btn"
                 fill="outline"
@@ -58,8 +62,9 @@ const LandingPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      {/* Scrollable Content */}
+      {/* Content */}
       <IonContent fullscreen>
+        {/* HERO */}
         <section className="hero-section">
           <div className="hero-overlay">
             <div className="hero-content animate-fadein">
@@ -79,26 +84,30 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
+        {/* ABOUT */}
         <section id="about" className="section about-section animate-up">
           <IonGrid>
             <IonRow>
               <IonCol size="12" sizeMd="6">
-                <img src={motherImg} alt="Maternal care" className="about-image" />
+                <img
+                  src={motherImg}
+                  alt="Maternal care"
+                  className="about-image"
+                />
               </IonCol>
               <IonCol size="12" sizeMd="6" className="about-text">
                 <h2>About eNanayCare</h2>
                 <p>
                   The eNanayCare web application is designed to promote digital
                   maternal health awareness, record management, and efficient
-                  communication between mothers and health workers. It helps
-                  communities track maternal milestones and supports early
-                  interventions.
+                  communication between mothers and health workers.
                 </p>
               </IonCol>
             </IonRow>
           </IonGrid>
         </section>
 
+        {/* FEATURES */}
         <section id="features" className="section features-section animate-up">
           <h2>Key Features</h2>
           <IonGrid>
@@ -120,11 +129,11 @@ const LandingPage: React.FC = () => {
                   title: "Chatbot",
                   desc: "Quick answers to common maternal questions.",
                 },
-              ].map((feature, i) => (
+              ].map((f, i) => (
                 <IonCol size="12" sizeMd="6" sizeLg="3" key={i}>
                   <div className="feature-card animate-fadein">
-                    <h3>{feature.title}</h3>
-                    <p>{feature.desc}</p>
+                    <h3>{f.title}</h3>
+                    <p>{f.desc}</p>
                   </div>
                 </IonCol>
               ))}
@@ -132,6 +141,7 @@ const LandingPage: React.FC = () => {
           </IonGrid>
         </section>
 
+        {/* MISSION */}
         <section id="mission" className="section mission-section animate-up">
           <h2>Our Mission</h2>
           <p>
@@ -141,6 +151,7 @@ const LandingPage: React.FC = () => {
           </p>
         </section>
 
+        {/* TEAM */}
         <section id="team" className="section team-section animate-up">
           <h2>Meet the Team</h2>
           <IonGrid>
@@ -148,7 +159,7 @@ const LandingPage: React.FC = () => {
               {[
                 {
                   name: "Evarine B. Rayon",
-                  role: "Project Leader/Analyst",
+                  role: "Project Leader / Analyst",
                   img: member1,
                   fb: "https://www.facebook.com/evarinerayon",
                   ig: "https://instagram.com/",
@@ -162,22 +173,22 @@ const LandingPage: React.FC = () => {
                 },
                 {
                   name: "Keyna C. Gogo",
-                  role: "Documenter/Lead Analyst",
+                  role: "Documenter / Lead Analyst",
                   img: member3,
                   fb: "https://www.facebook.com/keyna.gogo",
                   ig: "https://instagram.com/",
                 },
-              ].map((member, i) => (
+              ].map((m, i) => (
                 <IonCol size="12" sizeMd="4" key={i}>
                   <div className="team-card animate-fadein">
-                    <img src={member.img} alt={member.name} className="team-img" />
-                    <h3>{member.name}</h3>
-                    <p>{member.role}</p>
+                    <img src={m.img} alt={m.name} className="team-img" />
+                    <h3>{m.name}</h3>
+                    <p>{m.role}</p>
                     <div className="team-socials">
-                      <a href={member.fb} target="_blank" rel="noreferrer">
+                      <a href={m.fb} target="_blank" rel="noreferrer">
                         <i className="fab fa-facebook-f"></i>
                       </a>
-                      <a href={member.ig} target="_blank" rel="noreferrer">
+                      <a href={m.ig} target="_blank" rel="noreferrer">
                         <i className="fab fa-instagram"></i>
                       </a>
                     </div>
@@ -188,6 +199,7 @@ const LandingPage: React.FC = () => {
           </IonGrid>
         </section>
 
+        {/* CONTACT */}
         <section id="contact" className="section contact-section animate-up">
           <h2>Contact Us</h2>
           <p>
@@ -196,6 +208,7 @@ const LandingPage: React.FC = () => {
         </section>
       </IonContent>
 
+      {/* FOOTER */}
       <IonFooter className="sticky-footer">
         <IonToolbar>
           <div className="footer">

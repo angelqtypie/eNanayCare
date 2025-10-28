@@ -62,6 +62,7 @@ const DashboardMother: React.FC = () => {
 
   const [motherName, setMotherName] = useState("Mommy");
   const [dailyTip, setDailyTip] = useState("");
+  const [tipsList, setTipsList] = useState<string[]>([]);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [healthRecord, setHealthRecord] = useState<HealthRecord | null>(null);
   const [immunizations, setImmunizations] = useState<ImmunizationItem[]>([]);
@@ -168,18 +169,30 @@ const DashboardMother: React.FC = () => {
     setImmunizations(immunizationList);
   };
 
-  const fetchDailyTip = async () => {
-    const { data } = await supabase
+  const fetchDailyTips = async () => {
+    const { data, error } = await supabase
       .from("educational_materials")
       .select("content")
       .eq("is_published", true)
       .ilike("category", "%Maternal Health%");
-    if (data?.length)
-      setDailyTip(data[Math.floor(Math.random() * data.length)].content);
-    else
+  
+    if (error) {
+      console.error("Error fetching daily tips:", error.message);
+      setTipsList(fallbackTips);
       setDailyTip(fallbackTips[Math.floor(Math.random() * fallbackTips.length)]);
+      return;
+    }
+  
+    type TipRow = { content: string };
+    const tips: string[] =
+      data && data.length > 0
+        ? (data as TipRow[]).map((d: TipRow) => d.content)
+        : fallbackTips;
+  
+    setTipsList(tips);
+    setDailyTip(tips[Math.floor(Math.random() * tips.length)]);
   };
-
+  
   const checkWellnessLog = async (motherId: string) => {
     const today = new Date().toISOString().split("T")[0];
     const { data } = await supabase
@@ -201,15 +214,32 @@ const DashboardMother: React.FC = () => {
         fetchHealthRecords(id),
         fetchImmunization(id),
         checkWellnessLog(id),
-        fetchDailyTip(),
+        fetchDailyTips(),
       ]);
-    } else await fetchDailyTip();
+    } else await fetchDailyTips();
     setLoading(false);
   };
 
+  // initial load
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // rotate tips every 15 seconds
+  useEffect(() => {
+    if (tipsList.length > 0) {
+      const interval = setInterval(() => {
+        setDailyTip((prev) => {
+          let newTip = prev;
+          while (newTip === prev) {
+            newTip = tipsList[Math.floor(Math.random() * tipsList.length)];
+          }
+          return newTip;
+        });
+      }, 15000); // 15 seconds
+      return () => clearInterval(interval);
+    }
+  }, [tipsList]);
 
   const latestTT = immunizations.find((i) => i.status === "Completed");
 
@@ -233,7 +263,7 @@ const DashboardMother: React.FC = () => {
           >
             <IonCardContent>
               <IonIcon icon={leafOutline} className="card-icon" />
-              <h3>Wellness Log {hasWellnessLog && "✔"}</h3>
+              <h2><b>Wellness Log {hasWellnessLog && "✔Your Done Logging today!"}</b></h2>
               <p>Track your sleep, meals, hydration, and mood</p>
             </IonCardContent>
           </IonCard>
@@ -246,7 +276,7 @@ const DashboardMother: React.FC = () => {
             >
               <IonCardContent>
                 <IonIcon icon={calendarOutline} className="card-icon" />
-                <h3>Appointments</h3>
+                <h3><b>Appointments</b></h3>
                 {appointment ? (
                   <p>
                     {new Date(appointment.date).toLocaleDateString()} •{" "}
@@ -265,7 +295,7 @@ const DashboardMother: React.FC = () => {
             >
               <IonCardContent>
                 <IonIcon icon={heartOutline} className="card-icon" />
-                <h3>Health Record</h3>
+                <h3><b>Health Record</b></h3>
                 {healthRecord ? (
                   <p>
                     BP: {healthRecord.bp || "-"} | Weight:{" "}
@@ -280,7 +310,7 @@ const DashboardMother: React.FC = () => {
             <IonCard className="mother-card clean-white">
               <IonCardContent>
                 <IonIcon icon={bulbOutline} className="card-icon" />
-                <h3>Tip for Today</h3>
+                <h3><b>Tip for Today</b></h3>
                 {loading ? <IonSpinner name="dots" /> : <p>{dailyTip}</p>}
               </IonCardContent>
             </IonCard>
@@ -292,7 +322,7 @@ const DashboardMother: React.FC = () => {
             >
               <IonCardContent>
                 <IonIcon icon={bandageOutline} className="card-icon" />
-                <h3>Immunization</h3>
+                <h3><b>Immunization</b></h3>
                 {latestTT ? (
                   <p>
                     Last: {latestTT.name} •{" "}
@@ -305,7 +335,6 @@ const DashboardMother: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </div>
-
           {/* Immunization Modal */}
           <IonModal
             isOpen={showImmunizationModal}

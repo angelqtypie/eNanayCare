@@ -23,56 +23,53 @@ interface Material {
 const BUILT_IN_MATERIALS: Material[] = [
   {
     id: "m1",
-    title: "🌸 Pregnancy Nutrition Essentials",
+    title: "Pregnancy Nutrition Essentials",
     category: "Nutrition",
     image_url: "https://cdn-icons-png.flaticon.com/512/2966/2966487.png",
-    content: `Eating well is one of the greatest gifts you can give to your growing baby. 🥗  
+    content: `Eating well is one of the greatest gifts you can give to your growing baby. 
 - Include colorful fruits and leafy vegetables  
 - Enjoy protein-rich foods like eggs, beans, and fish  
 - Drink 8–10 glasses of water daily to stay hydrated  
 - Take your prenatal vitamins every morning  
 - Avoid alcohol, caffeine, and smoking  
 
-A nourished mama builds a strong, healthy baby. 💕`,
-    source: "DOH Maternal Health Guide",
+A nourished mama builds a strong, healthy baby.`,
   },
   {
     id: "m2",
-    title: "🚨 Warning Signs During Pregnancy",
+    title: "Warning Signs During Pregnancy",
     category: "Warning Signs",
     image_url: "https://cdn-icons-png.flaticon.com/512/3209/3209048.png",
     content: `Always listen to your body, mama.  
 Call or visit your health worker right away if you experience:  
-⚠️ Severe headache or blurred vision  
-⚠️ Sudden swelling in face or hands  
-⚠️ Heavy bleeding or leaking fluid  
-⚠️ Persistent fever or abdominal pain  
-⚠️ Decreased baby movement  
+- Severe headache or blurred vision  
+- Sudden swelling in face or hands  
+- Heavy bleeding or leaking fluid  
+- Persistent fever or abdominal pain  
+- Decreased baby movement  
 
-Trust your instincts — your safety matters most. 💖`,
-    source: "WHO Maternal Safety Guide",
+Trust your instincts — your safety matters most.`,
   },
   {
     id: "m3",
-    title: "👜 Preparing for Safe Delivery",
+    title: "Preparing for Safe Delivery",
     category: "Birth Preparation",
     image_url: "https://cdn-icons-png.flaticon.com/512/3176/3176292.png",
-    content: `As your due date approaches, stay ready and calm. 🌼  
+    content: `As your due date approaches, stay ready and calm.  
 Pack your hospital bag early with:  
 - Maternity book, ID, and health records  
 - Comfortable clothes and baby blanket  
 - Toiletries, snacks, and water bottle  
 
-💗 Know your nearest birthing center and your emergency transport plan.  
+Know your nearest birthing center and your emergency transport plan.  
 Prepared mama = safe, confident birth.`,
-    source: "DOH Safe Motherhood Program",
   },
   {
     id: "m4",
-    title: "🤱 Postpartum Care for New Mothers",
+    title: "Postpartum Care for New Mothers",
     category: "Postpartum Care",
     image_url: "https://cdn-icons-png.flaticon.com/512/4849/4849837.png",
-    content: `You’ve brought life into the world — now it’s time to care for *you*. 🌷  
+    content: `You’ve brought life into the world — now it’s time to care for you.  
 - Rest whenever your baby sleeps  
 - Eat balanced meals to recover strength  
 - Keep your wound clean and dry  
@@ -80,37 +77,34 @@ Prepared mama = safe, confident birth.`,
 - Avoid heavy lifting for at least 6 weeks  
 - Schedule your postnatal check-up  
 
-Remember: healing takes time and love. You’re doing great, mama. 💞`,
-    source: "DOH Postpartum Guide",
+Remember: healing takes time and love. You’re doing great, mama.`,
   },
   {
     id: "m5",
-    title: "💉 Baby Immunization Schedule",
+    title: "Baby Immunization Schedule",
     category: "Immunization",
     image_url: "https://cdn-icons-png.flaticon.com/512/3048/3048704.png",
-    content: `Vaccines are your baby’s shield against serious diseases. 🌈  
+    content: `Vaccines are your baby’s shield against serious diseases.  
 Here’s the recommended schedule:  
-👶 BCG & Hepatitis B – at birth  
-🍼 DPT, Polio, Hib – 6, 10, and 14 weeks  
-🌼 Measles – 9 months  
+- BCG & Hepatitis B – at birth  
+- DPT, Polio, Hib – 6, 10, and 14 weeks  
+- Measles – 9 months  
 
-Keep your baby’s immunization card safe and updated. A protected baby is a happy baby! 💚`,
-    source: "DOH Immunization Guide",
+Keep your baby’s immunization card safe and updated. A protected baby is a happy baby!`,
   },
   {
     id: "m6",
-    title: "💗 Caring for Your Mental Health",
+    title: "Caring for Your Mental Health",
     category: "Mental Health",
     image_url: "https://cdn-icons-png.flaticon.com/512/2821/2821637.png",
-    content: `Pregnancy brings changes — physical, emotional, and mental. 🌸  
+    content: `Pregnancy brings changes — physical, emotional, and mental. 
 It’s okay to feel overwhelmed sometimes. Here are gentle reminders:  
-✨ Rest and breathe deeply  
-✨ Share your feelings with loved ones  
-✨ Accept help — you don’t have to do it all  
-✨ Consult your health worker if sadness lingers  
+- Rest and breathe deeply  
+- Share your feelings with loved ones  
+- Accept help — you don’t have to do it all  
+- Consult your health worker if sadness lingers  
 
-You’re stronger than you think, mama. 💕`,
-    source: "WHO Mental Health Support",
+You’re stronger than you think, mama.`,
   },
 ];
 
@@ -136,7 +130,7 @@ const EducationalMaterials: React.FC = () => {
           setMaterials([...BUILT_IN_MATERIALS, ...data]);
         }
       } catch {
-        console.warn("⚠️ Using built-in materials only.");
+        console.warn("Using built-in materials only.");
       } finally {
         setLoading(false);
       }
@@ -170,9 +164,9 @@ const EducationalMaterials: React.FC = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h2>🌷 Learn & Bloom, Mama</h2>
+        <h2>Learn & Bloom, Mama</h2>
         <p>
-          Gentle guidance and inspiring tips for every stage of motherhood — from pregnancy to postpartum. 💖
+          Gentle guidance and inspiring tips for every stage of motherhood — from pregnancy to postpartum.
         </p>
       </motion.section>
 
@@ -200,7 +194,7 @@ const EducationalMaterials: React.FC = () => {
           <IonSpinner name="crescent" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="empty">No materials available 💖</div>
+        <div className="empty">No materials available</div>
       ) : (
         <div className="materials-grid">
           <AnimatePresence>
