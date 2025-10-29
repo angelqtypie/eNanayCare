@@ -15,7 +15,7 @@ import {
   IonCardContent,
 } from "@ionic/react";
 import { supabase } from "../utils/supabaseClient";
-import MainLayout from "../layouts/MainLayouts";
+import AdminMainLayout from "../layouts/AdminLayout"; 
 
 interface RiskReport {
   id: string;
@@ -91,7 +91,7 @@ const RiskMonitoring: React.FC = () => {
     : riskReports;
 
   return (
-    <MainLayout>
+    <AdminMainLayout>
       <IonHeader>
         <IonToolbar color="primary">
           <IonTitle>Risk Monitoring</IonTitle>
@@ -157,7 +157,7 @@ const RiskMonitoring: React.FC = () => {
           ))
         )}
       </IonContent>
-    </MainLayout>
+    </AdminMainLayout>
   );
 };
 

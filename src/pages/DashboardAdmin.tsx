@@ -23,7 +23,6 @@ const DashboardAdmin: React.FC = () => {
     mothers: 0,
     admins: 0,
     materials: 0,
-    reports: 0,
   });
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -52,7 +51,6 @@ const DashboardAdmin: React.FC = () => {
           mothers,
           admins,
           materials: materials || 0,
-          reports: reports || 0,
         });
       }
     } catch (err) {
@@ -60,14 +58,7 @@ const DashboardAdmin: React.FC = () => {
     }
   };
 
-  const fetchRecentReports = async () => {
-    const { data } = await supabase
-      .from("reports")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(4);
-    if (data) setRecentReports(data);
-  };
+
 
   const fetchUpdates = async () => {
     const { data, error } = await supabase
@@ -107,7 +98,6 @@ const DashboardAdmin: React.FC = () => {
 
   useEffect(() => {
     fetchCounts();
-    fetchRecentReports();
     fetchUpdates();
   }, []);
 
@@ -127,14 +117,6 @@ const DashboardAdmin: React.FC = () => {
       icon: bookOutline,
       gradient: "linear-gradient(135deg, #9ae6b4, #38a169)",
       link: "/adminmaterials",
-    },
-    {
-      title: "Reports",
-      subtitle: "Generated Reports",
-      value: counts.reports,
-      icon: documentTextOutline,
-      gradient: "linear-gradient(135deg, #b794f4, #553c9a)",
-      link: "/adminrisks",
     },
   ];
 

@@ -89,38 +89,66 @@ const RiskReportPage: React.FC = () => {
         .from("mothers")
         .select("mother_id, first_name, last_name, age, address")
         .returns<Mother[]>();
-
+  
       const { data: records } = await supabase
         .from("health_records")
         .select("mother_id, weight, bp, temp, dm, hpn")
         .returns<HealthRecord[]>();
-
+  
       if (!mothers || !records) return;
-
+  
       const risky = mothers.filter((mom: Mother) => {
         const record = records.find(
           (r: HealthRecord) => r.mother_id === mom.mother_id
         );
         if (!record) return false;
-
+  
         const bp = parseBP(record.bp);
         const highBP = bp ? bp.systolic >= 140 || bp.diastolic >= 90 : false;
         const fever = record.temp !== null && record.temp > 38;
         const lowWeight = record.weight !== null && record.weight < 45;
         const chronic = record.dm || record.hpn;
-
-        return highBP || fever || lowWeight || chronic;
+  
+        // If any of the conditions are true, the mother is considered at risk
+        if (highBP || fever || lowWeight || chronic) {
+          // Automatically insert a new risk report for this mother
+          const riskType = highBP
+            ? "High Blood Pressure"
+            : fever
+            ? "Fever"
+            : lowWeight
+            ? "Low Weight"
+            : "Chronic Condition";  // If none of the above, it's considered chronic
+  
+          // Insert the risk report into the database
+          supabase
+            .from("risk_reports")
+            .insert([
+              {
+                mother_id: mom.mother_id,
+                mother_name: `${mom.first_name} ${mom.last_name}`,
+                risk_type: riskType,
+                description: `Risk detected due to ${riskType}`,
+                status: "Pending",
+              },
+            ])
+            .catch((err: Error) => console.error("Error inserting risk report:", err)); // Error type specified
+  
+          return true; // Mark the mother as at risk
+        }
+  
+        return false;
       });
-
+  
       setTotalMothers(mothers.length);
       setRiskMothers(risky);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching data:", error); // Error handling for the entire fetch process
     } finally {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchData();
   }, []);
@@ -182,10 +210,9 @@ const RiskReportPage: React.FC = () => {
       <IonContent className="risk-content">
         <div className="risk-container">
           <header className="risk-header">
-            <h1>🩺 Mother Risk Monitoring</h1>
+            <h1>Mother Risk Monitoring</h1>
             <p>Tracks and visualizes mothers’ health risk levels in real time.</p>
           </header>
-
 
           {/* Summary Cards */}
           <IonGrid className="summary-grid">
@@ -279,7 +306,7 @@ const RiskReportPage: React.FC = () => {
                     <IonSpinner />
                   </div>
                 ) : filteredMothers.length === 0 ? (
-                  <p className="stable-msg">🎉 All mothers are stable!</p>
+                  <p className="stable-msg">All mothers are stable!</p>
                 ) : (
                   <ul className="risk-list">
                     {filteredMothers.map((m: Mother) => (

@@ -24,6 +24,7 @@ interface Mother {
   mother_id: string;
   first_name: string;
   last_name: string;
+  email?: string;
 }
 
 interface Appointment {
@@ -34,15 +35,7 @@ interface Appointment {
   location: string;
   notes: string;
   status: string;
-  mother?: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
-interface HealthRecord {
-  mother_id: string;
-  encounter_date: string;
+  mother?: Mother;
 }
 
 const Appointments: React.FC = () => {
@@ -79,65 +72,83 @@ const Appointments: React.FC = () => {
     return `${hour}:${minute} ${ampm}`;
   };
 
+  // ✅ Fetch mothers (joined with user email)
   const fetchMothers = async () => {
     const { data, error } = await supabase
       .from("mothers")
-      .select("mother_id, first_name, last_name")
+      .select("mother_id, first_name, last_name, user:users(email)")
       .order("last_name", { ascending: true });
-    if (error) console.error(error);
-    setMothers(data || []);
+
+    if (error) {
+      console.error("Error fetching mothers:", error);
+      return;
+    }
+
+    const formatted = (data || []).map((m: any) => ({
+      mother_id: m.mother_id,
+      first_name: m.first_name,
+      last_name: m.last_name,
+      email: m.user?.email,
+    }));
+
+    setMothers(formatted);
   };
 
+  // ✅ Fetch appointments with related mother info
   const fetchAppointments = async () => {
     setLoading(true);
-
-    const { data: appointmentsData, error } = await supabase
+    const { data, error } = await supabase
       .from("appointments")
-      .select(`
-        id, date, time, location, notes, status, mother_id,
-        mother:mothers(first_name, last_name)
-      `)
+      .select(
+        `id, date, time, location, notes, status, mother_id,
+        mothers(mother_id, first_name, last_name)`
+      )
       .order("date", { ascending: true });
 
     if (error) {
-      console.error(error);
+      console.error("Error fetching appointments:", error);
       setLoading(false);
       return;
     }
 
-    // Fetch all health records
-    const { data: healthRecords, error: hrError } = await supabase
-      .from("health_records")
-      .select("mother_id, encounter_date");
-    if (hrError) console.error(hrError);
+    const formatted = (data || []).map((a: any) => ({
+      ...a,
+      mother: a.mothers ? a.mothers : undefined,
+    }));
 
-    const updated: Appointment[] =
-      appointmentsData?.map((a: any) => {
-        const motherObj =
-          Array.isArray(a.mother) && a.mother.length > 0 ? a.mother[0] : undefined;
-
-        const hasRecord = healthRecords?.some((hr: HealthRecord) => {
-          return (
-            hr.mother_id === a.mother_id &&
-            new Date(hr.encounter_date).toDateString() ===
-              new Date(a.date).toDateString()
-          );
-        });
-
-        let status = a.status;
-        if (new Date(a.date) < new Date() && !hasRecord && a.status !== "Completed") {
-          status = "Missed";
-        }
-
-        return {
-          ...a,
-          mother: motherObj,
-          status,
-        };
-      }) || [];
-
-    setAppointments(updated);
+    setAppointments(formatted);
     setLoading(false);
+  };
+
+  // ✅ Send email notification via Supabase Function
+  const sendEmailNotification = async (
+    mother: Mother,
+    date: string,
+    time: string,
+    location: string
+  ) => {
+    try {
+      if (!mother.email) return;
+
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: mother.email,
+          subject: "Prenatal Check-up Reminder",
+          type: "reminder",
+          data: {
+            name: `${mother.first_name} ${mother.last_name}`,
+            date,
+            time,
+            location,
+          },
+        },
+      });
+
+      if (error) console.error("❌ Email send error:", error);
+      else console.log("✅ Email sent:", data);
+    } catch (err) {
+      console.error("⚠️ Function call failed:", err);
+    }
   };
 
   const addAppointment = async () => {
@@ -162,12 +173,21 @@ const Appointments: React.FC = () => {
       }))
     );
 
-    if (error) console.error(error);
-    else {
-      setShowModal(false);
-      setForm({ motherIds: [], date: "", time: "", location: "", notes: "" });
-      fetchAppointments();
+    if (error) {
+      console.error("Insert error:", error);
+      return;
     }
+
+    // ✅ Send email to each selected mother
+    form.motherIds.forEach((mid) => {
+      const mother = mothers.find((m) => m.mother_id === mid);
+      if (mother)
+        sendEmailNotification(mother, form.date, form.time, form.location);
+    });
+
+    setShowModal(false);
+    setForm({ motherIds: [], date: "", time: "", location: "", notes: "" });
+    fetchAppointments();
   };
 
   const deleteAppointment = async (id: number) => {
@@ -199,7 +219,7 @@ const Appointments: React.FC = () => {
 
       <IonContent className="appointments-content">
         <div className="appointments-container">
-          {/* Calendar Section */}
+          {/* Calendar */}
           <div className="calendar-section">
             <Calendar
               value={calendarDate}
@@ -357,96 +377,23 @@ const Appointments: React.FC = () => {
 
       <style>
         {`
-          .page-title {
-            font-weight: 600;
-            padding: 10px 20px;
-          }
-          .appointments-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
-          }
-          .calendar-section {
-            width: 340px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 15px;
-          }
-          .table-wrapper {
-            flex: 1;
-            background: #fff;
-            border-radius: 12px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            overflow-x: auto;
-          }
-          .appointments-table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          .appointments-table th, .appointments-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #eee;
-          }
-          .appointments-table tr:hover {
-            background: #f8faff;
-          }
-          .status.scheduled {
-            color: #2563eb;
-            font-weight: 600;
-          }
-          .status.completed {
-            color: #16a34a;
-            font-weight: 600;
-          }
-          .status.missed {
-            color: #dc2626;
-            font-weight: 600;
-          }
-          .add-btn {
-            margin-top: 10px;
-            font-weight: 600;
-          }
-          .dot {
-            background-color: #2563eb;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin: auto;
-            margin-top: 2px;
-          }
-          .today-highlight {
-            background: #ffe599 !important;
-            border-radius: 50%;
-          }
-          .empty-text {
-            text-align: center;
-            padding: 30px;
-            color: #888;
-          }
-          .loading {
-            text-align: center;
-            padding: 30px;
-          }
-          .modal-container {
-            background: #fefefe;
-            padding: 20px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-          }
-          .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .form-scroll {
-            max-height: 65vh;
-            overflow-y: auto;
-            padding-right: 10px;
-          }
+          .page-title { font-weight: 600; padding: 10px 20px; }
+          .appointments-container { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; }
+          .calendar-section { width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 15px; }
+          .table-wrapper { flex: 1; background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; }
+          .appointments-table { width: 100%; border-collapse: collapse; }
+          .appointments-table th, .appointments-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+          .appointments-table tr:hover { background: #f8faff; }
+          .status.scheduled { color: #2563eb; font-weight: 600; }
+          .status.completed { color: #16a34a; font-weight: 600; }
+          .status.missed { color: #dc2626; font-weight: 600; }
+          .add-btn { margin-top: 10px; font-weight: 600; }
+          .dot { background-color: #2563eb; width: 6px; height: 6px; border-radius: 50%; margin: auto; margin-top: 2px; }
+          .today-highlight { background: #ffe599 !important; border-radius: 50%; }
+          .empty-text, .loading { text-align: center; padding: 30px; color: #888; }
+          .modal-container { background: #fefefe; padding: 20px; height: 100%; display: flex; flex-direction: column; }
+          .modal-header { display: flex; justify-content: space-between; align-items: center; }
+          .form-scroll { max-height: 65vh; overflow-y: auto; padding-right: 10px; }
         `}
       </style>
     </MainLayout>

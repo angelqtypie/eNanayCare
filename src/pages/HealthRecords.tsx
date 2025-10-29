@@ -1,3 +1,4 @@
+// src/pages/HealthRecords.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonHeader,
@@ -18,7 +19,11 @@ import {
   IonToggle,
   IonNote,
 } from "@ionic/react";
-import { closeOutline, chevronDownOutline, chevronUpOutline } from "ionicons/icons";
+import {
+  closeOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+} from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import MainLayout from "../layouts/MainLayouts";
 
@@ -28,15 +33,6 @@ interface Mother {
   middle_name?: string;
   last_name: string;
   address: string;
-}
-
-interface Appointment {
-  id: string;
-  mother_id: string;
-  date: string;
-  time: string;
-  location: string;
-  status: string;
 }
 
 interface HealthRecord {
@@ -58,7 +54,6 @@ interface HealthRecord {
 
 const HealthRecords: React.FC = () => {
   const [mothers, setMothers] = useState<Mother[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [records, setRecords] = useState<{ [key: string]: HealthRecord[] }>({});
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
@@ -69,12 +64,12 @@ const HealthRecords: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [bmi, setBmi] = useState<string>("");
+  const [lastTT, setLastTT] = useState<string>("");
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       await fetchMothers();
-      await fetchAppointments();
       setLoading(false);
     })();
   }, []);
@@ -87,15 +82,6 @@ const HealthRecords: React.FC = () => {
     if (!error && data) setMothers(data);
   };
 
-  const fetchAppointments = async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("id, mother_id, date, time, location, status")
-      .eq("status", "Scheduled");
-    if (!error && data) setAppointments(data);
-  };
-
   const fetchHealthRecords = async (motherId: string) => {
     const { data, error } = await supabase
       .from("health_records")
@@ -104,7 +90,9 @@ const HealthRecords: React.FC = () => {
       .order("encounter_date", { ascending: false });
     if (!error && data) {
       setRecords((prev) => ({ ...prev, [motherId]: data }));
+      return data;
     }
+    return [];
   };
 
   const handleChange = (field: keyof HealthRecord, value: any) => {
@@ -126,6 +114,27 @@ const HealthRecords: React.FC = () => {
     if (bmi < 25) return "Normal";
     if (bmi < 30) return "Overweight";
     return "Obese";
+  };
+
+  // Determine next TT
+  const nextTT = (current: string) => {
+    if (!current) return "TT1";
+    const map: Record<string, string> = {
+      TT1: "TT2",
+      TT2: "Completed",
+      Completed: "Completed",
+    };
+    return map[current] || "TT1";
+  };
+
+  const openAddRecordModal = async (mother: Mother) => {
+    setCurrentMother(mother);
+    const data = await fetchHealthRecords(mother.mother_id);
+    const lastRecord = data[0];
+    const last = lastRecord?.tt_status || "";
+    setLastTT(last);
+    setForm({ tt_status: nextTT(last) });
+    setShowModal(true);
   };
 
   const saveRecord = async () => {
@@ -205,10 +214,7 @@ const HealthRecords: React.FC = () => {
                     <IonButton
                       size="small"
                       color="primary"
-                      onClick={() => {
-                        setCurrentMother(m);
-                        setShowModal(true);
-                      }}
+                      onClick={() => openAddRecordModal(m)}
                     >
                       Add Health Record
                     </IonButton>
@@ -244,6 +250,7 @@ const HealthRecords: React.FC = () => {
                             <th>Height</th>
                             <th>BP</th>
                             <th>Temp</th>
+                            <th>TT</th>
                             <th>Notes</th>
                           </tr>
                         </thead>
@@ -255,6 +262,7 @@ const HealthRecords: React.FC = () => {
                               <td>{r.ht} cm</td>
                               <td>{r.bp}</td>
                               <td>{r.temp}°C</td>
+                              <td>{r.tt_status}</td>
                               <td>{r.notes}</td>
                             </tr>
                           ))}
@@ -283,7 +291,7 @@ const HealthRecords: React.FC = () => {
               </IonButton>
             </div>
 
-            <IonContent className="modal-body">
+            <div className="modal-body">
               <IonList className="form">
                 <IonItem>
                   <IonLabel position="stacked">Date of Visit</IonLabel>
@@ -355,12 +363,19 @@ const HealthRecords: React.FC = () => {
                 <IonItem>
                   <IonLabel position="stacked">TT Status</IonLabel>
                   <IonInput
+                    value={form.tt_status}
                     placeholder="TT1 / TT2 / Completed"
                     onIonChange={(e) =>
                       handleChange("tt_status", e.detail.value!)
                     }
                   />
                 </IonItem>
+                {lastTT && (
+                  <IonNote color="medium" className="bmi-note">
+                    Last TT Status: <strong>{lastTT}</strong> → Next:{" "}
+                    <strong>{nextTT(lastTT)}</strong>
+                  </IonNote>
+                )}
 
                 <IonItem>
                   <IonLabel position="stacked">Notes / Remarks</IonLabel>
@@ -370,7 +385,7 @@ const HealthRecords: React.FC = () => {
                   />
                 </IonItem>
               </IonList>
-            </IonContent>
+            </div>
 
             <div className="modal-footer">
               <IonButton color="medium" onClick={() => setShowModal(false)}>
@@ -400,12 +415,28 @@ const HealthRecords: React.FC = () => {
         .records-table th, .records-table td { border: 1px solid #ddd; padding: 6px; text-align: center; }
         .records-table th { background: #f3f3f3; }
         .no-records { text-align: center; padding: 8px; color: gray; }
-        .modal { background: #fff; border-radius: 12px; padding: 18px; width: 95%; max-width: 720px; margin: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 10px; }
+
+        ion-modal::part(content) {
+          height: 80vh;
+          width: 95%;
+          max-width: 700px;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .modal { display: flex; flex-direction: column; height: 100%; background: #fff; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding: 10px 16px; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 10px 16px; }
+        .modal-footer { border-top: 1px solid #ddd; padding: 10px 16px; display: flex; justify-content: flex-end; gap: 10px; background: #fff; }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-        .bmi-note { text-align: center; display: block; color: #0077b6; font-weight: 600; margin-top: 10px; }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; }
+        .bmi-note { text-align: center; display: block; color: #0077b6; font-weight: 600; margin-top: 8px; }
+        .section-title { margin-top: 16px; font-weight: 600; font-size: 16px; color: #444; }
         .centered { display: flex; justify-content: center; align-items: center; height: 200px; }
+
+        @media (max-width: 600px) {
+          ion-modal::part(content) { height: 90vh; width: 95%; }
+        }
       `}</style>
     </MainLayout>
   );
