@@ -1,3 +1,4 @@
+// src/pages/RiskReportPage.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonContent,
@@ -89,41 +90,39 @@ const RiskReportPage: React.FC = () => {
         .from("mothers")
         .select("mother_id, first_name, last_name, age, address")
         .returns<Mother[]>();
-  
+
       const { data: records } = await supabase
         .from("health_records")
         .select("mother_id, weight, bp, temp, dm, hpn")
         .returns<HealthRecord[]>();
-  
+
       if (!mothers || !records) return;
-  
-      const risky = mothers.filter((mom: Mother) => {
+
+      const risky: Mother[] = [];
+
+      for (const mom of mothers) {
         const record = records.find(
           (r: HealthRecord) => r.mother_id === mom.mother_id
         );
-        if (!record) return false;
-  
+        if (!record) continue;
+
         const bp = parseBP(record.bp);
         const highBP = bp ? bp.systolic >= 140 || bp.diastolic >= 90 : false;
         const fever = record.temp !== null && record.temp > 38;
         const lowWeight = record.weight !== null && record.weight < 45;
         const chronic = record.dm || record.hpn;
-  
-        // If any of the conditions are true, the mother is considered at risk
+
         if (highBP || fever || lowWeight || chronic) {
-          // Automatically insert a new risk report for this mother
           const riskType = highBP
             ? "High Blood Pressure"
             : fever
             ? "Fever"
             : lowWeight
             ? "Low Weight"
-            : "Chronic Condition";  // If none of the above, it's considered chronic
-  
-          // Insert the risk report into the database
-          supabase
-            .from("risk_reports")
-            .insert([
+            : "Chronic Condition";
+
+          try {
+            const { error } = await supabase.from("risk_reports").insert([
               {
                 mother_id: mom.mother_id,
                 mother_name: `${mom.first_name} ${mom.last_name}`,
@@ -131,24 +130,25 @@ const RiskReportPage: React.FC = () => {
                 description: `Risk detected due to ${riskType}`,
                 status: "Pending",
               },
-            ])
-            .catch((err: Error) => console.error("Error inserting risk report:", err)); // Error type specified
-  
-          return true; // Mark the mother as at risk
+            ]);
+            if (error) throw error;
+          } catch (err) {
+            console.error("Error inserting risk report:", err);
+          }
+
+          risky.push(mom);
         }
-  
-        return false;
-      });
-  
+      }
+
       setTotalMothers(mothers.length);
       setRiskMothers(risky);
     } catch (error) {
-      console.error("Error fetching data:", error); // Error handling for the entire fetch process
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -174,7 +174,7 @@ const RiskReportPage: React.FC = () => {
     return matchSearch && matchZone;
   });
 
-  // ===== Custom Label (Donut with Percentages) =====
+  // ===== Custom Label =====
   const renderCustomLabel = ({
     cx = 0,
     cy = 0,
@@ -204,7 +204,6 @@ const RiskReportPage: React.FC = () => {
     );
   };
 
-  // ===== JSX =====
   return (
     <MainLayout>
       <IonContent className="risk-content">
@@ -332,22 +331,15 @@ const RiskReportPage: React.FC = () => {
           .risk-content { --background: #f9fafb; }
           .risk-container { padding: 20px; max-width: 1300px; margin: auto; font-family: 'Inter', sans-serif; }
           .risk-header { text-align: center; margin-bottom: 20px; }
-          .filters { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
-          ion-searchbar { flex: 1; --border-radius: 10px; }
-          ion-select { min-width: 130px; border-radius: 10px; background: #fff; }
-
           .summary-grid ion-card { border-radius: 14px; text-align: center; }
           .summary-grid h2 { font-size: 2.3rem; font-weight: 700; }
           .card.red { background: #fee2e2; border-top: 6px solid #ef4444; }
           .card.green { background: #dcfce7; border-top: 6px solid #10b981; }
           .card.purple { background: #ede9fe; border-top: 6px solid #7c3aed; }
-
           .chart-list-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
           @media (min-width: 900px) { .chart-list-grid { grid-template-columns: 1fr 1fr; } }
-
           .chart-card, .list-card { border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.3s; }
           .chart-card:hover, .list-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
-
           .chart-wrapper { position: relative; height: 320px; }
           .risk-list { list-style: none; margin: 0; padding: 0; }
           .risk-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
