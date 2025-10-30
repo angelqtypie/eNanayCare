@@ -1,4 +1,7 @@
-// src/App.tsx
+import emailjs from "@emailjs/browser";
+
+emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY!);
+
 import { Redirect, Route } from "react-router-dom";
 import {
   IonApp,
