@@ -1,3 +1,4 @@
+// src/pages/Appointments.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   IonHeader,
@@ -104,11 +105,81 @@ const loadCache = (): Appointment[] | null => {
   }
 };
 
+/* --- New helpers for calendar/ics --- */
+
+// 1) Google Calendar format: YYYYMMDDTHHMMSSZ
+const toGCalFormat = (d: Date) => {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+};
+
+// escape ICS content
+const escapeICS = (s: string) => {
+  return s.replace(/\r\n/g, "\\n").replace(/\n/g, "\\n").replace(/,/g, "\\,");
+};
+
+// 2) Generate ICS content including VALARM for 30 minutes
+const generateICS = (opts: {
+  uid?: string;
+  timestamp: string; // DTSTAMP
+  dtstart: string; // DTSTART
+  dtend: string; // DTEND
+  summary: string;
+  description?: string;
+  location?: string;
+}) => {
+  const uid = opts.uid ?? `${Date.now()}@enanaycare`;
+  // VALARM trigger -30 minutes, ACTION:DISPLAY (works on many clients)
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//eNanayCare//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${opts.timestamp}`,
+    `DTSTART:${opts.dtstart}`,
+    `DTEND:${opts.dtend}`,
+    `SUMMARY:${escapeICS(opts.summary)}`,
+    `DESCRIPTION:${escapeICS(opts.description || "")}`,
+    `LOCATION:${escapeICS(opts.location || "")}`,
+    "BEGIN:VALARM",
+    "TRIGGER:-PT30M",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Reminder",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ];
+  return lines.join("\r\n");
+};
+
+// 3) Upload ICS to Supabase Storage (returns public URL or null)
+const uploadICSToSupabase = async (filename: string, icsBlob: Blob) => {
+  try {
+    const path = `ics/${filename}`;
+    const file = new File([icsBlob], filename, { type: "text/calendar" });
+    // upload returns { data, error } in Supabase JS
+    const { data: uploadData, error: upErr } = await supabase.storage.from("ics").upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+    if (upErr) {
+      console.error("Supabase upload error", upErr);
+      return null;
+    }
+    const { data } = supabase.storage.from("ics").getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch (err) {
+    console.error("uploadICSToSupabase failed", err);
+    return null;
+  }
+};
+
+/* --- Component --- */
 const Appointments: React.FC = () => {
   // EmailJS keys from env (Vite)
   const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
   const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-  // We still pass the public key to send(), but we also init() once at app root
   const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
   const [mothers, setMothers] = useState<Mother[]>([]);
@@ -128,9 +199,8 @@ const Appointments: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | Appointment["status"]>("All");
-  const [isSubmitting, setIsSubmitting] = useState(false); // prevent double submit
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Greeting messages
   const greetings = [
     "Keep going — you're changing lives today!",
     "You’re doing great work, BHW!",
@@ -138,12 +208,11 @@ const Appointments: React.FC = () => {
     "Ready to help another mama? Let's go!",
   ];
 
-  // Fetch mothers (with user email)
+  // Fetch mothers
   const fetchMothers = async () => {
     try {
       const { data, error } = await supabase
         .from("mothers")
-        // join to users table to get email; alias used in select: user:users(email)
         .select("mother_id, first_name, last_name, user:users(email)")
         .order("last_name", { ascending: true });
 
@@ -160,7 +229,7 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Fetch appointments with mother join; update cache
+  // Fetch appointments and cache
   const fetchAppointments = async (useCacheIfFail = true) => {
     setLoading(true);
     try {
@@ -209,7 +278,7 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Evaluate and update appointment statuses (Completed / Missed)
+  // Update statuses
   const syncStatuses = async () => {
     try {
       const todayStr = fmtDate(new Date());
@@ -245,9 +314,8 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Add appointment(s) + send email notifications via EmailJS
+  // Add appointment(s) + enhanced email with calendar + ics upload
   const addAppointment = async () => {
-    // prevent double submit
     if (isSubmitting) return;
     if (!form.motherIds.length || !form.date || !form.time || !form.location) {
       setToastMsg("Please fill all required fields");
@@ -256,7 +324,7 @@ const Appointments: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // 1) fetch mother info (include email) for selected mothers
+      // fetch mother info
       const { data: momsData, error: momsError } = await supabase
         .from("mothers")
         .select("mother_id, first_name, last_name, user:users(email)")
@@ -274,7 +342,7 @@ const Appointments: React.FC = () => {
         };
       });
 
-      // 2) filter out any mother who already has same appointment (same date & time)
+      // check duplicates & prepare inserts
       const toInsertPayload: any[] = [];
       const toNotify: { mother_id: string; name: string; email?: string | null }[] = [];
 
@@ -289,17 +357,14 @@ const Appointments: React.FC = () => {
 
         if (existingQ.error) {
           console.error("check existing appt failed for", motherId, existingQ.error);
-          // continue and attempt insert (but better to skip on error)
         }
 
         const exists = Array.isArray(existingQ.data) && existingQ.data.length > 0;
         if (exists) {
-          // skip insertion & notification for this mother (prevents duplicates)
           console.log("Skipping existing appointment for", motherId);
           continue;
         }
 
-        // prepare insert
         toInsertPayload.push({
           mother_id: motherId,
           date: form.date,
@@ -317,14 +382,13 @@ const Appointments: React.FC = () => {
         });
       }
 
-      // if no new payload to insert, notify user and stop
       if (toInsertPayload.length === 0) {
         setToastMsg("No new appointments to create (duplicates skipped)");
         setIsSubmitting(false);
         return;
       }
 
-      // 3) do bulk insert
+      // bulk insert
       const { data: inserted, error: insertErr } = await supabase
         .from("appointments")
         .insert(toInsertPayload)
@@ -332,33 +396,69 @@ const Appointments: React.FC = () => {
 
       if (insertErr) throw insertErr;
 
-      // 4) send email notifications only for inserted appointments (match by mother_id)
-      // Build map of inserted mother_ids for safety
       const insertedMotherIds = new Set((inserted || []).map((r: any) => r.mother_id));
 
       for (const n of toNotify) {
-        if (!n.email) continue; // no email on file
-        if (!insertedMotherIds.has(n.mother_id)) {
-          // This mother was skipped or insertion failed — skip sending
-          continue;
+        if (!n.email) continue;
+        if (!insertedMotherIds.has(n.mother_id)) continue;
+
+        // compute start/end Date (assume form.time like "08:30")
+        // Note: constructing Date uses local timezone; toISOString converts to UTC
+        const startDate = new Date(`${form.date}T${form.time}:00`);
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // +1 hour
+
+        const calendar_start = toGCalFormat(startDate);
+        const calendar_end = toGCalFormat(endDate);
+        const formatted_time = fmtTime12(form.time);
+
+        // generate ICS content (with VALARM 30min prior)
+        const icsText = generateICS({
+          timestamp: toGCalFormat(new Date()),
+          dtstart: calendar_start,
+          dtend: calendar_end,
+          summary: `Prenatal Appointment - ${n.name}`,
+          description: form.notes || "",
+          location: form.location || "",
+        });
+
+        // try upload to Supabase Storage -> get public URL
+        const filename = `appointment_${n.mother_id}_${form.date.replace(/-/g,"")}_${form.time.replace(/:/g,"")}.ics`;
+        const icsBlob = new Blob([icsText], { type: "text/calendar" });
+        let ics_link: string | null = null;
+
+        try {
+          ics_link = await uploadICSToSupabase(filename, icsBlob);
+        } catch (err) {
+          console.error("uploadICSToSupabase error", err);
+          ics_link = null;
+        }
+
+        // fallback to data URI if supabase upload not configured
+        if (!ics_link) {
+          try {
+            const b64 = btoa(unescape(encodeURIComponent(icsText)));
+            ics_link = `data:text/calendar;base64,${b64}`;
+          } catch (err) {
+            ics_link = "";
+            console.error("Failed to create data URI for ICS", err);
+          }
         }
 
         const templateParams = {
           name: n.name,
           email: n.email,
           date: form.date,
+          formatted_time,
           time: form.time,
           location: form.location,
           notes: form.notes || "",
+          calendar_start,
+          calendar_end,
+          ics_link,
         };
 
         try {
-          await emailjs.send(
-            SERVICE_ID!,
-            TEMPLATE_ID!,
-            templateParams,
-            PUBLIC_KEY!
-          );
+          await emailjs.send(SERVICE_ID!, TEMPLATE_ID!, templateParams, PUBLIC_KEY!);
           console.log("Email sent to", n.email);
         } catch (e) {
           console.error("EmailJS send failed for", n.email, e);
@@ -376,10 +476,11 @@ const Appointments: React.FC = () => {
       setToastMsg("Failed to create appointment");
     } finally {
       setIsSubmitting(false);
+      // small timeout before revoking potential object URLs (if you used createObjectURL)
     }
   };
 
-  // Delete appointment
+  // delete / mark handlers (unchanged)
   const deleteAppointment = async (id: string) => {
     if (!confirm("Delete appointment?")) return;
     try {
@@ -392,11 +493,9 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Quick actions: mark completed / missed
   const markCompleted = async (appt: Appointment) => {
     try {
       await supabase.from("appointments").update({ status: "Completed" }).eq("id", appt.id);
-      // insert visit_records for traceability
       await supabase.from("visit_records").insert({
         appointment_id: appt.id,
         mother_id: appt.mother_id,
@@ -421,7 +520,7 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // CSV export
+  // exportCSV (unchanged)
   const exportCSV = () => {
     const headers = ["Mother", "Date", "Time", "Location", "Status", "Notes"];
     const rows = appointments.map(a => [
@@ -442,7 +541,7 @@ const Appointments: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Calendar map (date -> counts)
+  // calendar map, summary, visibleAppointments, upcoming (unchanged)
   const calendarMap = useMemo(() => {
     const map: Record<string, { Scheduled: number; Completed: number; Missed: number; total: number }> = {};
     for (const a of appointments) {
@@ -453,7 +552,6 @@ const Appointments: React.FC = () => {
     return map;
   }, [appointments]);
 
-  // Summary totals & monthly for chart
   const summary = useMemo(() => {
     const totals: any = { All: 0, Scheduled: 0, Completed: 0, Missed: 0 };
     for (const a of appointments) {
@@ -472,11 +570,10 @@ const Appointments: React.FC = () => {
       const k = new Date(a.date).toLocaleString("default", { month: "short", year: "numeric" });
       if (months[k]) months[k][a.status] = (months[k][a.status] || 0) + 1;
     }
-    const monthlyData = Object.entries(months).map(([month, counts]) => ({ month, ...counts }));
+    const monthlyData = Object.entries(months).map(([month, counts]) => ({ month, ...counts } as any));
     return { totals, monthlyData };
   }, [appointments]);
 
-  // Visible appointments (date + search + filter)
   const visibleAppointments = useMemo(() => {
     const dateStr = calendarDate ? fmtDate(calendarDate) : null;
     const q = (search || "").trim().toLowerCase();
@@ -490,7 +587,6 @@ const Appointments: React.FC = () => {
       });
   }, [appointments, calendarDate, search, filterStatus]);
 
-  // Upcoming 4
   const upcoming = useMemo(() => {
     const now = fmtDate(new Date());
     return appointments
@@ -499,7 +595,6 @@ const Appointments: React.FC = () => {
       .slice(0, 4);
   }, [appointments]);
 
-  // tile content for calendar
   const tileContent = ({ date }: { date: Date }) => {
     const d = fmtDate(date);
     const cell = calendarMap[d];
@@ -519,38 +614,37 @@ const Appointments: React.FC = () => {
   useEffect(() => {
     (async () => {
       await fetchMothers();
-      await syncStatuses(); // update statuses first
+      await syncStatuses();
       await fetchAppointments();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // small UI helpers
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
   const todayCount = appointments.filter(a => a.date === fmtDate(new Date())).length;
 
   return (
     <MainLayout>
-    <IonHeader>
-      <IonToolbar>
-        <h2 className="page-title" style={{ padding: "12px 20px", margin: 0 }}>Appointments</h2>
-      </IonToolbar>
-    </IonHeader>
+      <IonHeader>
+        <IonToolbar>
+          <h2 className="page-title" style={{ padding: "12px 20px", margin: 0 }}>Appointments</h2>
+        </IonToolbar>
+      </IonHeader>
 
-    <IonContent>
-      <div style={{ padding: 16 }}>
-        {/* top banner */}
-        <div className="top-banner">
-          <div>
-            <h3 style={{ margin: 0 }}>Hello, BHW!</h3>
-            <p style={{ margin: "4px 0 0", color: "#333" }}>{greeting}</p>
+      <IonContent>
+        <div style={{ padding: 16 }}>
+          {/* top banner */}
+          <div className="top-banner">
+            <div>
+              <h3 style={{ margin: 0 }}>Hello, BHW!</h3>
+              <p style={{ margin: "4px 0 0", color: "#333" }}>{greeting}</p>
+            </div>
+            <div className="top-actions">
+              <IonButton onClick={() => { setCalendarDate(new Date()); setToastMsg("Showing today"); }}>Today</IonButton>
+              <IonButton color="primary" onClick={() => setShowModal(true)}><IonIcon icon={addCircleOutline} />&nbsp;Add</IonButton>
+              <IonButton onClick={exportCSV}><IonIcon icon={downloadOutline} /></IonButton>
+            </div>
           </div>
-          <div className="top-actions">
-            <IonButton onClick={() => { setCalendarDate(new Date()); setToastMsg("Showing today"); }}>Today</IonButton>
-            <IonButton color="primary" onClick={() => setShowModal(true)}><IonIcon icon={addCircleOutline} />&nbsp;Add</IonButton>
-            <IonButton onClick={exportCSV}><IonIcon icon={downloadOutline} /></IonButton>
-          </div>
-        </div>
 
           {/* summary cards + controls */}
           <IonGrid>
@@ -724,14 +818,19 @@ const Appointments: React.FC = () => {
                 </IonItem>
               </IonList>
 
-              <div style={{ padding: 12 }}>
-                <IonButton expand="block" onClick={addAppointment}>Save Appointment</IonButton>
+              <div style={{ padding: 12, display: "flex", gap: 8 }}>
+                <IonButton expand="block" color="primary" onClick={addAppointment} disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : "Save Appointment"}
+                </IonButton>
+                <IonButton expand="block" color="medium" onClick={() => { setShowModal(false); setForm({ motherIds: [], date: "", time: "", location: "", notes: "" }); }}>
+                  Cancel
+                </IonButton>
               </div>
             </div>
           </IonModal>
         </div>
 
-        <IonToast isOpen={!!toastMsg} message={toastMsg || ""} duration={2200} onDidDismiss={() => setToastMsg(null)} />
+        <IonToast isOpen={!!toastMsg} message={toastMsg || ""} duration={2600} onDidDismiss={() => setToastMsg(null)} />
 
         <style>{`
           .page-title { font-weight:700; }
@@ -760,7 +859,7 @@ const Appointments: React.FC = () => {
           .appointments-table { width:100%; border-collapse:collapse; }
           .appointments-table th, .appointments-table td { padding:10px 8px; border-bottom:1px solid #f0f3f7; text-align:left; }
           .appointments-table tr:hover { background:#fbfdff; }
-          .modal-container { padding:12px; }
+          .modal-container { padding:12px; width:100%; max-width:720px; margin:auto; }
           .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
           .form-scroll { max-height:55vh; overflow:auto; padding-right:6px; }
           .status.scheduled { color: ${STATUS_COLORS.Scheduled}; font-weight:600; }
