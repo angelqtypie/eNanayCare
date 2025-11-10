@@ -6,6 +6,8 @@ import {
   IonCardContent,
   IonIcon,
   IonSpinner,
+  IonModal,
+  IonButton,
 } from "@ionic/react";
 import {
   peopleOutline,
@@ -13,6 +15,7 @@ import {
   checkmarkCircleOutline,
   alertCircleOutline,
   megaphoneOutline,
+  closeCircleOutline,
 } from "ionicons/icons";
 import { motion } from "framer-motion";
 import { useHistory } from "react-router-dom";
@@ -43,9 +46,12 @@ const DashboardBHW: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [todayVisitCount, setTodayVisitCount] = useState(0);
   const [riskReports, setRiskReports] = useState<RiskReport[]>([]);
-  const [riskCount, setRiskCount] = useState(0);
   const [updates, setUpdates] = useState<BarangayUpdate[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal state
+  const [selectedRisk, setSelectedRisk] = useState<RiskReport | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const fullName = localStorage.getItem("full_name") || "Barangay Health Worker";
 
@@ -92,15 +98,18 @@ const DashboardBHW: React.FC = () => {
           .eq("status", "Pending")
           .order("created_at", { ascending: false });
 
-        setRiskReports(riskData ?? []);
-        setRiskCount(riskData?.length ?? 0);
+        const typedRiskData = (riskData ?? []) as RiskReport[];
+        const uniqueRisks = Array.from(
+          new Map(typedRiskData.map((r: RiskReport) => [r.mother_id, r])).values()
+        );
+        setRiskReports(uniqueRisks);
 
         const { data: updatesData } = await supabase
           .from("barangay_updates")
           .select("*")
           .order("date_posted", { ascending: false })
           .limit(5);
-        setUpdates(updatesData ?? []);
+        setUpdates((updatesData ?? []) as BarangayUpdate[]);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -110,6 +119,11 @@ const DashboardBHW: React.FC = () => {
 
     fetchData();
   }, []);
+
+  const handleRiskClick = (risk: RiskReport) => {
+    setSelectedRisk(risk);
+    setShowModal(true);
+  };
 
   return (
     <MainLayout>
@@ -128,6 +142,7 @@ const DashboardBHW: React.FC = () => {
           </p>
         </div>
 
+        {/* === Top Stats Section === */}
         <div className="dashboard-grid">
           <IonCard
             className="stat-card clickable"
@@ -169,63 +184,117 @@ const DashboardBHW: React.FC = () => {
           </IonCard>
         </div>
 
-{/* ===== Risk Reports List ===== */}
-<div className="risk-report-card">
-  <h2>
-    <IonIcon icon={alertCircleOutline} /> Mothers At Risk
-  </h2>
+        {/* === Risk & Updates Side by Side === */}
+        <div className="dashboard-bottom">
+          {/* Risk Reports */}
+          <div className="risk-report-card">
+            <h2>
+              <IonIcon icon={alertCircleOutline} /> Mothers At Risk
+            </h2>
+            {loading ? (
+              <IonSpinner name="dots" />
+            ) : riskReports.length > 0 ? (
+              <>
+                <ul className="risk-list">
+                  {riskReports.slice(0, 3).map((r: RiskReport) => (
+                    <li
+                      key={r.id}
+                      onClick={() => handleRiskClick(r)}
+                      className="risk-item"
+                    >
+                      <strong>{r.mother_name}</strong> — {r.risk_type}
+                      <br />
+                      <small>{new Date(r.created_at).toLocaleDateString()}</small>
+                    </li>
+                  ))}
+                </ul>
+                {riskReports.length > 3 && (
+                  <button
+                    className="view-all-btn"
+                    onClick={() => history.push("/riskreportpage")}
+                  >
+                    View All ({riskReports.length})
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="alert-text safe">
+                ✅ No mothers currently at risk. All are safe and stable.
+              </p>
+            )}
+          </div>
 
-  {loading ? (
-    <IonSpinner name="dots" />
-  ) : riskReports.length > 0 ? (
-    <>
-      <ul className="risk-list">
-        {riskReports.slice(0, 3).map((r) => (
-          <li key={r.id}>
-            <strong>{r.mother_name}</strong> — {r.risk_type}
-            <br />
-            <small>{new Date(r.created_at).toLocaleDateString()}</small>
-          </li>
-        ))}
-      </ul>
-
-      {riskReports.length > 3 && (
-        <button
-          className="view-all-btn"
-          onClick={() => history.push("/riskreportpage")}
-        >
-          View All ({riskReports.length})
-        </button>
-      )}
-    </>
-  ) : (
-    <p className="alert-text safe">
-      ✅ No mothers currently at risk. All are safe and stable.
-    </p>
-  )}
-</div>
-
-
-        <div className="updates-card">
-          <h2>
-            <IonIcon icon={megaphoneOutline} /> Barangay Updates
-          </h2>
-          {updates.length === 0 ? (
-            <p className="empty-text">No barangay updates available.</p>
-          ) : (
-            <ul>
-              {updates.map((update) => (
-                <li key={update.id}>
-                  <strong>{update.title}</strong> — {update.description}
-                  <br />
-                  <small>
-                    {new Date(update.date_posted).toLocaleDateString()}
-                  </small>
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* Barangay Updates */}
+          <div className="updates-card">
+            <h2>
+              <IonIcon icon={megaphoneOutline} /> Barangay Updates
+            </h2>
+            {updates.length === 0 ? (
+              <p className="empty-text">No barangay updates available.</p>
+            ) : (
+              <ul className="update-list">
+                {updates.map((update) => (
+                  <li key={update.id}>
+                    <strong>{update.title}</strong> — {update.description}
+                    <br />
+                    <small>
+                      {new Date(update.date_posted).toLocaleDateString()}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+
+        {/* === Modal for Risk Report === */}
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <div className="modal-content">
+            {selectedRisk ? (
+              <>
+                <button
+                  className="close-btn"
+                  onClick={() => setShowModal(false)}
+                >
+                  <IonIcon icon={closeCircleOutline} />
+                </button>
+                <h2>{selectedRisk.mother_name}</h2>
+                <p>
+                  <strong>Risk Type:</strong> {selectedRisk.risk_type}
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={
+                      selectedRisk.status === "Pending"
+                        ? "status pending"
+                        : "status resolved"
+                    }
+                  >
+                    {selectedRisk.status}
+                  </span>
+                </p>
+                <p>
+                  <strong>Reported On:</strong>{" "}
+                  {new Date(selectedRisk.created_at).toLocaleString()}
+                </p>
+
+                <IonButton
+                  expand="block"
+                  color="primary"
+                  onClick={() => {
+                    setShowModal(false);
+                    history.push(`/riskreportpage`);
+                  }}
+                >
+                  View Full Details
+                </IonButton>
+              </>
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
+        </IonModal>
       </motion.div>
     </MainLayout>
   );
