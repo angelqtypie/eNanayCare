@@ -333,7 +333,7 @@ const MotherMainLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           object-fit: cover;
         }
 
-        .profile-icon { font-size: 2.2rem; color: #fff; }
+        .profile-icon { font-size: 2.2rem; color: pink; }
 
         /* MAIN */
         .mother-main { padding: 1rem; padding-bottom: 120px; }

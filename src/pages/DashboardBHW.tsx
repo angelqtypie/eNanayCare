@@ -1,3 +1,4 @@
+// src/pages/DashboardBHW.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonCard,
@@ -37,6 +38,7 @@ interface RiskReport {
   risk_type: string;
   status: string;
   created_at: string;
+  address?: string;
 }
 
 const DashboardBHW: React.FC = () => {
@@ -48,12 +50,11 @@ const DashboardBHW: React.FC = () => {
   const [riskReports, setRiskReports] = useState<RiskReport[]>([]);
   const [updates, setUpdates] = useState<BarangayUpdate[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Modal state
   const [selectedRisk, setSelectedRisk] = useState<RiskReport | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   const fullName = localStorage.getItem("full_name") || "Barangay Health Worker";
+  const bhwZone = localStorage.getItem("zone") || ""; // e.g., "Zone 1"
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -75,27 +76,35 @@ const DashboardBHW: React.FC = () => {
       const today = getLocalDate();
 
       try {
+        // === Mothers filtered by BHW zone ===
         const { count: mCount } = await supabase
           .from("mothers")
-          .select("*", { count: "exact" });
+          .select("*", { count: "exact" })
+          .eq("address", bhwZone);
         setMotherCount(mCount ?? 0);
 
+        // === Appointments filtered by zone ===
         const { data: apptData } = await supabase
           .from("appointments")
           .select("*")
+          .eq("zone", bhwZone)
           .gte("date", today);
         setAppointments(apptData ?? []);
 
+        // === Health Records filtered by zone ===
         const { count: visitCount } = await supabase
           .from("health_records")
           .select("*", { count: "exact" })
-          .eq("encounter_date", today);
+          .eq("encounter_date", today)
+          .eq("zone", bhwZone);
         setTodayVisitCount(visitCount ?? 0);
 
+        // === Risk Reports filtered based on mother's address ===
         const { data: riskData } = await supabase
           .from("risk_reports")
-          .select("*")
+          .select("*, mothers!inner(address)")
           .eq("status", "Pending")
+          .eq("mothers.address", bhwZone)
           .order("created_at", { ascending: false });
 
         const typedRiskData = (riskData ?? []) as RiskReport[];
@@ -104,6 +113,7 @@ const DashboardBHW: React.FC = () => {
         );
         setRiskReports(uniqueRisks);
 
+        // === Barangay Updates (all zones visible) ===
         const { data: updatesData } = await supabase
           .from("barangay_updates")
           .select("*")
@@ -118,7 +128,7 @@ const DashboardBHW: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [bhwZone]);
 
   const handleRiskClick = (risk: RiskReport) => {
     setSelectedRisk(risk);
@@ -138,7 +148,7 @@ const DashboardBHW: React.FC = () => {
             {getGreeting()}, <span>{fullName}!</span>
           </h1>
           <p className="sub-text">
-            Thank you for your service today. Keep our pregnant moms safe and well.
+            Monitoring mothers in <strong>{bhwZone}</strong>. Keep them safe and well.
           </p>
         </div>
 
@@ -184,9 +194,8 @@ const DashboardBHW: React.FC = () => {
           </IonCard>
         </div>
 
-        {/* === Risk & Updates Side by Side === */}
+        {/* === Risk & Updates Section === */}
         <div className="dashboard-bottom">
-          {/* Risk Reports */}
           <div className="risk-report-card">
             <h2>
               <IonIcon icon={alertCircleOutline} /> Mothers At Risk
@@ -197,11 +206,7 @@ const DashboardBHW: React.FC = () => {
               <>
                 <ul className="risk-list">
                   {riskReports.slice(0, 3).map((r: RiskReport) => (
-                    <li
-                      key={r.id}
-                      onClick={() => handleRiskClick(r)}
-                      className="risk-item"
-                    >
+                    <li key={r.id} onClick={() => handleRiskClick(r)} className="risk-item">
                       <strong>{r.mother_name}</strong> — {r.risk_type}
                       <br />
                       <small>{new Date(r.created_at).toLocaleDateString()}</small>
@@ -219,27 +224,24 @@ const DashboardBHW: React.FC = () => {
               </>
             ) : (
               <p className="alert-text safe">
-                ✅ No mothers currently at risk. All are safe and stable.
+                No mothers currently at risk in your zone.
               </p>
             )}
           </div>
 
-          {/* Barangay Updates */}
           <div className="updates-card">
             <h2>
               <IonIcon icon={megaphoneOutline} /> Barangay Updates
             </h2>
             {updates.length === 0 ? (
-              <p className="empty-text">No barangay updates available.</p>
+              <p className="empty-text">No updates available.</p>
             ) : (
               <ul className="update-list">
                 {updates.map((update) => (
                   <li key={update.id}>
                     <strong>{update.title}</strong> — {update.description}
                     <br />
-                    <small>
-                      {new Date(update.date_posted).toLocaleDateString()}
-                    </small>
+                    <small>{new Date(update.date_posted).toLocaleDateString()}</small>
                   </li>
                 ))}
               </ul>
@@ -252,10 +254,7 @@ const DashboardBHW: React.FC = () => {
           <div className="modal-content">
             {selectedRisk ? (
               <>
-                <button
-                  className="close-btn"
-                  onClick={() => setShowModal(false)}
-                >
+                <button className="close-btn" onClick={() => setShowModal(false)}>
                   <IonIcon icon={closeCircleOutline} />
                 </button>
                 <h2>{selectedRisk.mother_name}</h2>

@@ -1,3 +1,4 @@
+// src/layouts/MainLayout.tsx
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import {
@@ -27,21 +28,30 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const history = useHistory();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [fullName, setFullName] = useState("Barangay Health Worker");
+  const [zone, setZone] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBHW = async () => {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
+
+      // fetch full_name and zone from Supabase users table
       const { data, error } = await supabase
         .from("users")
-        .select("full_name")
+        .select("full_name, zone")
         .eq("id", userId)
         .single();
+
       if (!error && data) {
-        setFullName(data.full_name);
+        setFullName(data.full_name || "Barangay Health Worker");
+        setZone(data.zone || null);
         localStorage.setItem("full_name", data.full_name);
+        if (data.zone) localStorage.setItem("zone", data.zone);
+      } else {
+        console.error("Error fetching BHW info:", error);
       }
     };
+
     fetchBHW();
   }, []);
 
@@ -63,7 +73,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="header-container">
             {/* LEFT SECTION */}
             <div className="header-left">
-              {/* Mobile: Menu icon */}
               <button
                 className="sidebar-toggle mobile-only"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -71,7 +80,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <IonIcon icon={menuOutline} />
               </button>
 
-              {/* Desktop: Logo + App Name */}
               <div
                 className="logo-title desktop-only"
                 onClick={() => goTo("/dashboardbhw")}
@@ -80,7 +88,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <span className="app-title">eNanayCare</span>
               </div>
 
-              {/* Mobile: App Name only */}
               <span className="app-title mobile-only">eNanayCare</span>
             </div>
 
@@ -92,7 +99,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             >
               <div>
                 <p className="profile-name">{fullName}</p>
-                <p className="profile-role">Barangay Health Worker</p>
+                {/* now display assigned zone */}
+                <p className="profile-role">
+                  {zone ? `${zone}` : "No Zone Assigned"}
+                </p>
               </div>
             </div>
           </div>
@@ -137,7 +147,6 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               >
                 <IonIcon icon={alertCircleOutline} /> Risk Reports
               </button>
-
               <button className="side-item" onClick={() => goTo("/bhwprofile")}>
                 <IonIcon icon={settingsOutline} /> Settings
               </button>

@@ -14,7 +14,12 @@ import {
   IonCard,
   IonToggle,
 } from "@ionic/react";
-import { addOutline, peopleOutline } from "ionicons/icons";
+import {
+  addOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+  peopleOutline,
+} from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import AdminMainLayout from "../layouts/AdminLayout";
 
@@ -35,14 +40,18 @@ interface Mother {
 }
 
 const ManageUsers: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [mothers, setMothers] = useState<Mother[]>([]);
+  const [zonesGrouped, setZonesGrouped] = useState<
+    Record<string, { bhws: User[]; mothers: User[] }>
+  >({});
+  const [expandedZones, setExpandedZones] = useState<Record<string, boolean>>(
+    {}
+  );
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
   const [newUser, setNewUser] = useState({
     email: "",
     full_name: "",
-    role: "mother",
+    role: "bhw",
     password: "",
     zone: "",
   });
@@ -51,8 +60,7 @@ const ManageUsers: React.FC = () => {
     try {
       const { data: usersData, error: usersError } = await supabase
         .from("users")
-        .select("id, email, full_name, role, created_at, status, zone")
-        .order("created_at", { ascending: false });
+        .select("id, email, full_name, role, created_at, status, zone");
 
       const { data: mothersData, error: mothersError } = await supabase
         .from("mothers")
@@ -75,8 +83,21 @@ const ManageUsers: React.FC = () => {
           };
         }) || [];
 
-      setUsers(updatedUsers);
-      setMothers(mothersData || []);
+      // 🔹 Allow multiple BHWs per zone
+      const grouped: Record<string, { bhws: User[]; mothers: User[] }> = {};
+
+      for (let i = 1; i <= 9; i++) {
+        const zoneName = `Zone ${i}`;
+        const bhws = updatedUsers.filter(
+          (u) => u.role === "bhw" && u.zone === zoneName
+        );
+        const mothers = updatedUsers.filter(
+          (u) => u.role === "mother" && u.zone === zoneName
+        );
+        grouped[zoneName] = { bhws, mothers };
+      }
+
+      setZonesGrouped(grouped);
     } catch (err) {
       console.error("Fetch error:", err);
     }
@@ -88,35 +109,45 @@ const ManageUsers: React.FC = () => {
 
   const handleAddUser = async () => {
     setError("");
-    const { email, full_name, role, password, zone } = newUser;
-    if (!email || !full_name || !role || !password) {
-      setError("Please fill in all fields.");
+    const { email, full_name, password, zone } = newUser;
+
+    if (!email || !full_name || !password || !zone) {
+      setError("⚠️ Please fill in all fields.");
       return;
     }
 
     try {
-      const body = { email, full_name, role, password, zone };
-      const res = await fetch(import.meta.env.VITE_SUPABASE_FUNCTION_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: { full_name, role: "bhw", zone },
         },
-        body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error("Failed to create user.");
-      alert("✅ User created successfully.");
+      if (signUpError) throw signUpError;
+      const userId = authData.user?.id;
+
+      if (!userId) {
+        alert("📧 Confirmation email sent to the BHW.");
+        setShowModal(false);
+        setNewUser({ email: "", full_name: "", role: "bhw", password: "", zone: "" });
+        return;
+      }
+
+      const { error: userInsertError } = await supabase.from("users").insert([
+        { id: userId, email, full_name, role: "bhw", zone, status: "active" },
+      ]);
+
+      if (userInsertError) throw userInsertError;
+
+      alert("✅ BHW created successfully!");
       setShowModal(false);
-      setNewUser({
-        email: "",
-        full_name: "",
-        role: "mother",
-        password: "",
-        zone: "",
-      });
+      setNewUser({ email: "", full_name: "", role: "bhw", password: "", zone: "" });
       fetchUsersAndMothers();
     } catch (err) {
+      console.error("Add user failed:", err);
       setError("❌ Failed: " + (err as Error).message);
     }
   };
@@ -135,23 +166,26 @@ const ManageUsers: React.FC = () => {
     }
   };
 
+  const toggleZone = (zone: string) => {
+    setExpandedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
+  };
+
   return (
     <AdminMainLayout>
       <IonContent
         className="ion-padding"
         style={{
-          backgroundColor: "#f1f5f9",
+          backgroundColor: "#f8fafc",
           minHeight: "100vh",
           padding: "40px 60px",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "35px",
+            marginBottom: "30px",
           }}
         >
           <div>
@@ -169,10 +203,9 @@ const ManageUsers: React.FC = () => {
               Manage Users
             </h1>
             <p style={{ color: "#64748b", marginTop: 4 }}>
-              View, add, or manage user access.
+              Admins can assign multiple BHWs per zone.
             </p>
           </div>
-
           <IonButton
             color="primary"
             onClick={() => setShowModal(true)}
@@ -184,130 +217,125 @@ const ManageUsers: React.FC = () => {
             }}
           >
             <IonIcon icon={addOutline} slot="start" />
-            Add User
+            Add BHW
           </IonButton>
         </div>
 
-        {/* Users Table */}
-        <IonCard
-          style={{
-            background: "#fff",
-            borderRadius: "20px",
-            boxShadow: "0 4px 25px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-            border: "1px solid #e2e8f0",
-            padding: "10px 0",
-          }}
-        >
-          <div style={{ padding: "0 25px 15px 25px", overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "separate",
-                borderSpacing: "0 8px",
-              }}
-            >
-              <thead>
-                <tr
-                  style={{
-                    background: "#f8fafc",
-                    color: "#475569",
-                    textAlign: "left",
-                    fontWeight: 600,
-                  }}
-                >
-                  <th style={{ padding: "14px 20px" }}>Name</th>
-                  <th style={{ padding: "14px 20px" }}>Email</th>
-                  <th style={{ padding: "14px 20px" }}>Role</th>
-                  <th style={{ padding: "14px 20px" }}>Zone</th>
-                  <th style={{ padding: "14px 20px" }}>Status</th>
-                  <th style={{ padding: "14px 20px" }}>Created</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {users.map((u) => (
-                  <tr
-                    key={u.id}
-                    style={{
-                      background: "#ffffff",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.background = "#f9fafb")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.background = "#ffffff")
-                    }
-                  >
-                    <td
-                      style={{
-                        padding: "14px 20px",
-                        fontWeight: 500,
-                        color: "#0f172a",
-                      }}
-                    >
-                      {u.full_name}
-                    </td>
-                    <td style={{ padding: "14px 20px", color: "#334155" }}>
-                      {u.email}
-                    </td>
-                    <td style={{ padding: "14px 20px" }}>
-                      <span
-                        style={{
-                          backgroundColor:
-                            u.role === "admin"
-                              ? "#dcfce7"
-                              : u.role === "bhw"
-                              ? "#dbeafe"
-                              : "#fef9c3",
-                          color:
-                            u.role === "admin"
-                              ? "#166534"
-                              : u.role === "bhw"
-                              ? "#1d4ed8"
-                              : "#854d0e",
-                          padding: "4px 10px",
-                          borderRadius: "20px",
-                          fontSize: "13px",
-                          fontWeight: 600,
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {u.role}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 20px", color: "#475569" }}>
-                      {u.zone || "-"}
-                    </td>
-                    <td style={{ padding: "14px 20px", color: "#475569" }}>
-                      <IonToggle
-                        checked={u.status === "active"}
-                        onIonChange={() => handleToggleStatus(u.id, u.status)}
-                        color="success"
-                      />
-                    </td>
-                    <td style={{ padding: "14px 20px", color: "#475569" }}>
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </IonCard>
-
-        {/* ✅ Add User Modal */}
-        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
-          <IonContent
+        {Object.entries(zonesGrouped).map(([zone, data]) => (
+          <IonCard
+            key={zone}
             style={{
-              padding: "25px",
               background: "#fff",
               borderRadius: "16px",
+              boxShadow: "0 4px 25px rgba(0,0,0,0.06)",
+              marginBottom: "25px",
+              border: "1px solid #e2e8f0",
             }}
           >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#f1f5f9",
+                padding: "16px 22px",
+                cursor: "pointer",
+              }}
+              onClick={() => toggleZone(zone)}
+            >
+              <div>
+                <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>
+                  {zone}
+                </h2>
+                {data.bhws.length > 0 ? (
+                  <p style={{ color: "#475569", marginTop: "2px" }}>
+                    BHWs: {data.bhws.map((b) => b.full_name).join(", ")}
+                  </p>
+                ) : (
+                  <p style={{ color: "#ef4444", marginTop: "2px" }}>
+                    No assigned BHW
+                  </p>
+                )}
+              </div>
+              <IonIcon
+                icon={expandedZones[zone] ? chevronUpOutline : chevronDownOutline}
+              />
+            </div>
+
+            {expandedZones[zone] && (
+              <div style={{ padding: "0 25px 20px 25px" }}>
+                {data.bhws.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      background: "#e0f2fe",
+                      borderRadius: "10px",
+                      padding: "12px 18px",
+                      fontWeight: 600,
+                      color: "#0369a1",
+                    }}
+                  >
+                    {data.bhws.map((b) => (
+                      <div key={b.id}>
+                        BHW Account: {b.full_name} ({b.email})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "separate",
+                    borderSpacing: "0 8px",
+                    marginTop: "10px",
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        background: "#f1f5f9",
+                        color: "#475569",
+                        textAlign: "left",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <th style={{ padding: "14px 20px" }}>Mother</th>
+                      <th style={{ padding: "14px 20px" }}>Email</th>
+                      <th style={{ padding: "14px 20px" }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.mothers.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ textAlign: "center", padding: 20 }}>
+                          No mothers assigned to this zone.
+                        </td>
+                      </tr>
+                    ) : (
+                      data.mothers.map((m) => (
+                        <tr key={m.id}>
+                          <td style={{ padding: "14px 20px" }}>{m.full_name}</td>
+                          <td style={{ padding: "14px 20px" }}>{m.email}</td>
+                          <td style={{ padding: "14px 20px" }}>
+                            <IonToggle
+                              checked={m.status === "active"}
+                              onIonChange={() => handleToggleStatus(m.id, m.status)}
+                              color="success"
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </IonCard>
+        ))}
+
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <IonContent style={{ padding: "25px", background: "#fff" }}>
             <h2
               style={{
                 fontSize: "22px",
@@ -317,7 +345,7 @@ const ManageUsers: React.FC = () => {
                 textAlign: "center",
               }}
             >
-              Add New User
+              Add New BHW
             </h2>
 
             <IonItem>
@@ -325,10 +353,7 @@ const ManageUsers: React.FC = () => {
               <IonInput
                 value={newUser.full_name}
                 onIonChange={(e) =>
-                  setNewUser({
-                    ...newUser,
-                    full_name: e.detail.value || "",
-                  })
+                  setNewUser({ ...newUser, full_name: e.detail.value || "" })
                 }
               />
             </IonItem>
@@ -350,74 +375,37 @@ const ManageUsers: React.FC = () => {
                 type="password"
                 value={newUser.password}
                 onIonChange={(e) =>
-                  setNewUser({
-                    ...newUser,
-                    password: e.detail.value || "",
-                  })
+                  setNewUser({ ...newUser, password: e.detail.value || "" })
                 }
               />
             </IonItem>
 
             <IonItem>
-              <IonLabel>Role</IonLabel>
+              <IonLabel>Zone</IonLabel>
               <IonSelect
-                value={newUser.role}
-                onIonChange={(e) => {
-                  const selectedRole = e.detail.value;
-                  setNewUser({
-                    ...newUser,
-                    role: selectedRole,
-                    zone: selectedRole === "bhw" ? newUser.zone : "",
-                  });
-                }}
+                placeholder="Select Zone"
+                value={newUser.zone}
+                onIonChange={(e) =>
+                  setNewUser({ ...newUser, zone: e.detail.value })
+                }
               >
-                <IonSelectOption value="admin">Admin</IonSelectOption>
-                <IonSelectOption value="bhw">BHW</IonSelectOption>
-                <IonSelectOption value="mother">Mother</IonSelectOption>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <IonSelectOption key={i} value={`Zone ${i + 1}`}>
+                    Zone {i + 1}
+                  </IonSelectOption>
+                ))}
               </IonSelect>
             </IonItem>
 
-            {/* ✅ Zone Dropdown only if role is BHW */}
-            {newUser.role === "bhw" && (
-              <IonItem>
-                <IonLabel>Zone</IonLabel>
-                <IonSelect
-                  placeholder="Select Zone"
-                  value={newUser.zone}
-                  onIonChange={(e) =>
-                    setNewUser({ ...newUser, zone: e.detail.value })
-                  }
-                >
-                  <IonSelectOption value="Zone 1">Zone 1</IonSelectOption>
-                  <IonSelectOption value="Zone 2">Zone 2</IonSelectOption>
-                  <IonSelectOption value="Zone 3">Zone 3</IonSelectOption>
-                  <IonSelectOption value="Zone 4">Zone 4</IonSelectOption>
-                  <IonSelectOption value="Zone 5">Zone 5</IonSelectOption>
-                  <IonSelectOption value="Zone 6">Zone 6</IonSelectOption>
-                  <IonSelectOption value="Zone 7">Zone 7</IonSelectOption>
-                  <IonSelectOption value="Zone 8">Zone 8</IonSelectOption>
-                  <IonSelectOption value="Zone 9">Zone 9</IonSelectOption>
-                </IonSelect>
-              </IonItem>
-            )}
-
             {error && (
               <IonText color="danger">
-                <p
-                  style={{
-                    marginTop: "10px",
-                    textAlign: "center",
-                    fontSize: "14px",
-                  }}
-                >
-                  {error}
-                </p>
+                <p style={{ textAlign: "center", marginTop: "10px" }}>{error}</p>
               </IonText>
             )}
 
-            <div style={{ marginTop: "20px" }}>
+            <div style={{ marginTop: "25px" }}>
               <IonButton expand="block" color="success" onClick={handleAddUser}>
-                Create User
+                Create BHW
               </IonButton>
               <IonButton
                 expand="block"

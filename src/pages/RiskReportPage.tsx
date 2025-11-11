@@ -1,4 +1,3 @@
-// src/pages/RiskReportPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   IonContent,
@@ -17,7 +16,7 @@ import {
   IonSelectOption,
   IonIcon,
 } from "@ionic/react";
-import { heart, checkmarkCircle, body } from "ionicons/icons";
+import { heart, checkmarkCircle, body, locationOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import {
   PieChart,
@@ -75,6 +74,7 @@ const RiskReportPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [notification, setNotification] = useState<string>("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [zone, setZone] = useState<string>("");
   const prevRiskCount = useRef<number>(0);
 
   const parseBP = (bp: string | null) => {
@@ -87,16 +87,46 @@ const RiskReportPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: mothers } = await supabase
+      // 1️⃣ Get current BHW user + zone
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("No user found");
+
+      const { data: bhwData, error: bhwError } = await supabase
+        .from("users")
+        .select("zone, role")
+        .eq("id", user.id)
+        .single();
+
+      if (bhwError) throw bhwError;
+      const bhwZone = bhwData?.zone?.trim() || "";
+      const role = bhwData?.role || "";
+      setZone(bhwZone);
+
+      // 2️⃣ Fetch mothers (filtered by BHW zone if not admin)
+      let motherQuery = supabase
         .from("mothers")
         .select("mother_id, first_name, last_name, age, address");
 
-      const { data: records } = await supabase
+      if (role !== "admin" && bhwZone) {
+        motherQuery = motherQuery.ilike("address", `%${bhwZone}%`);
+      }
+
+      const { data: mothers, error: mothersError } = await motherQuery;
+      if (mothersError) throw mothersError;
+
+      // 3️⃣ Fetch health records
+      const { data: records, error: recordsError } = await supabase
         .from("health_records")
         .select("mother_id, weight, bp, temp, dm, hpn, created_at");
 
+      if (recordsError) throw recordsError;
+
       if (!mothers || !records) return;
 
+      // 4️⃣ Compute risk per mother
       const risky: RiskDetail[] = [];
 
       for (const mom of mothers) {
@@ -140,6 +170,7 @@ const RiskReportPage: React.FC = () => {
         });
       }
 
+      // 5️⃣ Notification if new risks appear
       if (prevRiskCount.current && risky.length > prevRiskCount.current) {
         const diff = risky.length - prevRiskCount.current;
         setNotification(`⚠ ${diff} new at-risk mother${diff > 1 ? "s" : ""}!`);
@@ -151,7 +182,7 @@ const RiskReportPage: React.FC = () => {
       setTotalMothers(mothers.length);
       setLastUpdated(new Date());
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
@@ -209,6 +240,11 @@ const RiskReportPage: React.FC = () => {
           <header className="risk-header">
             <h1>Maternal Risk Monitoring</h1>
             <p>Real-time health tracking for Barangay Health Workers</p>
+            {zone && (
+              <p className="zone-info">
+                <IonIcon icon={locationOutline} /> <strong>{zone}</strong>
+              </p>
+            )}
             {lastUpdated && (
               <small className="update-time">
                 Last updated: {lastUpdated.toLocaleTimeString()}
@@ -324,7 +360,7 @@ const RiskReportPage: React.FC = () => {
                 {loading ? (
                   <IonSpinner />
                 ) : filteredList.length === 0 ? (
-                  <p className="stable-msg">All mothers are stable 🎉</p>
+                  <p className="stable-msg">All mothers are stable </p>
                 ) : (
                   <ul className="risk-list">
                     {filteredList.map((m) => (
@@ -418,15 +454,15 @@ const RiskReportPage: React.FC = () => {
             </div>
 
             <IonButton
-  expand="block"
-  color="success"
-  disabled={selectedMother?.risk_type === "Stable"}
-  onClick={markAsStable}
->
-  {selectedMother?.risk_type === "Stable"
-    ? "Stable"
-    : "🟢 Mark as Stable"}
-</IonButton>
+              expand="block"
+              color="success"
+              disabled={selectedMother?.risk_type === "Stable"}
+              onClick={markAsStable}
+            >
+              {selectedMother?.risk_type === "Stable"
+                ? "Stable"
+                : " Mark as Stable"}
+            </IonButton>
 
             <IonButton expand="block" onClick={() => setModalOpen(false)}>
               Close

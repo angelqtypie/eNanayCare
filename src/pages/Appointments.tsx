@@ -48,6 +48,7 @@ interface Mother {
   first_name: string;
   last_name: string;
   email?: string | null;
+  address?: string | null;
 }
 interface Appointment {
   id: string;
@@ -105,81 +106,11 @@ const loadCache = (): Appointment[] | null => {
   }
 };
 
-/* --- New helpers for calendar/ics --- */
-
-// 1) Google Calendar format: YYYYMMDDTHHMMSSZ
-const toGCalFormat = (d: Date) => {
-  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-};
-
-// escape ICS content
-const escapeICS = (s: string) => {
-  return s.replace(/\r\n/g, "\\n").replace(/\n/g, "\\n").replace(/,/g, "\\,");
-};
-
-// 2) Generate ICS content including VALARM for 30 minutes
-const generateICS = (opts: {
-  uid?: string;
-  timestamp: string; // DTSTAMP
-  dtstart: string; // DTSTART
-  dtend: string; // DTEND
-  summary: string;
-  description?: string;
-  location?: string;
-}) => {
-  const uid = opts.uid ?? `${Date.now()}@enanaycare`;
-  // VALARM trigger -30 minutes, ACTION:DISPLAY (works on many clients)
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//eNanayCare//EN",
-    "CALSCALE:GREGORIAN",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${opts.timestamp}`,
-    `DTSTART:${opts.dtstart}`,
-    `DTEND:${opts.dtend}`,
-    `SUMMARY:${escapeICS(opts.summary)}`,
-    `DESCRIPTION:${escapeICS(opts.description || "")}`,
-    `LOCATION:${escapeICS(opts.location || "")}`,
-    "BEGIN:VALARM",
-    "TRIGGER:-PT30M",
-    "ACTION:DISPLAY",
-    "DESCRIPTION:Reminder",
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
-  return lines.join("\r\n");
-};
-
-// 3) Upload ICS to Supabase Storage (returns public URL or null)
-const uploadICSToSupabase = async (filename: string, icsBlob: Blob) => {
-  try {
-    const path = `ics/${filename}`;
-    const file = new File([icsBlob], filename, { type: "text/calendar" });
-    // upload returns { data, error } in Supabase JS
-    const { data: uploadData, error: upErr } = await supabase.storage.from("ics").upload(path, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
-    if (upErr) {
-      console.error("Supabase upload error", upErr);
-      return null;
-    }
-    const { data } = supabase.storage.from("ics").getPublicUrl(path);
-    return data?.publicUrl || null;
-  } catch (err) {
-    console.error("uploadICSToSupabase failed", err);
-    return null;
-  }
-};
-
-/* --- Component --- */
 const Appointments: React.FC = () => {
   // EmailJS keys from env (Vite)
   const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
   const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  // We still pass the public key to send(), but we also init() once at app root
   const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
   const [mothers, setMothers] = useState<Mother[]>([]);
@@ -199,8 +130,12 @@ const Appointments: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | Appointment["status"]>("All");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // prevent double submit
 
+  // store bhwZone for reuse
+  const [bhwZone, setBhwZone] = useState<string | null>(null);
+
+  // Greeting messages
   const greetings = [
     "Keep going — you're changing lives today!",
     "You’re doing great work, BHW!",
@@ -208,12 +143,52 @@ const Appointments: React.FC = () => {
     "Ready to help another mama? Let's go!",
   ];
 
-  // Fetch mothers
-  const fetchMothers = async () => {
+  // Get logged-in user zone (same approach you used in Mother.tsx)
+  const fetchBhwZone = async () => {
     try {
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
+      if (!user) {
+        setToastMsg("Not authenticated.");
+        return null;
+      }
+
+      // Read 'zone' from your users table (same column used in Mother's file)
+      const { data: bhwData, error: bhwErr } = await supabase
+        .from("users")
+        .select("zone")
+        .eq("id", user.id)
+        .single();
+
+      if (bhwErr) {
+        console.error("fetchBhwZone error", bhwErr);
+        setToastMsg("Failed to read your zone.");
+        return null;
+      }
+
+      const zone = (bhwData?.zone || "").toString().trim();
+      setBhwZone(zone || null);
+      return zone || null;
+    } catch (err) {
+      console.error("fetchBhwZone", err);
+      setToastMsg("Failed to get BHW zone.");
+      return null;
+    }
+  };
+
+  // Fetch mothers filtered by bhwZone (address ilike %zone%)
+  const fetchMothers = async (zone?: string | null) => {
+    try {
+      if (!zone) {
+        // attempt to fetch zone first
+        zone = await fetchBhwZone();
+        if (!zone) return;
+      }
+
       const { data, error } = await supabase
         .from("mothers")
-        .select("mother_id, first_name, last_name, user:users(email)")
+        .select("mother_id, first_name, last_name, address, user:users(email)")
+        .ilike("address", `%${zone}%`)
         .order("last_name", { ascending: true });
 
       if (error) throw error;
@@ -222,44 +197,68 @@ const Appointments: React.FC = () => {
         first_name: m.first_name,
         last_name: m.last_name,
         email: m.user?.email ?? null,
+        address: m.address ?? "",
       })) as Mother[];
       setMothers(list);
     } catch (err) {
       console.error("fetchMothers:", err);
+      setToastMsg("Failed to load mothers for your zone.");
     }
   };
 
-  // Fetch appointments and cache
+  // Fetch appointments and then filter client-side by mother's address matching bhwZone
   const fetchAppointments = async (useCacheIfFail = true) => {
     setLoading(true);
     try {
+      // ensure we have bhwZone
+      let zone = bhwZone;
+      if (!zone) {
+        zone = await fetchBhwZone();
+      }
+      if (!zone) {
+        // fallback: fetch nothing if zone unavailable
+        setAppointments([]);
+        setLoading(false);
+        return;
+      }
+
+      // fetch appointments with mother join (include mother's address)
       const { data, error } = await supabase
         .from("appointments")
         .select(
-          `id, date, time, location, notes, status, mother_id, mothers(mother_id, first_name, last_name, user:users(email))`
+          `id, date, time, location, notes, status, mother_id, mothers(mother_id, first_name, last_name, address, user:users(email))`
         )
         .order("date", { ascending: true })
         .order("time", { ascending: true });
 
       if (error) throw error;
 
-      const mapped: Appointment[] = (data || []).map((a: any) => ({
-        id: a.id,
-        mother_id: a.mother_id,
-        date: a.date,
-        time: a.time,
-        location: a.location,
-        notes: a.notes,
-        status: a.status || "Scheduled",
-        mother: a.mothers
-          ? {
-              mother_id: a.mothers.mother_id,
-              first_name: a.mothers.first_name,
-              last_name: a.mothers.last_name,
-              email: a.mothers?.user?.email ?? null,
-            }
-          : null,
-      }));
+      // map then filter by mother's address containing the bhw zone (case-insensitive)
+      const mapped: Appointment[] = (data || [])
+        .map((a: any) => ({
+          id: a.id,
+          mother_id: a.mother_id,
+          date: a.date,
+          time: a.time,
+          location: a.location,
+          notes: a.notes,
+          status: a.status || "Scheduled",
+          mother: a.mothers
+            ? {
+                mother_id: a.mothers.mother_id,
+                first_name: a.mothers.first_name,
+                last_name: a.mothers.last_name,
+                email: a.mothers?.user?.email ?? null,
+                address: a.mothers?.address ?? "",
+              }
+            : null,
+        }))
+        .filter((a: any) =>
+        (a.mother?.address || "")
+          .toLowerCase()
+          .includes((zone || "").toLowerCase())
+      );
+      
       setAppointments(mapped);
       saveCache(mapped);
     } catch (err) {
@@ -278,7 +277,7 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Update statuses
+  // Evaluate and update appointment statuses (Completed / Missed)
   const syncStatuses = async () => {
     try {
       const todayStr = fmtDate(new Date());
@@ -314,8 +313,9 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Add appointment(s) + enhanced email with calendar + ics upload
+  // Add appointment(s) + send email notifications via EmailJS
   const addAppointment = async () => {
+    // prevent double submit
     if (isSubmitting) return;
     if (!form.motherIds.length || !form.date || !form.time || !form.location) {
       setToastMsg("Please fill all required fields");
@@ -324,14 +324,15 @@ const Appointments: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // fetch mother info
+      // 1) fetch mother info (include email & address) for selected mothers
       const { data: momsData, error: momsError } = await supabase
         .from("mothers")
-        .select("mother_id, first_name, last_name, user:users(email)")
+        .select("mother_id, first_name, last_name, address, user:users(email)")
         .in("mother_id", form.motherIds);
 
       if (momsError) throw momsError;
 
+      // build lookup (also guard that mother address matches BHW zone)
       const mothersLookup: Record<string, Mother> = {};
       (momsData || []).forEach((m: any) => {
         mothersLookup[m.mother_id] = {
@@ -339,14 +340,24 @@ const Appointments: React.FC = () => {
           first_name: m.first_name,
           last_name: m.last_name,
           email: m.user?.email ?? null,
+          address: m.address ?? "",
         };
       });
 
-      // check duplicates & prepare inserts
+      // check BHW zone again
+      const zone = bhwZone || (await fetchBhwZone()) || "";
+
       const toInsertPayload: any[] = [];
       const toNotify: { mother_id: string; name: string; email?: string | null }[] = [];
 
       for (const motherId of form.motherIds) {
+        const mom = mothersLookup[motherId];
+        // ensure mother is in same zone — prevent adding for other zones
+        if (!mom || !(mom.address || "").toLowerCase().includes(zone.toLowerCase())) {
+          console.warn("Skipping mother not in BHW zone:", motherId);
+          continue;
+        }
+
         const existingQ = await supabase
           .from("appointments")
           .select("id")
@@ -374,7 +385,6 @@ const Appointments: React.FC = () => {
           status: "Scheduled",
         });
 
-        const mom = mothersLookup[motherId];
         toNotify.push({
           mother_id: motherId,
           name: mom ? `${mom.first_name} ${mom.last_name}` : "Client",
@@ -383,12 +393,11 @@ const Appointments: React.FC = () => {
       }
 
       if (toInsertPayload.length === 0) {
-        setToastMsg("No new appointments to create (duplicates skipped)");
+        setToastMsg("No new appointments to create (duplicates or outside your zone were skipped)");
         setIsSubmitting(false);
         return;
       }
 
-      // bulk insert
       const { data: inserted, error: insertErr } = await supabase
         .from("appointments")
         .insert(toInsertPayload)
@@ -402,59 +411,13 @@ const Appointments: React.FC = () => {
         if (!n.email) continue;
         if (!insertedMotherIds.has(n.mother_id)) continue;
 
-        // compute start/end Date (assume form.time like "08:30")
-        // Note: constructing Date uses local timezone; toISOString converts to UTC
-        const startDate = new Date(`${form.date}T${form.time}:00`);
-        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // +1 hour
-
-        const calendar_start = toGCalFormat(startDate);
-        const calendar_end = toGCalFormat(endDate);
-        const formatted_time = fmtTime12(form.time);
-
-        // generate ICS content (with VALARM 30min prior)
-        const icsText = generateICS({
-          timestamp: toGCalFormat(new Date()),
-          dtstart: calendar_start,
-          dtend: calendar_end,
-          summary: `Prenatal Appointment - ${n.name}`,
-          description: form.notes || "",
-          location: form.location || "",
-        });
-
-        // try upload to Supabase Storage -> get public URL
-        const filename = `appointment_${n.mother_id}_${form.date.replace(/-/g,"")}_${form.time.replace(/:/g,"")}.ics`;
-        const icsBlob = new Blob([icsText], { type: "text/calendar" });
-        let ics_link: string | null = null;
-
-        try {
-          ics_link = await uploadICSToSupabase(filename, icsBlob);
-        } catch (err) {
-          console.error("uploadICSToSupabase error", err);
-          ics_link = null;
-        }
-
-        // fallback to data URI if supabase upload not configured
-        if (!ics_link) {
-          try {
-            const b64 = btoa(unescape(encodeURIComponent(icsText)));
-            ics_link = `data:text/calendar;base64,${b64}`;
-          } catch (err) {
-            ics_link = "";
-            console.error("Failed to create data URI for ICS", err);
-          }
-        }
-
         const templateParams = {
           name: n.name,
           email: n.email,
           date: form.date,
-          formatted_time,
           time: form.time,
           location: form.location,
           notes: form.notes || "",
-          calendar_start,
-          calendar_end,
-          ics_link,
         };
 
         try {
@@ -476,11 +439,10 @@ const Appointments: React.FC = () => {
       setToastMsg("Failed to create appointment");
     } finally {
       setIsSubmitting(false);
-      // small timeout before revoking potential object URLs (if you used createObjectURL)
     }
   };
 
-  // delete / mark handlers (unchanged)
+  // Delete appointment
   const deleteAppointment = async (id: string) => {
     if (!confirm("Delete appointment?")) return;
     try {
@@ -493,6 +455,7 @@ const Appointments: React.FC = () => {
     }
   };
 
+  // Quick actions: mark completed / missed
   const markCompleted = async (appt: Appointment) => {
     try {
       await supabase.from("appointments").update({ status: "Completed" }).eq("id", appt.id);
@@ -520,7 +483,7 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // exportCSV (unchanged)
+  // CSV export
   const exportCSV = () => {
     const headers = ["Mother", "Date", "Time", "Location", "Status", "Notes"];
     const rows = appointments.map(a => [
@@ -541,7 +504,7 @@ const Appointments: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // calendar map, summary, visibleAppointments, upcoming (unchanged)
+  // Calendar map, summary, visibleAppointments, upcoming (unchanged logic)
   const calendarMap = useMemo(() => {
     const map: Record<string, { Scheduled: number; Completed: number; Missed: number; total: number }> = {};
     for (const a of appointments) {
@@ -570,7 +533,7 @@ const Appointments: React.FC = () => {
       const k = new Date(a.date).toLocaleString("default", { month: "short", year: "numeric" });
       if (months[k]) months[k][a.status] = (months[k][a.status] || 0) + 1;
     }
-    const monthlyData = Object.entries(months).map(([month, counts]) => ({ month, ...counts } as any));
+    const monthlyData = Object.entries(months).map(([month, counts]) => ({ month, ...counts }));
     return { totals, monthlyData };
   }, [appointments]);
 
@@ -613,13 +576,16 @@ const Appointments: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      await fetchMothers();
+      // load zone first, then mothers & appointments filtered by zone
+      await fetchBhwZone();
+      await fetchMothers(bhwZone);
       await syncStatuses();
       await fetchAppointments();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // small UI helpers
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
   const todayCount = appointments.filter(a => a.date === fmtDate(new Date())).length;
 
@@ -638,6 +604,7 @@ const Appointments: React.FC = () => {
             <div>
               <h3 style={{ margin: 0 }}>Hello, BHW!</h3>
               <p style={{ margin: "4px 0 0", color: "#333" }}>{greeting}</p>
+              {bhwZone ? <small style={{ color: "#555" }}><strong>{bhwZone}</strong></small> : null}
             </div>
             <div className="top-actions">
               <IonButton onClick={() => { setCalendarDate(new Date()); setToastMsg("Showing today"); }}>Today</IonButton>
@@ -818,19 +785,16 @@ const Appointments: React.FC = () => {
                 </IonItem>
               </IonList>
 
-              <div style={{ padding: 12, display: "flex", gap: 8 }}>
-                <IonButton expand="block" color="primary" onClick={addAppointment} disabled={isSubmitting}>
+              <div style={{ padding: 12 }}>
+                <IonButton expand="block" onClick={addAppointment} disabled={isSubmitting}>
                   {isSubmitting ? "Saving..." : "Save Appointment"}
-                </IonButton>
-                <IonButton expand="block" color="medium" onClick={() => { setShowModal(false); setForm({ motherIds: [], date: "", time: "", location: "", notes: "" }); }}>
-                  Cancel
                 </IonButton>
               </div>
             </div>
           </IonModal>
         </div>
 
-        <IonToast isOpen={!!toastMsg} message={toastMsg || ""} duration={2600} onDidDismiss={() => setToastMsg(null)} />
+        <IonToast isOpen={!!toastMsg} message={toastMsg || ""} duration={2200} onDidDismiss={() => setToastMsg(null)} />
 
         <style>{`
           .page-title { font-weight:700; }
@@ -859,7 +823,7 @@ const Appointments: React.FC = () => {
           .appointments-table { width:100%; border-collapse:collapse; }
           .appointments-table th, .appointments-table td { padding:10px 8px; border-bottom:1px solid #f0f3f7; text-align:left; }
           .appointments-table tr:hover { background:#fbfdff; }
-          .modal-container { padding:12px; width:100%; max-width:720px; margin:auto; }
+          .modal-container { padding:12px; }
           .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
           .form-scroll { max-height:55vh; overflow:auto; padding-right:6px; }
           .status.scheduled { color: ${STATUS_COLORS.Scheduled}; font-weight:600; }

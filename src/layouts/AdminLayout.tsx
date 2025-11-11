@@ -84,11 +84,6 @@ const AdminMainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
             <div className="header-right desktop-only">
               <div className="user-profile">
-                {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="profile-photo" />
-                ) : (
-                  <IonIcon icon={personCircleOutline} className="profile-icon" />
-                )}
                 <div>
                   <p className="profile-name">{fullName}</p>
                   <p className="profile-role">

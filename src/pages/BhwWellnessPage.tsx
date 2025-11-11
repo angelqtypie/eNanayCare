@@ -24,16 +24,11 @@ import { personCircleOutline, filterOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 import MainLayout from "../layouts/MainLayouts";
 
-interface User {
-  id: string;
-  full_name: string;
-  role: string;
-}
-
 interface Mother {
   mother_id: string;
   first_name: string;
   last_name: string;
+  address: string;
   user_id: string;
 }
 
@@ -54,36 +49,54 @@ const BhwWellnessPage: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
-    fetchMothers();
+    fetchMothersByZone();
   }, []);
 
   useEffect(() => {
     if (selectedDate) fetchLogsByDate(selectedDate);
   }, [selectedDate]);
 
-  const fetchMothers = async () => {
+  // ✅ Fetch only mothers belonging to the same zone as the logged-in BHW
+  const fetchMothersByZone = async () => {
     try {
-      const { data: users, error: userError } = await supabase
+      // 1️⃣ Get logged-in user
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("User not found");
+
+      // 2️⃣ Fetch zone from users table
+      const { data: bhwData, error: bhwError } = await supabase
         .from("users")
-        .select("id, full_name, role")
-        .eq("role", "mother");
+        .select("zone, role")
+        .eq("id", user.id)
+        .single();
+      if (bhwError) throw bhwError;
 
-      if (userError) throw userError;
-      if (!users) return;
+      const zone = bhwData?.zone?.trim();
+      const role = bhwData?.role;
 
-      const userIds = users.map((u: User) => u.id);
-
-      const { data: mothersData, error: motherError } = await supabase
+      // 3️⃣ Fetch mothers based on zone — admins see all
+      let query = supabase
         .from("mothers")
-        .select("mother_id, first_name, last_name, user_id")
-        .in("user_id", userIds);
+        .select("mother_id, first_name, last_name, address, user_id")
+        .order("last_name", { ascending: true });
 
-      if (motherError) throw motherError;
-      setMothers(mothersData || []);
+      if (role !== "admin" && zone) {
+        query = query.ilike("address", `%${zone}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setMothers(data || []);
     } catch (error) {
-      console.error("Error fetching mothers:", error);
+      console.error("Error fetching mothers by zone:", error);
+      setToast("Error loading mothers.");
     }
   };
 
@@ -120,9 +133,7 @@ const BhwWellnessPage: React.FC = () => {
   };
 
   const filteredMothers = mothers.filter((m) =>
-    `${m.first_name} ${m.last_name}`
-      .toLowerCase()
-      .includes(searchText.toLowerCase())
+    `${m.first_name} ${m.last_name}`.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const getMotherLog = (id: string) => logs.find((log) => log.mother_id === id);

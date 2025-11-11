@@ -1,4 +1,3 @@
-// File: src/pages/BhwProfile.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonHeader,
@@ -11,7 +10,6 @@ import {
   IonButton,
   IonIcon,
   IonToast,
-  IonToggle,
 } from "@ionic/react";
 import { personCircleOutline, logOutOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
@@ -22,15 +20,11 @@ import { useHistory } from "react-router-dom";
 const BhwProfile: React.FC = () => {
   const history = useHistory();
   const [fullName, setFullName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [notifications, setNotifications] = useState(
-    localStorage.getItem("notifications") === "true"
-  );
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("darkMode") === "true"
-  );
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("");
 
   const userId = localStorage.getItem("userId");
 
@@ -38,19 +32,52 @@ const BhwProfile: React.FC = () => {
     if (userId) fetchProfile();
   }, [userId]);
 
+  /** Fetch user or mother settings data */
   const fetchProfile = async () => {
-    const { data, error } = await supabase
+    const { data: user, error: userError } = await supabase
       .from("users")
-      .select("full_name, profile_image_url")
+      .select("id, full_name, role")
       .eq("id", userId)
       .single();
 
-    if (!error && data) {
-      setFullName(data.full_name);
-      setProfileImage(data.profile_image_url || "");
+    if (userError || !user) return;
+
+    setFullName(user.full_name);
+    setRole(user.role);
+
+    // If mother, fetch mother_settings too
+    if (user.role === "mother") {
+      const { data: mother } = await supabase
+        .from("mothers")
+        .select("mother_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (mother) {
+        const { data: settings } = await supabase
+          .from("mother_settings")
+          .select("nickname, profile_image_url")
+          .eq("mother_id", mother.mother_id)
+          .single();
+
+        if (settings) {
+          setNickname(settings.nickname || "");
+          setProfileImage(settings.profile_image_url || "");
+        }
+      }
+    } else {
+      // For bhw/admin users
+      const { data } = await supabase
+        .from("users")
+        .select("profile_image_url")
+        .eq("id", userId)
+        .single();
+
+      if (data) setProfileImage(data.profile_image_url || "");
     }
   };
 
+  /** Upload to Supabase Storage */
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return profileImage;
     const fileExt = imageFile.name.split(".").pop();
@@ -73,22 +100,58 @@ const BhwProfile: React.FC = () => {
     return data.publicUrl;
   };
 
+  /** Save profile update (for both mother and bhw) */
   const saveProfile = async () => {
     const imageUrl = await uploadImage();
-    const { error } = await supabase
-      .from("users")
-      .update({ full_name: fullName, profile_image_url: imageUrl })
-      .eq("id", userId);
-
-    if (error) {
-      setToastMsg("Failed to save profile.");
+    if (!imageUrl && imageFile) {
+      setToastMsg("Image upload failed.");
       return;
     }
 
-    localStorage.setItem("full_name", fullName);
-    localStorage.setItem("darkMode", darkMode.toString());
-    localStorage.setItem("notifications", notifications.toString());
-    setToastMsg("Profile updated successfully!");
+    try {
+      // Always update users table (for full_name)
+      const { error: userErr } = await supabase
+        .from("users")
+        .update({ full_name: fullName })
+        .eq("id", userId);
+
+      if (userErr) throw userErr;
+
+      // If mother, also update mother_settings table
+      if (role === "mother") {
+        const { data: mother } = await supabase
+          .from("mothers")
+          .select("mother_id")
+          .eq("user_id", userId)
+          .single();
+
+        if (mother) {
+          const { error: settingsErr } = await supabase
+            .from("mother_settings")
+            .upsert(
+              {
+                mother_id: mother.mother_id,
+                nickname,
+                profile_image_url: imageUrl,
+              },
+              { onConflict: "mother_id" }
+            );
+
+          if (settingsErr) throw settingsErr;
+        }
+      } else {
+        // For bhw or admin users
+        await supabase
+          .from("users")
+          .update({ profile_image_url: imageUrl })
+          .eq("id", userId);
+      }
+
+      setToastMsg("Profile updated successfully!");
+    } catch (e) {
+      console.error(e);
+      setToastMsg("Failed to save profile.");
+    }
   };
 
   const handleLogout = () => {
@@ -129,7 +192,8 @@ const BhwProfile: React.FC = () => {
                 <IonIcon icon={personCircleOutline} className="profile-placeholder" />
               )}
               <p className="profile-name">{fullName}</p>
-              <p className="profile-role">Barangay Health Worker</p>
+              {role === "mother" && <p className="profile-role">Mother</p>}
+              {role === "bhw" && <p className="profile-role">Barangay Health Worker</p>}
             </div>
 
             <IonItem lines="none" className="input-box">
@@ -141,6 +205,17 @@ const BhwProfile: React.FC = () => {
               />
             </IonItem>
 
+            {role === "mother" && (
+              <IonItem lines="none" className="input-box">
+                <IonLabel position="stacked">Nickname</IonLabel>
+                <IonInput
+                  value={nickname}
+                  placeholder="Enter nickname"
+                  onIonChange={(e) => setNickname(e.detail.value!)}
+                />
+              </IonItem>
+            )}
+
             <IonItem lines="none" className="input-box">
               <IonLabel position="stacked">Profile Photo</IonLabel>
               <input
@@ -151,7 +226,6 @@ const BhwProfile: React.FC = () => {
               />
             </IonItem>
 
-          
             <div className="button-group">
               <IonButton expand="block" color="primary" onClick={saveProfile}>
                 Save Profile
@@ -187,7 +261,6 @@ const BhwProfile: React.FC = () => {
             display: flex;
             justify-content: center;
           }
-
           .profile-card {
             background: white;
             box-shadow: 0 6px 18px rgba(145, 158, 217, 0.25);
@@ -197,14 +270,12 @@ const BhwProfile: React.FC = () => {
             max-width: 420px;
             text-align: center;
           }
-
           .profile-header {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin-bottom: 20px;
           }
-
           .profile-img {
             width: 110px;
             height: 110px;
@@ -212,23 +283,19 @@ const BhwProfile: React.FC = () => {
             object-fit: cover;
             border: 3px solid #3451b2;
           }
-
           .profile-placeholder {
             font-size: 110px;
             color: #7890d5;
           }
-
           .profile-name {
             font-weight: 600;
             color: #3451b2;
             margin-top: 10px;
           }
-
           .profile-role {
             color: #666;
             font-size: 0.9rem;
           }
-
           .input-box {
             background: #fff;
             margin: 10px 0;
@@ -236,25 +303,14 @@ const BhwProfile: React.FC = () => {
             box-shadow: 0 3px 10px rgba(145, 158, 217, 0.15);
             padding: 5px 10px;
           }
-
           .file-input {
             width: 100%;
             padding: 6px 0;
             color: #555;
           }
-
-          .toggles {
-            margin-top: 15px;
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 3px 10px rgba(145, 158, 217, 0.15);
-            padding: 10px;
-          }
-
           .button-group {
             margin-top: 20px;
           }
-
           .logout-btn {
             color: #3451b2;
             font-weight: 500;

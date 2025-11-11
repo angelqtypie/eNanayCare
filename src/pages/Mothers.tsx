@@ -75,20 +75,53 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
 
   const fetchMothers = async () => {
     setLoading(true);
+  
+    //  1. Get current authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+  
+    if (authError || !user) {
+      console.error("Auth Error:", authError);
+      setToastMsg("Failed to fetch user info.");
+      setLoading(false);
+      return;
+    }
+  
+    // 2. Fetch current BHW info (assuming in `users` table or `bhw` table)
+    const { data: bhwData, error: bhwError } = await supabase
+      .from("users")
+      .select("zone")
+      .eq("id", user.id)
+      .single();
+  
+    if (bhwError || !bhwData) {
+      console.error("Fetch BHW zone error:", bhwError);
+      setToastMsg("Failed to get your assigned zone.");
+      setLoading(false);
+      return;
+    }
+  
+    const bhwZone = bhwData.zone?.trim(); // e.g. "Zone 2"
+  
+    //  3. Fetch only mothers matching that zone
     const { data, error } = await supabase
       .from("mothers")
       .select("*, users(email)")
+      .ilike("address", `%${bhwZone}%`) // partial match: "Zone 2"
       .order("last_name", { ascending: true });
-
-    if (!error && data) {
-      setMothers(data as Mother[]);
-    } else {
+  
+    if (error) {
       console.error("Fetch mothers error:", error);
+      setToastMsg("Failed to load mothers.");
+    } else {
+      setMothers(data as Mother[]);
     }
+  
     setLoading(false);
   };
-
-  useEffect(() => {
+   useEffect(() => {
     fetchMothers();
   }, []);
 
@@ -150,7 +183,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
     setSaving(true);
   
     try {
-      // ✅ 1. Sign up user
+      //  1. Sign up user
       const { data: authUser, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -164,7 +197,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
   
       const userId = authUser.user.id;
   
-      // ✅ 2. Insert to 'users' table (custom)
+      //  2. Insert to 'users' table (custom)
       const { error: insertUserError } = await supabase.from("users").insert([
         {
           id: userId,
@@ -180,7 +213,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
         return;
       }
   
-      // ✅ 3. Insert to 'mothers' table
+      //  3. Insert to 'mothers' table
       const { error: motherError } = await supabase.from("mothers").insert([
         {
           user_id: userId,
@@ -208,7 +241,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
         return;
       }
   
-      // ✅ 4. Check if confirmation email is required
+      // 4. Check if confirmation email is required
       if (!authUser.session) {
         setToastMsg(
           "Registration successful! A confirmation link has been sent to the email. Please verify before logging in."
@@ -217,7 +250,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
         setToastMsg("Mother successfully registered and authenticated!");
       }
   
-      // ✅ Close modal and reset form
+      // Close modal and reset form
       setShowModal(false);
       fetchMothers();
       setFormData({

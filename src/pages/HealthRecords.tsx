@@ -69,17 +69,54 @@ const HealthRecords: React.FC = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await fetchMothers();
+      await fetchMothersByZone();
       setLoading(false);
     })();
   }, []);
 
-  const fetchMothers = async () => {
-    const { data, error } = await supabase
-      .from("mothers")
-      .select("mother_id, first_name, middle_name, last_name, address")
-      .order("last_name", { ascending: true });
-    if (!error && data) setMothers(data);
+  // ✅ Fetch mothers that belong to the same zone as the logged-in BHW
+  const fetchMothersByZone = async () => {
+    try {
+      // 1️⃣ Get logged-in user
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Auth Error:", authError);
+        setToastMsg("Failed to fetch user info.");
+        return;
+      }
+
+      // 2️⃣ Get user's zone (from users table)
+      const { data: bhwData, error: bhwError } = await supabase
+        .from("users")
+        .select("zone")
+        .eq("id", user.id)
+        .single();
+
+      if (bhwError || !bhwData?.zone) {
+        console.error("Zone fetch error:", bhwError);
+        setToastMsg("Failed to get BHW zone.");
+        return;
+      }
+
+      const bhwZone = bhwData.zone.trim();
+
+      // 3️⃣ Get mothers with address containing that zone
+      const { data, error } = await supabase
+        .from("mothers")
+        .select("mother_id, first_name, middle_name, last_name, address")
+        .ilike("address", `%${bhwZone}%`)
+        .order("last_name", { ascending: true });
+
+      if (error) throw error;
+      if (data) setMothers(data);
+    } catch (err) {
+      console.error("fetchMothersByZone Error:", err);
+      setToastMsg("Error loading mothers by zone.");
+    }
   };
 
   const fetchHealthRecords = async (motherId: string) => {
@@ -88,6 +125,7 @@ const HealthRecords: React.FC = () => {
       .select("*")
       .eq("mother_id", motherId)
       .order("encounter_date", { ascending: false });
+
     if (!error && data) {
       setRecords((prev) => ({ ...prev, [motherId]: data }));
       return data;
@@ -116,7 +154,6 @@ const HealthRecords: React.FC = () => {
     return "Obese";
   };
 
-  // Determine next TT
   const nextTT = (current: string) => {
     if (!current) return "TT1";
     const map: Record<string, string> = {
@@ -163,14 +200,14 @@ const HealthRecords: React.FC = () => {
       const { error } = await supabase.from("health_records").insert([payload]);
       if (error) throw error;
 
-      setToastMsg("✅ Health record added successfully!");
+      setToastMsg("Health record added successfully!");
       setShowModal(false);
       setForm({});
       setBmi("");
       await fetchHealthRecords(currentMother.mother_id);
     } catch (err) {
       console.error(err);
-      setToastMsg("❌ Error saving record.");
+      setToastMsg("Error saving record.");
     } finally {
       setSaving(false);
     }
