@@ -39,7 +39,7 @@ interface Mother {
   address: string | null;
 }
 
-const ManageUsers: React.FC = () => {
+const AdminUserPage: React.FC = () => {
   const [zonesGrouped, setZonesGrouped] = useState<
     Record<string, { bhws: User[]; mothers: User[] }>
   >({});
@@ -86,7 +86,7 @@ const ManageUsers: React.FC = () => {
       // 🔹 Allow multiple BHWs per zone
       const grouped: Record<string, { bhws: User[]; mothers: User[] }> = {};
 
-      for (let i = 1; i <= 9; i++) {
+      for (let i = 1; i <= 8; i++) {
         const zoneName = `Zone ${i}`;
         const bhws = updatedUsers.filter(
           (u) => u.role === "bhw" && u.zone === zoneName
@@ -389,7 +389,7 @@ const ManageUsers: React.FC = () => {
                   setNewUser({ ...newUser, zone: e.detail.value })
                 }
               >
-                {Array.from({ length: 9 }, (_, i) => (
+                {Array.from({ length: 8 }, (_, i) => (
                   <IonSelectOption key={i} value={`Zone ${i + 1}`}>
                     Zone {i + 1}
                   </IonSelectOption>
@@ -422,4 +422,4 @@ const ManageUsers: React.FC = () => {
   );
 };
 
-export default ManageUsers;
+export default AdminUserPage;

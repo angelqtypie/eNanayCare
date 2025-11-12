@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import bcrypt from "bcryptjs";
 import {
   IonHeader,
   IonToolbar,
@@ -38,8 +37,8 @@ interface Mother {
   edc?: string;
   gpa?: string;
   aog?: string;
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
   users?: { email: string };
 }
 
@@ -50,8 +49,10 @@ const Mothers: React.FC = () => {
   const [toastMsg, setToastMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
+  const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
 
+  // <-- NEW: store the BHW zone once so fetching mothers doesn't depend on current session
+  const [bhwZone, setBhwZone] = useState<string>("");
 
   const [formData, setFormData] = useState<Mother>({
     first_name: "",
@@ -73,57 +74,92 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
     password: "",
   });
 
-  const fetchMothers = async () => {
-    setLoading(true);
-  
-    //  1. Get current authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-  
-    if (authError || !user) {
-      console.error("Auth Error:", authError);
-      setToastMsg("Failed to fetch user info.");
-      setLoading(false);
-      return;
-    }
-  
-    // 2. Fetch current BHW info (assuming in `users` table or `bhw` table)
-    const { data: bhwData, error: bhwError } = await supabase
-      .from("users")
-      .select("zone")
-      .eq("id", user.id)
-      .single();
-  
-    if (bhwError || !bhwData) {
-      console.error("Fetch BHW zone error:", bhwError);
-      setToastMsg("Failed to get your assigned zone.");
-      setLoading(false);
-      return;
-    }
-  
-    const bhwZone = bhwData.zone?.trim(); // e.g. "Zone 2"
-  
-    //  3. Fetch only mothers matching that zone
-    const { data, error } = await supabase
-      .from("mothers")
-      .select("*, users(email)")
-      .ilike("address", `%${bhwZone}%`) // partial match: "Zone 2"
-      .order("last_name", { ascending: true });
-  
-    if (error) {
-      console.error("Fetch mothers error:", error);
-      setToastMsg("Failed to load mothers.");
-    } else {
-      setMothers(data as Mother[]);
-    }
-  
-    setLoading(false);
-  };
-   useEffect(() => {
-    fetchMothers();
+  // Fetch and set the BHW zone once (on mount)
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+          console.error("Auth Error:", authError);
+          setToastMsg("Failed to fetch your user info.");
+          setLoading(false);
+          return;
+        }
+
+        // get zone for this bhw from your users table
+        const { data: bhwData, error: bhwError } = await supabase
+          .from("users")
+          .select("zone")
+          .eq("id", user.id)
+          .single();
+
+        if (bhwError || !bhwData) {
+          console.error("Fetch BHW zone error:", bhwError);
+          setToastMsg("Failed to get your assigned zone.");
+          setLoading(false);
+          return;
+        }
+
+        const zone = (bhwData.zone || "").toString().trim();
+        setBhwZone(zone);
+      } catch (err) {
+        console.error("Init error:", err);
+        setToastMsg("Initialization error.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
   }, []);
+
+  // Fetch mothers whenever bhwZone changes (and bhwZone exists)
+  useEffect(() => {
+    if (!bhwZone) return;
+
+    const fetchMothers = async () => {
+      setLoading(true);
+      try {
+        // Use the stored bhwZone instead of reading current session each time
+        const zone = bhwZone;
+
+        // If zone is empty, fetch nothing
+        if (!zone) {
+          setMothers([]);
+          setLoading(false);
+          return;
+        }
+
+        // partial match on address
+        const { data, error } = await supabase
+          .from("mothers")
+          .select("*, users(email)")
+          .ilike("address", `%${zone}%`)
+          .order("last_name", { ascending: true });
+
+        if (error) {
+          console.error("Fetch mothers error:", error);
+          setToastMsg("Failed to load mothers.");
+          setMothers([]);
+        } else {
+          setMothers((data as Mother[]) || []);
+        }
+      } catch (err) {
+        console.error("Fetch mothers unexpected:", err);
+        setToastMsg("Unexpected fetch error.");
+        setMothers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMothers();
+  }, [bhwZone]);
 
   const calculateAge = (birthdate: string): number => {
     const birth = new Date(birthdate);
@@ -179,80 +215,93 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
       setToastMsg("Please fill out all required fields.");
       return;
     }
-  
+
     setSaving(true);
-  
+
     try {
-      //  1. Sign up user
+      // 1️⃣ create auth user (signup)
       const { data: authUser, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email: formData.email!,
+        password: formData.password!,
       });
-  
-      if (signUpError || !authUser?.user) {
+
+      if (signUpError) {
         console.error("Supabase Auth SignUp Error:", signUpError);
-        setToastMsg("Failed to register user.");
+        setToastMsg(signUpError.message || "Failed to register user.");
+        setSaving(false);
         return;
       }
-  
-      const userId = authUser.user.id;
-  
-      //  2. Insert to 'users' table (custom)
-      const { error: insertUserError } = await supabase.from("users").insert([
-        {
-          id: userId,
-          email: formData.email,
-          full_name: `${formData.first_name} ${formData.last_name}`,
-          role: "mother",
-        },
-      ]);
-  
-      if (insertUserError) {
-        console.error("Insert to users table failed:", insertUserError);
-        setToastMsg("Failed to save user profile.");
-        return;
+
+      const userId = authUser.user?.id;
+
+      if (!userId) {
+        // signUp didn't return a user id — this is uncommon but handle gracefully
+        console.warn("Signup succeeded but no user id returned.");
+        setToastMsg("Mother registered (email confirmation may be required).");
       }
-  
-      //  3. Insert to 'mothers' table
-      const { error: motherError } = await supabase.from("mothers").insert([
-        {
-          user_id: userId,
-          first_name: formData.first_name,
-          middle_name: formData.middle_name,
-          last_name: formData.last_name,
-          birthdate: formData.birthdate,
-          age: formData.age,
-          civil_status: formData.civil_status,
-          address: formData.address,
-          contact_number: formData.contact_number,
-          husband_name: formData.husband_name,
-          education: formData.education,
-          religion: formData.religion,
-          lmp_date: formData.lmp_date,
-          edc: formData.edc,
-          gpa: formData.gpa,
-          aog: formData.aog,
-        },
-      ]);
-  
+
+      // 2️⃣ Insert to users table (profile)
+      if (userId) {
+        const { error: insertUserError } = await supabase.from("users").insert([
+          {
+            id: userId,
+            email: formData.email,
+            full_name: `${formData.first_name} ${formData.last_name}`,
+            role: "mother",
+          },
+        ]);
+
+        if (insertUserError) {
+          // ignore duplicate key (already exists)
+          if (insertUserError.code && insertUserError.code === "23505") {
+            console.warn("User already exists, skipping insert to users table.");
+          } else {
+            console.error("Insert to users table failed:", insertUserError);
+            setToastMsg("Failed to save user profile.");
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
+      // 3️⃣ Insert to mothers table
+      const motherInsert = {
+        user_id: userId || null,
+        first_name: formData.first_name,
+        middle_name: formData.middle_name,
+        last_name: formData.last_name,
+        birthdate: formData.birthdate,
+        age: formData.age,
+        civil_status: formData.civil_status,
+        address: formData.address,
+        contact_number: formData.contact_number,
+        husband_name: formData.husband_name,
+        education: formData.education,
+        religion: formData.religion,
+        lmp_date: formData.lmp_date,
+        edc: formData.edc,
+        gpa: formData.gpa,
+        aog: formData.aog,
+      };
+
+      const { error: motherError } = await supabase.from("mothers").insert([motherInsert]);
+
       if (motherError) {
         console.error("Insert to mothers table failed:", motherError);
         setToastMsg("Failed to save mother info.");
+        setSaving(false);
         return;
       }
-  
-      // 4. Check if confirmation email is required
-      if (!authUser.session) {
-        setToastMsg(
-          "Registration successful! A confirmation link has been sent to the email. Please verify before logging in."
-        );
-      } else {
-        setToastMsg("Mother successfully registered and authenticated!");
-      }
-  
-      // Close modal and reset form
+
+      // 4️⃣ success
+      setToastMsg(
+        authUser.session
+          ? "Mother successfully registered and ready to logged in!"
+          : "Mother registered! Please check email for verification (if required)."
+      );
+
+      // reset modal & form
       setShowModal(false);
-      fetchMothers();
       setFormData({
         first_name: "",
         middle_name: "",
@@ -272,6 +321,25 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
         email: "",
         password: "",
       });
+
+      // IMPORTANT: refresh mothers using stored bhwZone (not current session)
+      if (bhwZone) {
+        // re-run the same fetch as the effect (just reuse code path)
+        setLoading(true);
+        const { data: data2, error: error2 } = await supabase
+          .from("mothers")
+          .select("*, users(email)")
+          .ilike("address", `%${bhwZone}%`)
+          .order("last_name", { ascending: true });
+
+        if (error2) {
+          console.error("Reload mothers error:", error2);
+          setToastMsg("Failed to reload mothers list.");
+        } else {
+          setMothers((data2 as Mother[]) || []);
+        }
+        setLoading(false);
+      }
     } catch (err) {
       console.error("Unexpected Error:", err);
       setToastMsg("Unexpected error occurred.");
@@ -279,8 +347,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
       setSaving(false);
     }
   };
-  
-  
+
   const filteredMothers = mothers.filter((m) =>
     `${m.first_name} ${m.middle_name || ""} ${m.last_name}`
       .toLowerCase()
@@ -333,9 +400,9 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                 </tr>
               </thead>
               <tbody>
-                {filteredMothers.map((m) => (
+                {filteredMothers.map((m, idx) => (
                   <tr
-                    key={m.mother_id}
+                    key={m.user_id || m.mother_id || idx}
                     className="clickable-row"
                     onClick={() => setSelectedMother(m)}
                   >
@@ -348,6 +415,13 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                     <td>{m.edc}</td>
                   </tr>
                 ))}
+                {filteredMothers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: 20 }}>
+                      No mothers found for {bhwZone || "your zone"}.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -359,8 +433,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
             <div className="modal-container" style={{ maxWidth: 720 }}>
               <div className="modal-header">
                 <h2>
-                  {selectedMother?.first_name}{" "}
-                  {selectedMother?.middle_name?.charAt(0)}.{" "}
+                  {selectedMother?.first_name} {selectedMother?.middle_name?.charAt(0)}.{" "}
                   {selectedMother?.last_name}
                 </h2>
                 <IonButton fill="clear" onClick={() => setSelectedMother(null)}>
@@ -368,15 +441,33 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                 </IonButton>
               </div>
               <div className="modal-body">
-                <p><strong>Age:</strong> {selectedMother?.age}</p>
-                <p><strong>Status:</strong> {selectedMother?.civil_status}</p>
-                <p><strong>Address:</strong> {selectedMother?.address}</p>
-                <p><strong>Contact:</strong> {selectedMother?.contact_number}</p>
-                <p><strong>Email:</strong> {selectedMother?.users?.email}</p>
-                <p><strong>LMP:</strong> {selectedMother?.lmp_date}</p>
-                <p><strong>EDC:</strong> {selectedMother?.edc}</p>
-                <p><strong>GPA:</strong> {selectedMother?.gpa}</p>
-                <p><strong>AOG:</strong> {selectedMother?.aog}</p>
+                <p>
+                  <strong>Age:</strong> {selectedMother?.age}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedMother?.civil_status}
+                </p>
+                <p>
+                  <strong>Address:</strong> {selectedMother?.address}
+                </p>
+                <p>
+                  <strong>Contact:</strong> {selectedMother?.contact_number}
+                </p>
+                <p>
+                  <strong>Email:</strong> {selectedMother?.users?.email}
+                </p>
+                <p>
+                  <strong>LMP:</strong> {selectedMother?.lmp_date}
+                </p>
+                <p>
+                  <strong>EDC:</strong> {selectedMother?.edc}
+                </p>
+                <p>
+                  <strong>GPA:</strong> {selectedMother?.gpa}
+                </p>
+                <p>
+                  <strong>AOG:</strong> {selectedMother?.aog}
+                </p>
               </div>
               <div className="modal-footer">
                 <IonButton onClick={() => setSelectedMother(null)} className="btn-cancel">
@@ -410,18 +501,14 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonLabel position="stacked">First Name</IonLabel>
                         <IonInput
                           value={formData.first_name}
-                          onIonChange={(e) =>
-                            handleChange("first_name", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("first_name", e.detail.value!)}
                         />
                       </IonItem>
                       <IonItem>
                         <IonLabel position="stacked">Middle Name</IonLabel>
                         <IonInput
                           value={formData.middle_name}
-                          onIonChange={(e) =>
-                            handleChange("middle_name", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("middle_name", e.detail.value!)}
                         />
                       </IonItem>
                     </div>
@@ -431,9 +518,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonLabel position="stacked">Last Name</IonLabel>
                         <IonInput
                           value={formData.last_name}
-                          onIonChange={(e) =>
-                            handleChange("last_name", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("last_name", e.detail.value!)}
                         />
                       </IonItem>
                       <IonItem>
@@ -441,9 +526,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonInput
                           type="date"
                           value={formData.birthdate}
-                          onIonChange={(e) =>
-                            handleChange("birthdate", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("birthdate", e.detail.value!)}
                         />
                       </IonItem>
                     </div>
@@ -457,9 +540,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonLabel position="stacked">Civil Status</IonLabel>
                         <IonInput
                           value={formData.civil_status}
-                          onIonChange={(e) =>
-                            handleChange("civil_status", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("civil_status", e.detail.value!)}
                         />
                       </IonItem>
                     </div>
@@ -468,9 +549,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                       <IonLabel position="stacked">Husband's Name</IonLabel>
                       <IonInput
                         value={formData.husband_name}
-                        onIonChange={(e) =>
-                          handleChange("husband_name", e.detail.value!)
-                        }
+                        onIonChange={(e) => handleChange("husband_name", e.detail.value!)}
                       />
                     </IonItem>
 
@@ -479,18 +558,14 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonLabel position="stacked">Education</IonLabel>
                         <IonInput
                           value={formData.education}
-                          onIonChange={(e) =>
-                            handleChange("education", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("education", e.detail.value!)}
                         />
                       </IonItem>
                       <IonItem>
                         <IonLabel position="stacked">Religion</IonLabel>
                         <IonInput
                           value={formData.religion}
-                          onIonChange={(e) =>
-                            handleChange("religion", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("religion", e.detail.value!)}
                         />
                       </IonItem>
                     </div>
@@ -504,9 +579,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                         <IonInput
                           type="date"
                           value={formData.lmp_date}
-                          onIonChange={(e) =>
-                            handleChange("lmp_date", e.detail.value!)
-                          }
+                          onIonChange={(e) => handleChange("lmp_date", e.detail.value!)}
                         />
                       </IonItem>
                       <IonItem>
@@ -518,12 +591,7 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                     <div className="grid-2">
                       <IonItem>
                         <IonLabel position="stacked">GPA</IonLabel>
-                        <IonInput
-                          value={formData.gpa}
-                          onIonChange={(e) =>
-                            handleChange("gpa", e.detail.value!)
-                          }
-                        />
+                        <IonInput value={formData.gpa} onIonChange={(e) => handleChange("gpa", e.detail.value!)} />
                       </IonItem>
                       <IonItem>
                         <IonLabel position="stacked">AOG</IonLabel>
@@ -536,55 +604,29 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
                     <h3>Contact & Account</h3>
                     <IonItem>
                       <IonLabel position="stacked">Address</IonLabel>
-                      <IonInput
-                        value={formData.address}
-                        onIonChange={(e) =>
-                          handleChange("address", e.detail.value!)
-                        }
-                      />
+                      <IonInput value={formData.address} onIonChange={(e) => handleChange("address", e.detail.value!)} />
                     </IonItem>
 
                     <IonItem>
                       <IonLabel position="stacked">Contact Number</IonLabel>
-                      <IonInput
-                        type="tel"
-                        value={formData.contact_number}
-                        onIonChange={(e) =>
-                          handleChange("contact_number", e.detail.value!)
-                        }
-                      />
+                      <IonInput type="tel" value={formData.contact_number} onIonChange={(e) => handleChange("contact_number", e.detail.value!)} />
                     </IonItem>
 
                     <IonItem>
                       <IonLabel position="stacked">Email</IonLabel>
-                      <IonInput
-                        type="email"
-                        value={formData.email}
-                        onIonChange={(e) =>
-                          handleChange("email", e.detail.value!)
-                        }
-                      />
+                      <IonInput type="email" value={formData.email} onIonChange={(e) => handleChange("email", e.detail.value!)} />
                     </IonItem>
 
                     <IonItem>
                       <IonLabel position="stacked">Password</IonLabel>
-                      <IonInput
-                        type="password"
-                        value={formData.password}
-                        onIonChange={(e) =>
-                          handleChange("password", e.detail.value!)
-                        }
-                      />
+                      <IonInput type="password" value={formData.password} onIonChange={(e) => handleChange("password", e.detail.value!)} />
                     </IonItem>
                   </section>
                 </IonList>
               </div>
- 
+
               <div className="modal-footer">
-                <IonButton
-                  className="btn-cancel"
-                  onClick={() => setShowModal(false)}
-                >
+                <IonButton className="btn-cancel" onClick={() => setShowModal(false)}>
                   Cancel
                 </IonButton>
                 <IonButton className="btn-save" onClick={saveMother}>
@@ -595,13 +637,10 @@ const [selectedMother, setSelectedMother] = useState<Mother | null>(null);
           </div>
         </IonModal>
 
-        <IonToast
-          isOpen={!!toastMsg}
-          message={toastMsg}
-          duration={2500}
-          onDidDismiss={() => setToastMsg("")}
-        />
+        <IonToast isOpen={!!toastMsg} message={toastMsg} duration={2500} onDidDismiss={() => setToastMsg("")} />
       </IonContent>
+
+
 
       <style>{`/* ---------- PAGE CONTENT ---------- */
        .page-content { padding: 16px; background: #f8f9fb; }
@@ -633,7 +672,6 @@ body.modal-open {
 }
 
 
-/* ---------- MODAL CONTAINER ---------- */
 .modal-container {
   background: #fff; 
   width: 95%; 

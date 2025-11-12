@@ -85,18 +85,18 @@ const DashboardBHW: React.FC = () => {
 
         // === Appointments filtered by zone ===
         const { data: apptData } = await supabase
-          .from("appointments")
-          .select("*")
-          .eq("zone", bhwZone)
-          .gte("date", today);
+        .from("appointments")
+        .select("*, mothers!inner(address)")
+        .eq("mothers.address", bhwZone)
+        .gte("date", today);      
         setAppointments(apptData ?? []);
 
         // === Health Records filtered by zone ===
         const { count: visitCount } = await supabase
-          .from("health_records")
-          .select("*", { count: "exact" })
-          .eq("encounter_date", today)
-          .eq("zone", bhwZone);
+        .from("health_records")
+        .select("*, mothers!inner(address)", { count: "exact" })
+        .eq("encounter_date", today)
+        .eq("mothers.address", bhwZone);      
         setTodayVisitCount(visitCount ?? 0);
 
         // === Risk Reports filtered based on mother's address ===
