@@ -42,8 +42,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+
 
 
 
@@ -488,7 +487,9 @@ const Appointments: React.FC = () => {
     }
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
     const doc = new jsPDF({ orientation: "landscape" });
   
     // 🩵 Title & header
@@ -504,37 +505,36 @@ const Appointments: React.FC = () => {
     const tableRows = appointments.map((a) => [
       a.mother ? `${a.mother.first_name} ${a.mother.last_name}` : "N/A",
       a.date,
-      fmtTime12(a.time),   // ✅ fixed name here
+      fmtTime12(a.time),
       a.location || "",
       a.status,
       (a.notes || "").replace(/\n/g, " "),
     ]);
-    
   
-    // 🧾 Generate a clean table layout
+    // 🧾 Generate table
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 40,
       theme: "striped",
       headStyles: {
-        fillColor: [37, 99, 235], // blue header
+        fillColor: [37, 99, 235],
         textColor: 255,
         fontSize: 11,
         halign: "center",
       },
-      styles: {
-        fontSize: 10,
-        cellPadding: 3,
-      },
+      styles: { fontSize: 10, cellPadding: 3 },
       alternateRowStyles: { fillColor: [245, 247, 255] },
       margin: { top: 40 },
     });
   
     // 💾 Save file
-    const filename = `appointments_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `appointments_report_${new Date()
+      .toISOString()
+      .slice(0, 10)}.pdf`;
     doc.save(filename);
   };
+  
   
   // Calendar map, summary, visibleAppointments, upcoming (unchanged logic)
   const calendarMap = useMemo(() => {
