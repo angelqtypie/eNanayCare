@@ -26,6 +26,7 @@ import {
   addCircleOutline,
   checkmarkDoneOutline,
   alertCircleOutline,
+  documentOutline,
 } from "ionicons/icons";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -41,6 +42,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+
 
 /* Lightweight types */
 interface Mother {
@@ -483,27 +488,54 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // CSV export
-  const exportCSV = () => {
-    const headers = ["Mother", "Date", "Time", "Location", "Status", "Notes"];
-    const rows = appointments.map(a => [
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: "landscape" });
+  
+    // 🩵 Title & header
+    doc.setFontSize(18);
+    doc.text("Appointments Report", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
+  
+    // 🩶 Table headers
+    const tableColumn = ["Mother", "Date", "Time", "Location", "Status", "Notes"];
+  
+    // 🩷 Table data
+    const tableRows = appointments.map((a) => [
       a.mother ? `${a.mother.first_name} ${a.mother.last_name}` : "N/A",
       a.date,
-      a.time || "",
+      fmtTime12(a.time),   // ✅ fixed name here
       a.location || "",
       a.status,
       (a.notes || "").replace(/\n/g, " "),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `appointments_${fmtDate(new Date())}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    
+  
+    // 🧾 Generate a clean table layout
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      theme: "striped",
+      headStyles: {
+        fillColor: [37, 99, 235], // blue header
+        textColor: 255,
+        fontSize: 11,
+        halign: "center",
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      alternateRowStyles: { fillColor: [245, 247, 255] },
+      margin: { top: 40 },
+    });
+  
+    // 💾 Save file
+    const filename = `appointments_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(filename);
   };
-
+  
   // Calendar map, summary, visibleAppointments, upcoming (unchanged logic)
   const calendarMap = useMemo(() => {
     const map: Record<string, { Scheduled: number; Completed: number; Missed: number; total: number }> = {};
@@ -609,7 +641,10 @@ const Appointments: React.FC = () => {
             <div className="top-actions">
               <IonButton onClick={() => { setCalendarDate(new Date()); setToastMsg("Showing today"); }}>Today</IonButton>
               <IonButton color="primary" onClick={() => setShowModal(true)}><IonIcon icon={addCircleOutline} />&nbsp;Add</IonButton>
-              <IonButton onClick={exportCSV}><IonIcon icon={downloadOutline} /></IonButton>
+              <IonButton color="primary" onClick={exportPDF}>
+  <IonIcon icon={documentOutline} />&nbsp;Export
+</IonButton>
+
             </div>
           </div>
 
