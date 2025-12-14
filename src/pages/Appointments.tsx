@@ -28,6 +28,7 @@ import {
   alertCircleOutline,
   documentOutline,
 } from "ionicons/icons";
+import logo from "../assets/logo.png";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
@@ -123,6 +124,20 @@ const Appointments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [selectedMotherId, setSelectedMotherId] = useState<string | "ALL">("ALL");
+
+  const [cardMode, setCardMode] = useState<{
+    All: "all" | "month";
+    Scheduled: "all" | "month";
+    Completed: "all" | "month";
+    Missed: "all" | "month";
+  }>({
+    All: "all",
+    Scheduled: "month",
+    Completed: "month",
+    Missed: "month",
+  });
+  
 
   const [form, setForm] = useState({
     motherIds: [] as string[],
@@ -135,9 +150,12 @@ const Appointments: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | Appointment["status"]>("All");
   const [isSubmitting, setIsSubmitting] = useState(false); // prevent double submit
+  const [allByMonth, setAllByMonth] = useState(false);
+
 
   // store bhwZone for reuse
   const [bhwZone, setBhwZone] = useState<string | null>(null);
+  const [bhwName, setBhwName] = useState<string>("BHW");
 
   // Greeting messages
   const greetings = [
@@ -160,7 +178,7 @@ const Appointments: React.FC = () => {
       // Read 'zone' from your users table (same column used in Mother's file)
       const { data: bhwData, error: bhwErr } = await supabase
         .from("users")
-        .select("zone")
+        .select("zone, full_name")
         .eq("id", user.id)
         .single();
 
@@ -172,6 +190,7 @@ const Appointments: React.FC = () => {
 
       const zone = (bhwData?.zone || "").toString().trim();
       setBhwZone(zone || null);
+      setBhwName(bhwData.full_name || "BHW");
       return zone || null;
     } catch (err) {
       console.error("fetchBhwZone", err);
@@ -281,6 +300,88 @@ const Appointments: React.FC = () => {
     }
   };
 
+  const selectedMonthKey = useMemo(() => {
+    if (!calendarDate) return null;
+    return calendarDate.toISOString().slice(0, 7); // yyyy-mm
+  }, [calendarDate]);
+  
+
+
+
+  const monthAppointments = useMemo(() => {
+    if (!selectedMonthKey) return appointments;
+  
+    return appointments.filter(a =>
+      a.date.startsWith(selectedMonthKey)
+    );
+  }, [appointments, selectedMonthKey]);
+  
+  
+
+  const statusCards = useMemo(() => {
+    const baseAllTime =
+      selectedMotherId === "ALL"
+        ? appointments
+        : appointments.filter(a => a.mother_id === selectedMotherId);
+  
+    const baseMonth =
+      selectedMotherId === "ALL"
+        ? monthAppointments
+        : monthAppointments.filter(a => a.mother_id === selectedMotherId);
+  
+    const applySearch = (list: Appointment[]) =>
+      list.filter(a => {
+        const q = search.toLowerCase();
+        if (!q) return true;
+        const name = a.mother
+          ? `${a.mother.first_name} ${a.mother.last_name}`.toLowerCase()
+          : "";
+        return (
+          name.includes(q) ||
+          (a.location || "").toLowerCase().includes(q) ||
+          (a.notes || "").toLowerCase().includes(q)
+        );
+      });
+  
+    // 🔥 ONE BASE ONLY (depends on All card)
+    const baseList = applySearch(allByMonth ? baseMonth : baseAllTime);
+  
+    return {
+      All: baseList.length,
+      Scheduled: baseList.filter(a => a.status === "Scheduled").length,
+      Completed: baseList.filter(a => a.status === "Completed").length,
+      Missed: baseList.filter(a => a.status === "Missed").length,
+    };
+  }, [
+    appointments,
+    monthAppointments,
+    selectedMotherId,
+    search,
+    allByMonth,
+  ]);
+  
+
+  
+
+  const pct = (part: number, total: number) =>
+  total === 0 ? 0 : Math.round((part / total) * 100);
+
+  const statusPercentages = useMemo(() => {
+    const monthTotal =
+      statusCards.Scheduled +
+      statusCards.Completed +
+      statusCards.Missed;
+  
+    return {
+      Scheduled: pct(statusCards.Scheduled, monthTotal),
+      Completed: pct(statusCards.Completed, monthTotal),
+      Missed: pct(statusCards.Missed, monthTotal),
+    };
+  }, [statusCards]);
+  
+
+
+
   // Evaluate and update appointment statuses (Completed / Missed)
   const syncStatuses = async () => {
     try {
@@ -316,6 +417,24 @@ const Appointments: React.FC = () => {
       console.error("syncStatuses:", err);
     }
   };
+
+
+
+  const loadImageBase64 = (url: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 
   // Add appointment(s) + send email notifications via EmailJS
   const addAppointment = async () => {
@@ -487,53 +606,197 @@ const Appointments: React.FC = () => {
     }
   };
 
-  const exportPDF = async () => {
-    const { default: jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
-    const doc = new jsPDF({ orientation: "landscape" });
+  const filtered =
+  selectedMotherId === "ALL"
+    ? appointments
+    : appointments.filter(a => a.mother_id === selectedMotherId);
+
+const motherName =
+  selectedMotherId === "ALL"
+    ? "All Mothers"
+    : filtered[0]?.mother
+      ? `${filtered[0].mother.first_name} ${filtered[0].mother.last_name}`
+      : "Mother";
+
+
+      const pdfVisibleAppointments = useMemo(() => {
+        const dateStr = calendarDate ? fmtDate(calendarDate) : null;
+        const monthKey = calendarDate
+          ? calendarDate.toISOString().slice(0, 7)
+          : null;
+      
+        const q = (search || "").trim().toLowerCase();
+      
+        return appointments
+          // 🔹 Mother filter
+          .filter(a => selectedMotherId === "ALL" || a.mother_id === selectedMotherId)
+      
+          // 🔹 Status filter
+          .filter(a => filterStatus === "All" || a.status === filterStatus)
+      
   
-    // 🩵 Title & header
-    doc.setFontSize(18);
-    doc.text("Appointments Report", 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 28);
+// 🔹 DATE / MONTH logic
+.filter(a => {
+  // All-time → NO date filter
+  if (!allByMonth) return true;
+
+  // Monthly → month filter
+  return a.date.startsWith(monthKey!);
+})
+
+      
+          // 🔹 Search
+          .filter(a => {
+            if (!q) return true;
+            const name = a.mother
+              ? `${a.mother.first_name} ${a.mother.last_name}`.toLowerCase()
+              : "";
+            return (
+              name.includes(q) ||
+              (a.location || "").toLowerCase().includes(q) ||
+              (a.notes || "").toLowerCase().includes(q)
+            );
+          });
+      }, [
+        appointments,
+        calendarDate,
+        selectedMotherId,
+        filterStatus,
+        search,
+        allByMonth,
+      ]);
+      
+
+      const exportPDF = async () => {
+        const { default: jsPDF } = await import("jspdf");
+        const autoTable = (await import("jspdf-autotable")).default;
+    
+        const doc = new jsPDF({ orientation: "landscape" });
   
-    // 🩶 Table headers
-    const tableColumn = ["Mother", "Date", "Time", "Location", "Status", "Notes"];
-  
-    // 🩷 Table data
-    const tableRows = appointments.map((a) => [
-      a.mother ? `${a.mother.first_name} ${a.mother.last_name}` : "N/A",
-      a.date,
-      fmtTime12(a.time),
-      a.location || "",
-      a.status,
-      (a.notes || "").replace(/\n/g, " "),
-    ]);
-  
-    // 🧾 Generate table
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 40,
-      theme: "striped",
-      headStyles: {
-        fillColor: [37, 99, 235],
-        textColor: 255,
-        fontSize: 11,
-        halign: "center",
+
+
+        /* ================= HEADER ================= */
+      
+        try {
+          const logoBase64 = await loadImageBase64(logo);
+          doc.addImage(logoBase64, "PNG", 14, 10, 28, 28);
+        } catch {}
+      
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("eNanayCare – Appointments Report", 50, 18);
+      
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`BHW: ${bhwName}`, 50, 25);
+        doc.text(`Zone: ${bhwZone || "N/A"}`, 50, 30);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 50, 35);
+      
+        const dateLabel = allByMonth
+  ? calendarDate.toLocaleString("default", { month: "long", year: "numeric" })
+  : calendarDate
+  ? fmtDate(calendarDate)
+  : "All Dates";
+ doc.text(`Date Filter: ${dateLabel}`, 50, 40);
+        doc.text(`Mother: ${motherName}`, 50, 45);
+        doc.text(`Status: ${filterStatus}`, 50, 50);
+      
+
+       // ===== GROUP BY MOTHER (PDF ONLY) =====
+       const grouped = Object.values(
+        pdfVisibleAppointments.reduce((acc: any, a) => {
+          const name = a.mother
+            ? `${a.mother.first_name} ${a.mother.last_name}`
+            : "Unknown Mother";
+      
+          if (!acc[name]) {
+            acc[name] = {
+              name,
+              rows: [],
+              counts: { Scheduled: 0, Completed: 0, Missed: 0 },
+            };
+          }
+      
+          acc[name].rows.push(a);
+          acc[name].counts[a.status]++;
+      
+          return acc;
+        }, {})
+      );
+      
+
+// ===== BUILD TABLE BODY =====
+const body = grouped.flatMap((group: any) => [
+  // ===== MOTHER NAME ROW =====
+  [
+    {
+      content: group.name,
+      colSpan: 6,
+      styles: {
+        fontStyle: "bold",
+        fillColor: [245, 247, 250],
+        textColor: 20,
       },
-      styles: { fontSize: 10, cellPadding: 3 },
-      alternateRowStyles: { fillColor: [245, 247, 255] },
-      margin: { top: 40 },
-    });
-  
-    // 💾 Save file
-    const filename = `appointments_report_${new Date()
-      .toISOString()
-      .slice(0, 10)}.pdf`;
-    doc.save(filename);
-  };
+    },
+  ],
+
+  // ===== PER-MOTHER SUMMARY ROW =====
+  [
+    {
+      content: `Total: ${group.rows.length} | Scheduled: ${group.counts.Scheduled} | Completed: ${group.counts.Completed} | Missed: ${group.counts.Missed}`,
+      colSpan: 6,
+      styles: {
+        fontSize: 9,
+        fontStyle: "italic",
+        textColor: 80,
+      },
+    },
+  ],
+
+  // ===== APPOINTMENT ROWS =====
+  ...group.rows.map((a: Appointment) => [
+    "",
+    a.date,
+    fmtTime12(a.time),
+    a.location || "",
+    a.status,
+    a.notes || "",
+  ]),
+]);
+
+
+        /* ================= TABLE ================= */
+        autoTable(doc, {
+          startY: 58,
+          head: [["Mother", "Date", "Time", "Location", "Status", "Notes"]],
+          body, // ✅ KANI NA
+          theme: "grid",
+          styles: { fontSize: 9 },
+          headStyles: {
+            fillColor: [37, 99, 235],
+            textColor: 255,
+            fontStyle: "bold",
+          },
+          didDrawPage: (data) => {
+            const y =
+              (data.cursor?.y ??
+                (doc as any).lastAutoTable?.finalY ??
+                70) + 12;
+        
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.text(
+              `TOTAL — All: ${pdfTotals.all} | Scheduled: ${pdfTotals.scheduled} | Completed: ${pdfTotals.completed} | Missed: ${pdfTotals.missed}`,
+              14,
+              y
+            );
+          },
+        });
+        
+      
+        doc.save("eNanayCare_Appointments_Report.pdf");
+      };
+      
   
   
   // Calendar map, summary, visibleAppointments, upcoming (unchanged logic)
@@ -569,18 +832,53 @@ const Appointments: React.FC = () => {
     return { totals, monthlyData };
   }, [appointments]);
 
+
   const visibleAppointments = useMemo(() => {
     const dateStr = calendarDate ? fmtDate(calendarDate) : null;
     const q = (search || "").trim().toLowerCase();
+  
     return appointments
       .filter(a => (dateStr ? a.date === dateStr : true))
-      .filter(a => (filterStatus === "All" ? true : a.status === filterStatus))
+      .filter(a => selectedMotherId === "ALL" || a.mother_id === selectedMotherId)
+      .filter(a => filterStatus === "All" || a.status === filterStatus)
       .filter(a => {
         if (!q) return true;
         const name = a.mother ? `${a.mother.first_name} ${a.mother.last_name}`.toLowerCase() : "";
-        return name.includes(q) || (a.location || "").toLowerCase().includes(q) || (a.notes || "").toLowerCase().includes(q);
+        return (
+          name.includes(q) ||
+          (a.location || "").toLowerCase().includes(q) ||
+          (a.notes || "").toLowerCase().includes(q)
+        );
       });
-  }, [appointments, calendarDate, search, filterStatus]);
+  }, [appointments, calendarDate, search, selectedMotherId, filterStatus]);
+  
+  const pdfTotals = useMemo(() => {
+  const t = { all: 0, scheduled: 0, completed: 0, missed: 0 };
+
+  for (const a of pdfVisibleAppointments) {
+    t.all++;
+    if (a.status === "Scheduled") t.scheduled++;
+    else if (a.status === "Completed") t.completed++;
+    else if (a.status === "Missed") t.missed++;
+  }
+
+  return t;
+}, [pdfVisibleAppointments]);
+
+  
+  const motherSummary = useMemo(() => {
+    if (selectedMotherId === "ALL") return null;
+  
+    const list = appointments.filter(a => a.mother_id === selectedMotherId);
+  
+    return {
+      total: list.length,
+      completed: list.filter(a => a.status === "Completed").length,
+      missed: list.filter(a => a.status === "Missed").length,
+      scheduled: list.filter(a => a.status === "Scheduled").length,
+    };
+  }, [appointments, selectedMotherId]);
+  
 
   const upcoming = useMemo(() => {
     const now = fmtDate(new Date());
@@ -648,48 +946,107 @@ const Appointments: React.FC = () => {
             </div>
           </div>
 
-          {/* summary cards + controls */}
           <IonGrid>
-            <IonRow>
-              <IonCol size="12" sizeMd="8">
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <div className="stat-card">
-                    <div className="stat-title">Today</div>
-                    <div className="stat-value">{todayCount}</div>
-                    <div className="stat-sub">appointments</div>
-                  </div>
+  <IonRow>
 
-                  <div className="stat-card">
-                    <div className="stat-title">Scheduled</div>
-                    <div className="stat-value" style={{ color: STATUS_COLORS.Scheduled }}>{summary.totals.Scheduled || 0}</div>
-                    <div className="stat-sub">to visit</div>
-                  </div>
+    {/* LEFT: FILTERS */}
+    <IonCol size="12" sizeMd="4">
+      <div className="filter-card">
+        <h4 style={{ marginTop: 0 }}>Filters</h4>
 
-                  <div className="stat-card">
-                    <div className="stat-title">Completed</div>
-                    <div className="stat-value" style={{ color: STATUS_COLORS.Completed }}>{summary.totals.Completed || 0}</div>
-                    <div className="stat-sub">done</div>
-                  </div>
+        <IonItem lines="none">
+          <IonLabel position="stacked">Mother</IonLabel>
+          <IonSelect
+            value={selectedMotherId}
+            placeholder="All Mothers"
+            onIonChange={(e) => setSelectedMotherId(e.detail.value)}
+          >
+            <IonSelectOption value="ALL">All Mothers</IonSelectOption>
+            {mothers.map(m => (
+              <IonSelectOption key={m.mother_id} value={m.mother_id}>
+                {m.first_name} {m.last_name}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
 
-                  <div className="stat-card">
-                    <div className="stat-title">Missed</div>
-                    <div className="stat-value" style={{ color: STATUS_COLORS.Missed }}>{summary.totals.Missed || 0}</div>
-                    <div className="stat-sub">follow-up</div>
-                  </div>
-                </div>
-              </IonCol>
+        <IonItem lines="none">
+          <IonLabel position="stacked">Status</IonLabel>
+          <IonSelect
+            value={filterStatus}
+            onIonChange={e => setFilterStatus(e.detail.value)}
+          >
+            <IonSelectOption value="All">All</IonSelectOption>
+            <IonSelectOption value="Scheduled">Scheduled</IonSelectOption>
+            <IonSelectOption value="Completed">Completed</IonSelectOption>
+            <IonSelectOption value="Missed">Missed</IonSelectOption>
+          </IonSelect>
+        </IonItem>
+      </div>
+    </IonCol>
 
-              <IonCol size="12" sizeMd="4" style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
-                <IonInput placeholder="Search mother/location/notes" value={search} onIonChange={e => setSearch(e.detail.value!)} />
-                <IonSelect value={filterStatus} onIonChange={e => setFilterStatus(e.detail.value)}>
-                  <IonSelectOption value="All">All</IonSelectOption>
-                  <IonSelectOption value="Scheduled">Scheduled</IonSelectOption>
-                  <IonSelectOption value="Completed">Completed</IonSelectOption>
-                  <IonSelectOption value="Missed">Missed</IonSelectOption>
-                </IonSelect>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
+    {/* RIGHT: SUMMARY CARDS */}
+    <IonCol size="12" sizeMd="8">
+      <IonRow>
+        {(["All", "Scheduled", "Completed", "Missed"] as const).map(key => (
+          <IonCol size="6" sizeMd="3" key={key}>
+  <div
+  className="stat-card big"
+  onClick={() => {
+    if (key === "All") {
+      setAllByMonth(prev => !prev);
+    } else {
+      setFilterStatus(key);
+    }
+  }}
+>
+
+              <div className="stat-title">{key}</div>
+              <div
+  className="stat-value"
+  style={{
+    color:
+      key === "Missed" && statusPercentages.Missed >= 50
+        ? "#dc2626"
+        : key === "All"
+        ? "#111"
+        : STATUS_COLORS[key],
+  }}
+>
+  {statusCards[key]}
+</div>
+<div className="stat-sub">
+{allByMonth
+  ? calendarDate.toLocaleString("default", { month: "long", year: "numeric" })
+  : "all-time"}
+</div>
+{allByMonth && (
+  <div
+    style={{
+      marginTop: 4,
+      fontSize: 11,
+      padding: "2px 6px",
+      borderRadius: 999,
+      background: "#e0f2fe",
+      color: "#0369a1",
+      fontWeight: 600,
+    }}
+  >
+    Monthly
+  </div>
+)}
+
+
+
+            </div>
+          </IonCol>
+        ))}
+      </IonRow>
+    </IonCol>
+
+  </IonRow>
+</IonGrid>
+
 
           {/* calendar + upcoming + chart */}
           <IonGrid>
@@ -734,7 +1091,17 @@ const Appointments: React.FC = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis allowDecimals={false} />
-                        <Tooltip />
+                        <Tooltip
+  formatter={(value, name) => {
+    const total =
+      summary.totals.Scheduled +
+      summary.totals.Completed +
+      summary.totals.Missed;
+
+    return [`${value} (${pct(value as number, total)}%)`, name];
+  }}
+/>
+
                         <Bar dataKey="Scheduled" stackId="a" fill={STATUS_COLORS.Scheduled} />
                         <Bar dataKey="Completed" stackId="a" fill={STATUS_COLORS.Completed} />
                         <Bar dataKey="Missed" stackId="a" fill={STATUS_COLORS.Missed} />
@@ -763,7 +1130,18 @@ const Appointments: React.FC = () => {
                       <tbody>
                         {visibleAppointments.map(a => (
                           <tr key={a.id}>
-                            <td>{a.mother ? `${a.mother.first_name} ${a.mother.last_name}` : "N/A"}</td>
+                          <td>
+  {a.mother ? (
+    <span
+      style={{ color: "#2563eb", cursor: "pointer", fontWeight: 600 }}
+      onClick={() => setSelectedMotherId(a.mother_id)}
+      title="View this mother's records"
+    >
+      {a.mother.first_name} {a.mother.last_name}
+    </span>
+  ) : "N/A"}
+</td>
+
                             <td>{a.date}</td>
                             <td>{fmtTime12(a.time)}</td>
                             <td>{a.location}</td>
@@ -836,6 +1214,50 @@ const Appointments: React.FC = () => {
           .top-banner { display:flex; justify-content:space-between; align-items:center; gap:12px; background: linear-gradient(90deg,#eef2ff,#e6fffa); padding:12px; border-radius:10px; margin-bottom:12px; box-shadow: 0 2px 8px rgba(2,6,23,0.04); }
           .top-actions ion-button { margin-left:6px; }
           .stat-card { background: #fff; padding:12px 14px; border-radius:10px; box-shadow:0 1px 6px rgba(2,6,23,0.04); min-width:120px; }
+          .stat-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+          }
+          .filter-card {
+            background: #fff;
+            padding: 14px;
+            border-radius: 12px;
+            box-shadow: 0 1px 6px rgba(2,6,23,0.06);
+          }
+          .stat-card.big {
+            padding: 18px 16px;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+          }
+          
+          .stat-card.big .stat-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+          }
+          
+          .stat-card.big .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+          }
+          
+          .stat-card.big .stat-sub {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+          }
+          
+          
+          .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(2,6,23,0.08);
+          }
+          
           .stat-title { font-size:12px; color:#666; }
           .stat-value { font-size:22px; font-weight:700; margin-top:4px; }
           .stat-sub { font-size:12px; color:#888; margin-top:4px; }
