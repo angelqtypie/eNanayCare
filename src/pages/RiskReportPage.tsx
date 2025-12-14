@@ -46,11 +46,7 @@ interface HealthRecord {
   created_at?: string;
 }
 
-interface ChartDataItem {
-  name: string;
-  value: number;
-  color: string;
-}
+
 
 interface RiskDetail {
   mother_id?: string;
@@ -194,18 +190,23 @@ const RiskReportPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const chartData: ChartDataItem[] = [
-    {
-      name: "At Risk",
-      value: riskMothers.filter((r) => r.risk_type !== "Stable").length,
-      color: "#ef4444",
-    },
-    {
-      name: "Stable",
-      value: riskMothers.filter((r) => r.risk_type === "Stable").length,
-      color: "#10b981",
-    },
-  ];
+// 🔵 Pie chart data (Recharts-friendly)
+const pieData: Array<Record<string, string | number>> = [
+  {
+    name: "At Risk",
+    value: riskMothers.filter(r => r.risk_type !== "Stable").length,
+  },
+  {
+    name: "Stable",
+    value: riskMothers.filter(r => r.risk_type === "Stable").length,
+  },
+];
+
+// 🎨 Pie chart colors
+const pieColors: Record<string, string> = {
+  "At Risk": "#ef4444",
+  Stable: "#10b981",
+};
 
   const filteredList = riskMothers.filter((m) => {
     const matchSearch = m.mother_name.toLowerCase().includes(search.toLowerCase());
@@ -313,21 +314,25 @@ const RiskReportPage: React.FC = () => {
               <IonCardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
-                      label={({ name, percent }: { name?: string; percent?: number }) =>
-                        `${name ?? "Unknown"} ${((percent ?? 0) * 100).toFixed(0)}%`
-                      }
-                    >
-                      {chartData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
+                  <Pie
+  data={pieData}
+  dataKey="value"
+  nameKey="name"
+  cx="50%"
+  cy="50%"
+  innerRadius={55}
+  outerRadius={85}
+  label={({ name, percent }) =>
+    `${name ?? "Unknown"} ${((percent ?? 0) * 100).toFixed(0)}%`
+  }
+>
+  {pieData.map((entry, i) => (
+    <Cell
+      key={i}
+      fill={pieColors[String(entry.name)]}
+    />
+  ))}
+</Pie>
                     <Tooltip />
                     <Legend verticalAlign="bottom" />
                   </PieChart>

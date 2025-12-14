@@ -196,39 +196,6 @@ const DashboardBHW: React.FC = () => {
 
         {/* === Risk & Updates Section === */}
         <div className="dashboard-bottom">
-          <div className="risk-report-card">
-            <h2>
-              <IonIcon icon={alertCircleOutline} /> Mothers At Risk
-            </h2>
-            {loading ? (
-              <IonSpinner name="dots" />
-            ) : riskReports.length > 0 ? (
-              <>
-                <ul className="risk-list">
-                  {riskReports.slice(0, 3).map((r: RiskReport) => (
-                    <li key={r.id} onClick={() => handleRiskClick(r)} className="risk-item">
-                      <strong>{r.mother_name}</strong> — {r.risk_type}
-                      <br />
-                      <small>{new Date(r.created_at).toLocaleDateString()}</small>
-                    </li>
-                  ))}
-                </ul>
-                {riskReports.length > 3 && (
-                  <button
-                    className="view-all-btn"
-                    onClick={() => history.push("/riskreportpage")}
-                  >
-                    View All ({riskReports.length})
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="alert-text safe">
-                No mothers currently at risk in your zone.
-              </p>
-            )}
-          </div>
-
           <div className="updates-card">
             <h2>
               <IonIcon icon={megaphoneOutline} /> Barangay Updates
@@ -249,51 +216,7 @@ const DashboardBHW: React.FC = () => {
           </div>
         </div>
 
-        {/* === Modal for Risk Report === */}
-        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
-          <div className="modal-content">
-            {selectedRisk ? (
-              <>
-                <button className="close-btn" onClick={() => setShowModal(false)}>
-                  <IonIcon icon={closeCircleOutline} />
-                </button>
-                <h2>{selectedRisk.mother_name}</h2>
-                <p>
-                  <strong>Risk Type:</strong> {selectedRisk.risk_type}
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={
-                      selectedRisk.status === "Pending"
-                        ? "status pending"
-                        : "status resolved"
-                    }
-                  >
-                    {selectedRisk.status}
-                  </span>
-                </p>
-                <p>
-                  <strong>Reported On:</strong>{" "}
-                  {new Date(selectedRisk.created_at).toLocaleString()}
-                </p>
-
-                <IonButton
-                  expand="block"
-                  color="primary"
-                  onClick={() => {
-                    setShowModal(false);
-                    history.push(`/riskreportpage`);
-                  }}
-                >
-                  View Full Details
-                </IonButton>
-              </>
-            ) : (
-              <p>Loading...</p>
-            )}
-          </div>
-        </IonModal>
+  
       </motion.div>
     </MainLayout>
   );
