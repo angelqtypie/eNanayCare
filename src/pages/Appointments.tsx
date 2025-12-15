@@ -34,6 +34,8 @@ import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 import emailjs from "@emailjs/browser";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   BarChart,
   Bar,
@@ -668,14 +670,7 @@ const motherName =
       
 
       const exportPDF = async () => {
-        const { default: jsPDF } = await import("jspdf");
-        const autoTable = (await import("jspdf-autotable")).default;
-    
         const doc = new jsPDF({ orientation: "landscape" });
-  
-
-
-        /* ================= HEADER ================= */
       
         try {
           const logoBase64 = await loadImageBase64(logo);
@@ -693,83 +688,73 @@ const motherName =
         doc.text(`Generated: ${new Date().toLocaleString()}`, 50, 35);
       
         const dateLabel = allByMonth
-  ? calendarDate.toLocaleString("default", { month: "long", year: "numeric" })
-  : calendarDate
-  ? fmtDate(calendarDate)
-  : "All Dates";
- doc.text(`Date Filter: ${dateLabel}`, 50, 40);
+          ? calendarDate.toLocaleString("default", { month: "long", year: "numeric" })
+          : calendarDate
+          ? fmtDate(calendarDate)
+          : "All Dates";
+      
+        doc.text(`Date Filter: ${dateLabel}`, 50, 40);
         doc.text(`Mother: ${motherName}`, 50, 45);
         doc.text(`Status: ${filterStatus}`, 50, 50);
       
-
-       // ===== GROUP BY MOTHER (PDF ONLY) =====
-       const grouped = Object.values(
-        pdfVisibleAppointments.reduce((acc: any, a) => {
-          const name = a.mother
-            ? `${a.mother.first_name} ${a.mother.last_name}`
-            : "Unknown Mother";
+        /* ===== GROUPED BODY (SAME LOGIC) ===== */
+        const grouped = Object.values(
+          pdfVisibleAppointments.reduce((acc: any, a) => {
+            const name = a.mother
+              ? `${a.mother.first_name} ${a.mother.last_name}`
+              : "Unknown Mother";
       
-          if (!acc[name]) {
-            acc[name] = {
-              name,
-              rows: [],
-              counts: { Scheduled: 0, Completed: 0, Missed: 0 },
-            };
-          }
+            if (!acc[name]) {
+              acc[name] = {
+                name,
+                rows: [],
+                counts: { Scheduled: 0, Completed: 0, Missed: 0 },
+              };
+            }
       
-          acc[name].rows.push(a);
-          acc[name].counts[a.status]++;
+            acc[name].rows.push(a);
+            acc[name].counts[a.status]++;
+            return acc;
+          }, {})
+        );
       
-          return acc;
-        }, {})
-      );
+        const body = grouped.flatMap((group: any) => [
+          [
+            {
+              content: group.name,
+              colSpan: 6,
+              styles: {
+                fontStyle: "bold",
+                fillColor: [245, 247, 250],
+                textColor: 20,
+              },
+            },
+          ],
+          [
+            {
+              content: `Total: ${group.rows.length} | Scheduled: ${group.counts.Scheduled} | Completed: ${group.counts.Completed} | Missed: ${group.counts.Missed}`,
+              colSpan: 6,
+              styles: {
+                fontSize: 9,
+                fontStyle: "italic",
+                textColor: 80,
+              },
+            },
+          ],
+          ...group.rows.map((a: Appointment) => [
+            "",
+            a.date,
+            fmtTime12(a.time),
+            a.location || "",
+            a.status,
+            a.notes || "",
+          ]),
+        ]);
       
-
-// ===== BUILD TABLE BODY =====
-const body = grouped.flatMap((group: any) => [
-  // ===== MOTHER NAME ROW =====
-  [
-    {
-      content: group.name,
-      colSpan: 6,
-      styles: {
-        fontStyle: "bold",
-        fillColor: [245, 247, 250],
-        textColor: 20,
-      },
-    },
-  ],
-
-  // ===== PER-MOTHER SUMMARY ROW =====
-  [
-    {
-      content: `Total: ${group.rows.length} | Scheduled: ${group.counts.Scheduled} | Completed: ${group.counts.Completed} | Missed: ${group.counts.Missed}`,
-      colSpan: 6,
-      styles: {
-        fontSize: 9,
-        fontStyle: "italic",
-        textColor: 80,
-      },
-    },
-  ],
-
-  // ===== APPOINTMENT ROWS =====
-  ...group.rows.map((a: Appointment) => [
-    "",
-    a.date,
-    fmtTime12(a.time),
-    a.location || "",
-    a.status,
-    a.notes || "",
-  ]),
-]);
-
-
-        /* ================= TABLE ================= */
         autoTable(doc, {
           startY: 58,
           head: [["Mother", "Date", "Time", "Location", "Status", "Notes"]],
-          body, // ✅ KANI NA
+          body,
           theme: "grid",
           styles: { fontSize: 9 },
           headStyles: {
@@ -782,7 +767,7 @@ const body = grouped.flatMap((group: any) => [
               (data.cursor?.y ??
                 (doc as any).lastAutoTable?.finalY ??
                 70) + 12;
-        
+      
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
             doc.text(
@@ -792,7 +777,6 @@ const body = grouped.flatMap((group: any) => [
             );
           },
         });
-        
       
         doc.save("eNanayCare_Appointments_Report.pdf");
       };
