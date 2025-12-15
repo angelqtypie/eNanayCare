@@ -30,6 +30,8 @@ import {
 } from "ionicons/icons";
 import Calendar from "react-calendar";
 import logo from "../assets/logo.png";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
@@ -666,18 +668,12 @@ const motherName =
       
       
       const exportPDF = async () => {
-        const { default: jsPDF } = await import("jspdf");
-        const autoTable = (await import("jspdf-autotable")).default;
-      
         const doc = new jsPDF({ orientation: "landscape" });
       
-        // 🔥 LOAD LOGO FROM ASSETS
         try {
           const logoPath = import.meta.env.BASE_URL + "assets/logo.png";
           const logoDataUrl = await loadImageAsBase64(logoPath);
-          
-          doc.addImage(logo, "PNG", 14, 10, 28, 28);
-          
+          doc.addImage(logoDataUrl, "PNG", 14, 10, 36, 36);
         } catch (e) {
           console.warn("Logo failed to load", e);
         }
