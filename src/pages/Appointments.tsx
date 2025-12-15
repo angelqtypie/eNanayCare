@@ -34,6 +34,9 @@ import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 import emailjs from "@emailjs/browser";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import {
   BarChart,
   Bar,
@@ -679,7 +682,9 @@ const motherName =
       
         try {
           doc.addImage(logoBase64, "PNG", 14, 10, 28, 28);
-        } catch {}
+        } catch(err) {
+          console.warn("Logo not added", err);
+        }        
       
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
