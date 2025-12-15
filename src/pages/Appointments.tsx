@@ -29,7 +29,6 @@ import {
   documentOutline,
 } from "ionicons/icons";
 import Calendar from "react-calendar";
-import logo from "../assets/logo.png";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "react-calendar/dist/Calendar.css";
@@ -625,12 +624,11 @@ const motherName =
   
 // 🔹 DATE / MONTH logic
 .filter(a => {
-  // All-time → NO date filter
   if (!allByMonth) return true;
-
-  // Monthly → month filter
-  return a.date.startsWith(monthKey!);
+  if (!monthKey) return true; // ✅ safety
+  return a.date.startsWith(monthKey);
 })
+
 
       
           // 🔹 Search
@@ -654,30 +652,67 @@ const motherName =
         allByMonth,
       ]);
       
-      const loadImageAsBase64 = async (path: string): Promise<string> => {
-        const res = await fetch(path);
-        const blob = await res.blob();
-      
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string); // ✅ keep prefix
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      };
-      
-      
-      const exportPDF = async () => {
-        const doc = new jsPDF({ orientation: "landscape" });
-      
-        try {
-          const logoPath = import.meta.env.BASE_URL + "assets/logo.png";
-          const logoDataUrl = await loadImageAsBase64(logoPath);
-          doc.addImage(logoDataUrl, "PNG", 14, 10, 36, 36);
-        } catch (e) {
-          console.warn("Logo failed to load", e);
-        }
 
+      
+      const drawWatermark = (doc: jsPDF) => {
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+
+  doc.saveGraphicsState();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(60);
+  doc.setTextColor(200, 200, 200);
+  (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
+
+  doc.text("CONFIDENTIAL", w / 2, h / 2, {
+    align: "center",
+    angle: 45,
+  });
+
+  doc.restoreGraphicsState();
+};
+
+const pdfTotals = useMemo(() => {
+  const t = { all: 0, scheduled: 0, completed: 0, missed: 0 };
+
+  for (const a of pdfVisibleAppointments) {
+    t.all++;
+    if (a.status === "Scheduled") t.scheduled++;
+    else if (a.status === "Completed") t.completed++;
+    else if (a.status === "Missed") t.missed++;
+  }
+
+  return t;
+}, [pdfVisibleAppointments]);
+
+const loadImageBase64 = (fileName: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject("Canvas error");
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject("Image load failed");
+
+    // 🔥 THIS IS THE FIX
+    img.src = `${import.meta.env.BASE_URL}logo1.png`;
+  });
+
+
+  const exportPDF = async () => {
+    const doc = new jsPDF({ orientation: "landscape" });
+  
+    try {
+      const logoBase64 = await loadImageBase64("logo1.png");
+      doc.addImage(logoBase64, "PNG", 14, 10, 32, 32);
+    } catch (e) {
+      console.warn("Logo not loaded", e);
+    }
         /* ================= HEADER ================= */
       
         doc.setFontSize(16);
@@ -776,11 +811,13 @@ const body = grouped.flatMap((group: any) => [
             fontStyle: "bold",
           },
           didDrawPage: (data) => {
+            drawWatermark(doc); // 🔥 THIS WAS MISSING
+          
             const y =
               (data.cursor?.y ??
                 (doc as any).lastAutoTable?.finalY ??
                 70) + 12;
-        
+          
             doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
             doc.text(
@@ -789,7 +826,7 @@ const body = grouped.flatMap((group: any) => [
               y
             );
           },
-        });
+});          
         
       
         doc.save("eNanayCare_Appointments_Report.pdf");
@@ -850,18 +887,6 @@ const body = grouped.flatMap((group: any) => [
       });
   }, [appointments, calendarDate, search, selectedMotherId, filterStatus]);
   
-  const pdfTotals = useMemo(() => {
-  const t = { all: 0, scheduled: 0, completed: 0, missed: 0 };
-
-  for (const a of pdfVisibleAppointments) {
-    t.all++;
-    if (a.status === "Scheduled") t.scheduled++;
-    else if (a.status === "Completed") t.completed++;
-    else if (a.status === "Missed") t.missed++;
-  }
-
-  return t;
-}, [pdfVisibleAppointments]);
 
   
   const motherSummary = useMemo(() => {
