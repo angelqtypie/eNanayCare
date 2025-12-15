@@ -28,8 +28,8 @@ import {
   alertCircleOutline,
   documentOutline,
 } from "ionicons/icons";
-import logo from "../assets/logo.png";
 import Calendar from "react-calendar";
+import logo from "../assets/logo.png";
 import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
@@ -420,21 +420,7 @@ const Appointments: React.FC = () => {
 
 
 
-  const loadImageBase64 = (url: string): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
+
 
   // Add appointment(s) + send email notifications via EmailJS
   const addAppointment = async () => {
@@ -666,21 +652,37 @@ const motherName =
         allByMonth,
       ]);
       
-
+      const loadImageAsBase64 = async (path: string): Promise<string> => {
+        const res = await fetch(path);
+        const blob = await res.blob();
+      
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string); // ✅ keep prefix
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      };
+      
+      
       const exportPDF = async () => {
         const { default: jsPDF } = await import("jspdf");
         const autoTable = (await import("jspdf-autotable")).default;
-    
+      
         const doc = new jsPDF({ orientation: "landscape" });
-  
-
+      
+        // 🔥 LOAD LOGO FROM ASSETS
+        try {
+          const logoPath = import.meta.env.BASE_URL + "assets/logo.png";
+          const logoDataUrl = await loadImageAsBase64(logoPath);
+          
+          doc.addImage(logo, "PNG", 14, 10, 28, 28);
+          
+        } catch (e) {
+          console.warn("Logo failed to load", e);
+        }
 
         /* ================= HEADER ================= */
-      
-        try {
-          const logoBase64 = await loadImageBase64(logo);
-          doc.addImage(logoBase64, "PNG", 14, 10, 28, 28);
-        } catch {}
       
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
