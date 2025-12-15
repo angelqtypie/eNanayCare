@@ -28,15 +28,12 @@ import {
   alertCircleOutline,
   documentOutline,
 } from "ionicons/icons";
-import logoBase64 from "../utils/logoBase64";
+import logo from "../assets/logo.png";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import MainLayout from "../layouts/MainLayouts";
 import { supabase } from "../utils/supabaseClient";
 import emailjs from "@emailjs/browser";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 import {
   BarChart,
   Bar,
@@ -681,10 +678,9 @@ const motherName =
         /* ================= HEADER ================= */
       
         try {
+          const logoBase64 = await loadImageBase64(logo);
           doc.addImage(logoBase64, "PNG", 14, 10, 28, 28);
-        } catch(err) {
-          console.warn("Logo not added", err);
-        }        
+        } catch {}
       
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
